@@ -127,6 +127,7 @@ body[data-theme="night"] .story-description { color: #c3b49b; line-height: 1.75;
 body[data-theme="night"] ::selection { color: #191613; background: #e6a078; }
 body[data-view="pages"].reading { height: 100vh; height: 100dvh; overflow: hidden; }
 body[data-view="pages"].reading .reader-view { height: calc(100vh - 52px); height: calc(100dvh - 52px); min-height: 0; overflow: hidden; }
+body[data-view="pages"] .reader-toolbar { position: relative; top: 0; }
 body[data-view="pages"] .reading-viewport { height: calc(100vh - 102px); height: calc(100dvh - 102px); min-height: 0; overflow: hidden; padding: 20px 28px 54px; }
 body[data-view="pages"] .reading-page { height: 100%; max-width: 900px; min-height: 0; padding: 52px 70px; overflow-x: hidden; overflow-y: hidden; scroll-behavior: smooth; scrollbar-width: none; background: rgba(255,255,255,.12); border: 1px solid var(--line); column-width: calc(900px - 140px); column-gap: 140px; column-fill: auto; }
 body[data-view="pages"] .reading-page::-webkit-scrollbar { display: none; }

@@ -31,6 +31,7 @@ test("Kapitel und Archivkarten verwenden getrennte, delegierte Navigation", asyn
   assert.match(source, /behavior: state\.motion \? "smooth" : "auto"/);
   const styles = await readFile(new URL("../public/styles.css", import.meta.url), "utf8");
   assert.match(styles, /height: calc\(100dvh - 96px\)/);
+  assert.match(styles, /\[data-view="pages"\] \.reader-toolbar \{ position: relative; top: 0; \}/);
   assert.match(styles, /\.reading-page :is\(a, button, details\).*z-index: 4/);
   assert.match(markup, /<symbol id="i-pages"/);
   assert.match(source, /iconSvg\(progress\.state\)/);
