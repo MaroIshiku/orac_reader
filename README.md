@@ -1,4 +1,4 @@
-# ORACLE Chroniken
+# ORACLE Archiv
 
 Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. OracleDB bleibt als separate Anwendung unter `oracledb.ishiku.de`; beide Seiten sind lediglich über normale Links verbunden.
 

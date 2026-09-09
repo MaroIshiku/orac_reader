@@ -18,9 +18,10 @@ test("jede Bibliothekskarte behält ihr eigenes Ziel nach Chronikwechseln", () =
   assert.equal(readerHash(secondBook.id, cardDestination(secondBook, history).part.id), "read/book-b/b-2");
 });
 
-test("Kapitelhandler sind auf die Inhaltsnavigation begrenzt", async () => {
+test("Kapitel und Archivkarten verwenden getrennte, delegierte Navigation", async () => {
   const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
   assert.match(source, /#chapterList \[data-chapter-part\]/);
   assert.doesNotMatch(source, /\$\$\('\[data-chapter-part\]'\)/);
-  assert.match(source, /#bookGrid \[data-card-book\]/);
+  assert.match(source, /#bookGrid"\)\.addEventListener\("click"/);
+  assert.doesNotMatch(source, /\[data-card-book\].*\.onclick/);
 });

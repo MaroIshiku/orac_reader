@@ -10,10 +10,13 @@ const bundledData = join(root, "data", "library.json");
 const dataRoot = process.env.DATA_DIR || join(root, "data");
 const dataFile = join(dataRoot, "library.json");
 const port = Number(process.env.PORT || 4180);
+const appVersion = safeBuildVersion(process.env.APP_VERSION || "development");
 const adminSecret = process.env.ADMIN_PASSWORD;
 const secureCookie = process.env.COOKIE_SECURE === "true";
 const sessions = new Map();
 const attempts = new Map();
+
+function safeBuildVersion(value) { return /^[a-zA-Z0-9._-]{1,64}$/.test(value) ? value : "development"; }
 
 if (!adminSecret) {
   console.error("ADMIN_PASSWORD fehlt. Der Reader wird aus Sicherheitsgründen nicht gestartet.");
@@ -49,7 +52,7 @@ const saveLibrary = async (library) => { const temp = `${dataFile}.${process.pid
 async function migrateLibrary() {
   const library = await loadLibrary(); let changed = false;
   if (!library.settings) { library.settings = { numberDigits: 4 }; changed = true; }
-  library.books.forEach((book, index) => { if (!Number.isInteger(book.number)) { const stored = book.id?.match(/oracle-(\d+)/)?.[1]; book.number = stored !== undefined ? Number(stored) : index; changed = true; } });
+  library.books.forEach((book, index) => { if (!Number.isInteger(book.number)) { const stored = book.id?.match(/oracle-(\d+)/)?.[1]; book.number = stored !== undefined ? Number(stored) : index; changed = true; } if (book.kicker === "ORACLE · CHRONIK") { book.kicker = "ORACLE · ARCHIV"; changed = true; } if (book.description?.startsWith("Eine Chronik aus dem ORACLE-Universum.")) { book.description = book.description.replace("Eine Chronik aus dem ORACLE-Universum.", "Ein Eintrag des ORACLE-Archivs."); changed = true; } });
   if (changed) await saveLibrary(library);
 }
 
@@ -60,7 +63,7 @@ function validateBook(input, old = null) {
   const status = ["draft", "scheduled", "published"].includes(input.status) ? input.status : "draft";
   let publishAt = null;
   if (status === "scheduled") { const timestamp = new Date(input.publishAt).getTime(); if (!Number.isFinite(timestamp)) throw new Error("Für eine geplante Veröffentlichung wird ein Datum benötigt."); publishAt = new Date(timestamp).toISOString(); }
-  return { id: old?.id || `${slug(title)}-${Date.now().toString(36)}`, number, title, kicker: safeText(input.kicker, 80) || "ORACLE · CHRONIK", description, tldr: safeText(input.tldr, 3000), status, publishAt, updatedAt: new Date().toISOString(), chapters: old?.chapters || [] };
+  return { id: old?.id || `${slug(title)}-${Date.now().toString(36)}`, number, title, kicker: safeText(input.kicker, 80) || "ORACLE · ARCHIV", description, tldr: safeText(input.tldr, 3000), status, publishAt, updatedAt: new Date().toISOString(), chapters: old?.chapters || [] };
 }
 function validatePart(input, old = null) {
   const chapterNumber = Number(input.chapter); const partNumber = Number(input.part); const chapterTitle = safeText(input.chapterTitle, 160); const title = safeText(input.partTitle, 160); const content = String(input.content || "").trim().slice(0, 5_000_000);
@@ -86,18 +89,18 @@ async function api(req, res, url) {
   if (req.method === "POST" && url.pathname === "/api/logout") { sessions.delete(parseCookies(req).oracle_reader_session); return json(res, 200, { ok: true }, { "Set-Cookie": "oracle_reader_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0" }); }
   if (req.method === "GET" && url.pathname === "/api/session") return json(res, 200, { admin: isAdmin(req) });
   const library = await loadLibrary();
-  if (req.method === "GET" && url.pathname === "/api/library") return json(res, 200, { books: library.books.filter((book) => isAdmin(req) || isPublished(book)), links: library.links || [], settings: library.settings || { numberDigits: 4 }, admin: isAdmin(req) });
+  if (req.method === "GET" && url.pathname === "/api/library") return json(res, 200, { books: library.books.filter((book) => isAdmin(req) || isPublished(book)), links: library.links || [], settings: library.settings || { numberDigits: 4 }, admin: isAdmin(req), version: appVersion });
   if (url.pathname.startsWith("/api/admin/") && !isAdmin(req)) return json(res, 401, { error: "Admin-Anmeldung erforderlich." });
 
-  if (req.method === "POST" && url.pathname === "/api/admin/books") { const book = validateBook(await requestBody(req)); if (book.status !== "draft") return json(res, 409, { error: "Eine neue Chronik muss vor dem Veröffentlichen mindestens einen Teil enthalten." }); if (library.books.some((item) => item.number === book.number)) return json(res, 409, { error: "Diese offizielle Nummer ist bereits vergeben." }); library.books.unshift(book); await saveLibrary(library); return json(res, 201, book); }
+  if (req.method === "POST" && url.pathname === "/api/admin/books") { const book = validateBook(await requestBody(req)); if (book.status !== "draft") return json(res, 409, { error: "Ein neuer Archiveintrag muss vor dem Veröffentlichen mindestens einen Teil enthalten." }); if (library.books.some((item) => item.number === book.number)) return json(res, 409, { error: "Diese offizielle Nummer ist bereits vergeben." }); library.books.unshift(book); await saveLibrary(library); return json(res, 201, book); }
   const bookMatch = url.pathname.match(/^\/api\/admin\/books\/([^/]+)$/); const book = bookMatch ? library.books.find((item) => item.id === decodeURIComponent(bookMatch[1])) : null;
-  if (bookMatch && !book) return json(res, 404, { error: "Chronik nicht gefunden." });
-  if (req.method === "PUT" && bookMatch) { const updated = validateBook(await requestBody(req), book); if (library.books.some((item) => item !== book && item.number === updated.number)) return json(res, 409, { error: "Diese offizielle Nummer ist bereits vergeben." }); if (updated.status !== "draft" && !hasContent(updated)) return json(res, 409, { error: "Eine leere Chronik kann nicht veröffentlicht werden." }); Object.assign(book, updated); await saveLibrary(library); return json(res, 200, book); }
+  if (bookMatch && !book) return json(res, 404, { error: "Archiveintrag nicht gefunden." });
+  if (req.method === "PUT" && bookMatch) { const updated = validateBook(await requestBody(req), book); if (library.books.some((item) => item !== book && item.number === updated.number)) return json(res, 409, { error: "Diese offizielle Nummer ist bereits vergeben." }); if (updated.status !== "draft" && !hasContent(updated)) return json(res, 409, { error: "Ein leerer Archiveintrag kann nicht veröffentlicht werden." }); Object.assign(book, updated); await saveLibrary(library); return json(res, 200, book); }
   if (req.method === "DELETE" && bookMatch) { library.books.splice(library.books.indexOf(book), 1); await saveLibrary(library); return json(res, 200, { ok: true }); }
 
   const partCollection = url.pathname.match(/^\/api\/admin\/books\/([^/]+)\/parts$/);
   if (req.method === "POST" && partCollection) {
-    const target = library.books.find((item) => item.id === decodeURIComponent(partCollection[1])); if (!target) return json(res, 404, { error: "Chronik nicht gefunden." });
+    const target = library.books.find((item) => item.id === decodeURIComponent(partCollection[1])); if (!target) return json(res, 404, { error: "Archiveintrag nicht gefunden." });
     const valid = validatePart(await requestBody(req)); let chapter = target.chapters.find((item) => item.number === valid.chapterNumber);
     if (!chapter) { chapter = { id: `chapter-${Date.now().toString(36)}`, number: valid.chapterNumber, title: valid.chapterTitle, parts: [] }; target.chapters.push(chapter); }
     if (chapter.parts.some((part) => part.number === valid.part.number)) return json(res, 409, { error: "Diese Teilnummer ist im Kapitel bereits vergeben." });
@@ -120,6 +123,7 @@ createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`); if (url.pathname.startsWith("/api/")) return await api(req, res, url);
     const requested = url.pathname === "/" ? "index.html" : url.pathname.slice(1); const file = normalize(join(publicRoot, requested)); if (file !== publicRoot && !file.startsWith(`${publicRoot}${sep}`)) return send(res, 403, "Nicht erlaubt"); await stat(file);
-    return send(res, 200, await readFile(file), { "Content-Type": types[extname(file)] || "application/octet-stream", "Cache-Control": "public, max-age=300" });
+    const extension = extname(file); const cacheControl = [".html", ".css", ".js", ".json"].includes(extension) ? "no-cache, must-revalidate" : "public, max-age=86400";
+    return send(res, 200, await readFile(file), { "Content-Type": types[extension] || "application/octet-stream", "Cache-Control": cacheControl });
   } catch (error) { if (error?.code === "ENOENT") return send(res, 404, "Nicht gefunden", { "Content-Type": "text/plain; charset=utf-8" }); console.error(error); return json(res, error instanceof SyntaxError ? 400 : 500, { error: error.message || "Interner Fehler." }); }
 }).listen(port, "0.0.0.0", () => console.log(`ORACLE Reader läuft auf Port ${port}`));

@@ -4,12 +4,12 @@
       "id": "oracle-0000",
       "number": 0,
       "title": "Prolog",
-      "kicker": "ORACLE · CHRONIK",
-      "description": "Eine Chronik aus dem ORACLE-Universum. 1 Teil.",
+      "kicker": "ORACLE · ARCHIV",
+      "description": "Ein Eintrag des ORACLE-Archivs. 1 Teil.",
       "tldr": "",
       "status": "published",
       "publishAt": null,
-      "updatedAt": "2026-09-09T18:55:22.939Z",
+      "updatedAt": "2026-09-09T19:18:38.944Z",
       "chapters": [
         {
           "id": "oracle-0000-chapter-0",
@@ -30,12 +30,12 @@
       "id": "oracle-0001",
       "number": 1,
       "title": "Der Schrecken von Traverspine",
-      "kicker": "ORACLE · CHRONIK",
-      "description": "Eine Chronik aus dem ORACLE-Universum. 4 Teile.",
+      "kicker": "ORACLE · ARCHIV",
+      "description": "Ein Eintrag des ORACLE-Archivs. 4 Teile.",
       "tldr": "",
       "status": "published",
       "publishAt": null,
-      "updatedAt": "2026-09-09T18:55:22.970Z",
+      "updatedAt": "2026-09-09T19:18:38.972Z",
       "chapters": [
         {
           "id": "oracle-0001-chapter-1",
@@ -74,12 +74,12 @@
       "id": "oracle-0002",
       "number": 2,
       "title": "Es ist noch nicht vorbei",
-      "kicker": "ORACLE · CHRONIK",
-      "description": "Eine Chronik aus dem ORACLE-Universum. 8 Teile.",
+      "kicker": "ORACLE · ARCHIV",
+      "description": "Ein Eintrag des ORACLE-Archivs. 8 Teile.",
       "tldr": "",
       "status": "published",
       "publishAt": null,
-      "updatedAt": "2026-09-09T18:55:23.024Z",
+      "updatedAt": "2026-09-09T19:18:39.011Z",
       "chapters": [
         {
           "id": "oracle-0002-chapter-2",
@@ -142,12 +142,12 @@
       "id": "oracle-0003",
       "number": 3,
       "title": "Transsilvanien!",
-      "kicker": "ORACLE · CHRONIK",
-      "description": "Eine Chronik aus dem ORACLE-Universum. 10 Teile.",
+      "kicker": "ORACLE · ARCHIV",
+      "description": "Ein Eintrag des ORACLE-Archivs. 10 Teile.",
       "tldr": "",
       "status": "published",
       "publishAt": null,
-      "updatedAt": "2026-09-09T18:55:23.069Z",
+      "updatedAt": "2026-09-09T19:18:39.076Z",
       "chapters": [
         {
           "id": "oracle-0003-chapter-3",

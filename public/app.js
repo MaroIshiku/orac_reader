@@ -2,7 +2,7 @@ import { cardDestination, readerHash } from "/navigation.js";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
-const state = { books: [], links: [], settings: { numberDigits: 4 }, admin: false, book: null, part: null, fontSize: Number(localStorage.getItem("oracle-font-size")) || 19, view: localStorage.getItem("oracle-view") || "scroll", theme: localStorage.getItem("oracle-theme") || "paper" };
+const state = { books: [], links: [], settings: { numberDigits: 4 }, version: "development", admin: false, book: null, part: null, fontSize: Number(localStorage.getItem("oracle-font-size")) || 19, view: localStorage.getItem("oracle-view") || "scroll", theme: localStorage.getItem("oracle-theme") || "paper" };
 const historyKey = "oracle-reading-history";
 const progressKey = "oracle-reading-progress";
 const readStatusKey = "oracle-reading-status";
@@ -41,7 +41,7 @@ const api = async (path, options = {}) => {
 function toast(message) { const node = $("#toast"); node.textContent = message; node.classList.add("show"); clearTimeout(toast.timer); toast.timer = setTimeout(() => node.classList.remove("show"), 2200); }
 
 async function load() {
-  const data = await api("/api/library"); state.books = data.books; state.links = data.links; state.settings = data.settings || { numberDigits: 4 }; state.admin = data.admin;
+  const data = await api("/api/library"); state.books = data.books; state.links = data.links; state.settings = data.settings || { numberDigits: 4 }; state.version = data.version || "development"; state.admin = data.admin;
   renderLinks(); renderLibrary(); renderHomeShelves(); renderAdmin(); route();
 }
 function renderLinks() { $("#customLinks").innerHTML = state.links.map((link) => `<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener">${escapeHtml(link.label)} ↗</a>`).join(""); }
@@ -49,13 +49,13 @@ function renderLibrary(query = "") {
   const search = query.toLocaleLowerCase("de");
   const books = state.books.filter((book) => !search || [book.title, book.description, book.tldr, ...allParts(book).flatMap(({chapter, part}) => [chapter.title, part.title, part.content])].join(" ").toLocaleLowerCase("de").includes(search)).sort((a,b) => a.number - b.number);
   $("#emptyLibrary").hidden = books.length > 0;
+  $("#archiveStats").textContent = `${state.books.length} AKTEN // ${state.books.reduce((sum, book) => sum + partCount(book), 0)} TEILE`;
   $("#bookGrid").innerHTML = books.map((book, index) => {
     const displayNumber = formatNumber(book.number); const parts = allParts(book); const target = cardDestination(book, getHistory()); const allRead = parts.length && parts.every(({part}) => isRead(book.id, part.id)); const status = book.status !== "published" ? `<span class="status-badge">${book.status === "draft" ? "ENTWURF" : "GEPLANT"}</span>` : "";
-    return `<article class="book-card" tabindex="0" role="link" data-card-book="${escapeHtml(book.id)}" data-card-part="${escapeHtml(target?.part.id || "")}" data-index="${displayNumber}"><div class="generated-cover"><img src="/oracle-logo.png" alt=""><span>ORACLE FILE</span><strong>${displayNumber}</strong></div><div class="book-number">KAPITEL ${displayNumber} ${status}</div><h3>${escapeHtml(book.title)}</h3><p>${escapeHtml(book.description)}</p><footer><span>${partCount(book)} ${partCount(book) === 1 ? "Teil" : "Teile"} · ${formatDate(book.updatedAt)}</span>${target ? `<button data-toggle-book-read="${escapeHtml(book.id)}">${allRead ? "✓ Gelesen" : "○ Ungelesen"}</button>` : ""}</footer></article>`;
+    return `<article class="book-card" tabindex="0" role="link" data-card-book="${escapeHtml(book.id)}" data-card-part="${escapeHtml(target?.part.id || "")}" data-index="${displayNumber}"><div class="generated-cover"><img src="/oracle-logo.png" alt=""><span>ARCHIVAKTE</span><strong>${displayNumber}</strong></div><div class="book-number">KAPITEL ${displayNumber} ${status}</div><h3>${escapeHtml(book.title)}</h3><p>${escapeHtml(book.description)}</p><footer><span>${partCount(book)} ${partCount(book) === 1 ? "Teil" : "Teile"} · ${formatDate(book.updatedAt)}</span>${target ? `<button data-toggle-book-read="${escapeHtml(book.id)}">${allRead ? "✓ Gelesen" : "○ Ungelesen"}</button>` : ""}</footer></article>`;
   }).join("");
-  $$('#bookGrid [data-card-book]').forEach((card) => { const open = () => { if (card.dataset.cardPart) location.hash = readerHash(card.dataset.cardBook, card.dataset.cardPart); }; card.onclick = (event) => { if (!event.target.closest("button")) open(); }; card.onkeydown = (event) => { if (["Enter"," "].includes(event.key)) { event.preventDefault(); open(); } }; });
-  $$('[data-toggle-book-read]').forEach((button) => button.onclick = (event) => { event.stopPropagation(); const book = state.books.find((item) => item.id === button.dataset.toggleBookRead); const next = !allParts(book).every(({part}) => isRead(book.id, part.id)); allParts(book).forEach(({part}) => setRead(book.id, part.id, next)); renderLibrary($("#bookSearch").value); renderHomeShelves(); toast(next ? "Chronik als gelesen markiert" : "Chronik als ungelesen markiert"); });
-  $("#continueButton").textContent = "Chroniken entdecken ↓"; $("#continueButton").onclick = () => $("#libraryHeading").scrollIntoView({ behavior: "smooth" });
+  // Card navigation is delegated once on #bookGrid below. Re-rendering cannot overwrite another book's destination.
+  $("#continueButton").textContent = "Archiv entdecken ↓"; $("#continueButton").onclick = () => $("#libraryHeading").scrollIntoView({ behavior: "smooth" });
 }
 function renderHomeShelves() {
   const history = getHistory(); const recent = history.map((entry) => { const book = state.books.find((item) => item.id === entry.bookId); const found = book && allParts(book).find(({part}) => part.id === entry.partId); return book && found ? { book, ...found } : null; }).filter(Boolean).slice(0,3);
@@ -66,7 +66,7 @@ function renderHomeShelves() {
 }
 function route() {
   const match = location.hash.match(/^#?read\/([^/]+)\/([^/]+)/);
-  if (!match) { $("#homeView").hidden = false; $("#readerView").hidden = true; document.body.classList.remove("reading"); document.title = "ORACLE — Chroniken"; return; }
+  if (!match) { $("#homeView").hidden = false; $("#readerView").hidden = true; document.body.classList.remove("reading"); document.title = "ORACLE — Archiv"; return; }
   const book = state.books.find((item) => item.id === decodeURIComponent(match[1])); if (!book) return location.hash = "home";
   const entry = allParts(book).find(({part}) => part.id === decodeURIComponent(match[2])) || allParts(book)[0]; if (!entry) return location.hash = "home";
   openPart(book, entry.chapter, entry.part);
@@ -111,9 +111,9 @@ function renderAdmin() {
   $("#adminBookList").innerHTML = [...state.books].sort((a,b) => a.number - b.number).map((book) => `<article class="admin-book"><div><b>${formatNumber(book.number)} · ${escapeHtml(book.title)}</b><small>${book.status === "published" ? "Veröffentlicht" : book.status === "scheduled" ? `Geplant · ${formatDate(book.publishAt)}` : "Entwurf"} · ${partCount(book)} Teile</small></div><button data-add-part="${escapeHtml(book.id)}">+ Teil</button><button data-delete-book="${escapeHtml(book.id)}">Löschen</button></article>${allParts(book).map(({chapter,part}) => `<div class="admin-part"><span>${formatNumber(chapter.number)}.${part.number} · ${escapeHtml(part.title)}</span><button data-edit-part="${escapeHtml(book.id)}:${escapeHtml(part.id)}">Bearbeiten</button><button data-delete-part="${escapeHtml(book.id)}:${escapeHtml(part.id)}">×</button></div>`).join("")}`).join("");
   $$('[data-add-part]').forEach((button) => button.onclick = () => editPart(button.dataset.addPart));
   $$('[data-edit-part]').forEach((button) => button.onclick = () => { const [bookId, partId] = button.dataset.editPart.split(":"); editPart(bookId, partId); });
-  $$('[data-delete-book]').forEach((button) => button.onclick = async () => { const book = state.books.find((item) => item.id === button.dataset.deleteBook); if (confirm(`„${book.title}“ endgültig löschen?`)) { await api(`/api/admin/books/${encodeURIComponent(book.id)}`, { method: "DELETE" }); await load(); toast("Chronik gelöscht"); } });
+  $$('[data-delete-book]').forEach((button) => button.onclick = async () => { const book = state.books.find((item) => item.id === button.dataset.deleteBook); if (confirm(`„${book.title}“ endgültig löschen?`)) { await api(`/api/admin/books/${encodeURIComponent(book.id)}`, { method: "DELETE" }); await load(); toast("Archiveintrag gelöscht"); } });
   $$('[data-delete-part]').forEach((button) => button.onclick = async () => { const [bookId, partId] = button.dataset.deletePart.split(":"); if (confirm("Diesen Teil endgültig löschen?")) { await api(`/api/admin/books/${encodeURIComponent(bookId)}/parts/${encodeURIComponent(partId)}`, { method: "DELETE" }); await load(); toast("Teil gelöscht"); } });
-  field($("#displayAdmin"), "numberDigits").value = String(state.settings.numberDigits || 4); renderLinkRows();
+  $("#adminVersion").textContent = `BUILD // ${state.version.slice(0, 12)}`; field($("#displayAdmin"), "numberDigits").value = String(state.settings.numberDigits || 4); renderLinkRows();
 }
 function field(form, name) { return form.elements.namedItem(name); }
 function fillBook(form, book) { field(form,"number").value = book?.number ?? Math.max(-1, ...state.books.map((item) => item.number)) + 1; field(form,"title").value = book?.title || ""; field(form,"description").value = book?.description || ""; field(form,"tldr").value = book?.tldr || ""; field(form,"status").value = book?.status || "draft"; field(form,"publishAt").value = book?.publishAt ? new Date(book.publishAt).toISOString().slice(0,16) : ""; }
@@ -121,12 +121,17 @@ function editPart(bookId = "", partId = "") {
   const form = $("#bookForm"); form.reset(); form.hidden = false; form.dataset.bookId = bookId; form.dataset.partId = partId; const book = state.books.find((item) => item.id === bookId); fillBook(form, book);
   let found; if (book && partId) found = allParts(book).find((item) => item.part.id === partId);
   field(form,"chapter").value = found?.chapter.number ?? book?.chapters.at(-1)?.number ?? Number(field(form,"number").value); field(form,"chapterTitle").value = found?.chapter.title || (book?.chapters.at(-1)?.title || ""); field(form,"part").value = found?.part.number || ((book?.chapters.at(-1)?.parts.at(-1)?.number || 0) + 1); field(form,"partTitle").value = found?.part.title || ""; field(form,"content").value = found?.part.content || "";
-  $("#formTitle").textContent = !book ? "Neue Chronik" : found ? "Teil bearbeiten" : `Neuer Teil · ${book.title}`; form.scrollIntoView({ behavior: "smooth", block: "start" });
+  $("#formTitle").textContent = !book ? "Neuer Archiveintrag" : found ? "Teil bearbeiten" : `Neuer Teil · ${book.title}`; form.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 function renderLinkRows() { $("#linkRows").innerHTML = state.links.map((link) => linkRow(link)).join(""); $$("[data-remove-link]").forEach((button) => button.onclick = () => button.closest(".link-row").remove()); }
 const linkRow = (link = {}) => `<div class="link-row"><input name="label" value="${escapeHtml(link.label || "")}" placeholder="Bezeichnung"><input name="url" type="url" value="${escapeHtml(link.url || "")}" placeholder="https://…"><button type="button" class="text-button" data-remove-link>×</button></div>`;
 
+function openCard(card) { if (card?.dataset.cardPart) location.hash = readerHash(card.dataset.cardBook, card.dataset.cardPart); }
+function toggleBookRead(bookId) { const book = state.books.find((item) => item.id === bookId); if (!book) return; const next = !allParts(book).every(({part}) => isRead(book.id, part.id)); allParts(book).forEach(({part}) => setRead(book.id, part.id, next)); renderLibrary($("#bookSearch").value); renderHomeShelves(); toast(next ? "Archiv als gelesen markiert" : "Archiv als ungelesen markiert"); }
+
 $("#bookSearch").oninput = (event) => renderLibrary(event.target.value); window.addEventListener("hashchange", route); window.addEventListener("resize", updatePageControls); window.addEventListener("scroll", updateProgress, { passive: true }); $("#readingPage").addEventListener("scroll", updateProgress, { passive: true });
+$("#bookGrid").addEventListener("click", (event) => { const readButton = event.target.closest("[data-toggle-book-read]"); if (readButton) return toggleBookRead(readButton.dataset.toggleBookRead); openCard(event.target.closest("[data-card-book]")); });
+$("#bookGrid").addEventListener("keydown", (event) => { if (!["Enter", " "].includes(event.key) || event.target.closest("button")) return; const card = event.target.closest("[data-card-book]"); if (card) { event.preventDefault(); openCard(card); } });
 $("#fontDown").onclick = () => { state.fontSize = Math.max(15, state.fontSize - 1); localStorage.setItem("oracle-font-size", state.fontSize); applyPreferences(); };
 $("#fontUp").onclick = () => { state.fontSize = Math.min(26, state.fontSize + 1); localStorage.setItem("oracle-font-size", state.fontSize); applyPreferences(); };
 $("#themePicker").onclick = (event) => { const choice = event.target.dataset.themeChoice; if (choice) { state.theme = choice; localStorage.setItem("oracle-theme", choice); applyPreferences(); } };
@@ -150,7 +155,7 @@ $("#bookForm").onsubmit = async (event) => {
     let bookId = form.dataset.bookId; const isNew = !bookId;
     if (isNew) { const created = await api("/api/admin/books", { method: "POST", body: JSON.stringify({ ...bookPayload, status: "draft" }) }); bookId = created.id; createdBookId = bookId; }
     const partId = form.dataset.partId; await api(`/api/admin/books/${encodeURIComponent(bookId)}/parts${partId ? `/${encodeURIComponent(partId)}` : ""}`, { method: partId ? "PUT" : "POST", body: JSON.stringify(partPayload) });
-    await api(`/api/admin/books/${encodeURIComponent(bookId)}`, { method: "PUT", body: JSON.stringify(bookPayload) }); form.hidden = true; await load(); toast("Chronik gespeichert");
+    await api(`/api/admin/books/${encodeURIComponent(bookId)}`, { method: "PUT", body: JSON.stringify(bookPayload) }); form.hidden = true; await load(); toast("Archiveintrag gespeichert");
   } catch (error) { if (createdBookId) await api(`/api/admin/books/${encodeURIComponent(createdBookId)}`, { method: "DELETE" }).catch(() => {}); $("#bookFormError").textContent = error.message; }
 };
 $$('[data-admin-tab]').forEach((button) => button.onclick = () => { $$('[data-admin-tab]').forEach((item) => item.classList.toggle("active", item === button)); $("#booksAdmin").hidden = button.dataset.adminTab !== "books"; $("#displayAdmin").hidden = button.dataset.adminTab !== "display"; $("#linksAdmin").hidden = button.dataset.adminTab !== "links"; });

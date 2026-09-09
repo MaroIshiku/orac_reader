@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#eee8dc">
-  <title>ORACLE — Chroniken</title>
-  <meta name="description" content="Geschichten und Chroniken aus dem ORACLE-Universum.">
+  <title>ORACLE — Archiv</title>
+  <meta name="description" content="Das öffentliche Lese-Archiv des ORACLE-Universums.">
   <link rel="icon" type="image/png" href="/oracle-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,27 +14,28 @@
 </head>
 <body data-theme="paper" data-view="scroll">
   <header class="site-header">
-    <a class="wordmark" href="#home" aria-label="ORACLE Chroniken Startseite">
+    <a class="wordmark" href="#home" aria-label="ORACLE Archiv Startseite">
       <span class="wordmark-mark"><img src="/oracle-logo.png" alt=""></span>
-      <span><b>ORACLE</b><small>CHRONIKEN</small></span>
+      <span><b>ORACLE</b><small>ARCHIV</small></span>
     </a>
     <nav class="header-nav" id="customLinks" aria-label="Externe Links"></nav>
     <button class="quiet-button" id="adminOpen">Admin</button>
   </header>
 
   <main id="homeView" class="home-view">
-    <button class="floating-explore" id="continueButton">Chroniken entdecken ↓</button>
+    <button class="floating-explore" id="continueButton">Archiv entdecken ↓</button>
+    <section class="archive-register" aria-label="Archivstatus"><span>ARCHIVSTATUS // ÖFFENTLICH</span><span id="archiveStats"></span><span>LESEZUGRIFF // FREIGEGEBEN</span></section>
     <section class="home-shelves" id="homeShelves">
       <div id="recentShelf" hidden><p class="eyebrow">ZULETZT GELESEN</p><div class="shelf-row" id="recentBooks"></div></div>
       <div><p class="eyebrow">NEU VERÖFFENTLICHT</p><div class="shelf-row" id="newBooks"></div></div>
     </section>
     <section class="library-section" aria-labelledby="libraryHeading">
       <div class="section-heading">
-        <div><p class="eyebrow">BIBLIOTHEK</p><h2 id="libraryHeading">Veröffentlichte Chroniken</h2></div>
-        <label class="search-box"><span>⌕</span><input id="bookSearch" type="search" placeholder="Titel durchsuchen…"></label>
+        <div><p class="eyebrow">ARCHIV</p><h2 id="libraryHeading">Freigegebene Akten</h2></div>
+        <label class="search-box"><span>⌕</span><input id="bookSearch" type="search" placeholder="Archiv durchsuchen…"></label>
       </div>
       <div class="book-grid" id="bookGrid"></div>
-      <div class="empty-state" id="emptyLibrary" hidden>Keine Chronik entspricht dieser Suche.</div>
+      <div class="empty-state" id="emptyLibrary" hidden>Kein Archiveintrag entspricht dieser Suche.</div>
     </section>
   </main>
 
@@ -98,7 +99,7 @@
     <section id="loginPanel" class="login-panel">
       <p class="eyebrow">REDAKTION</p>
       <h2>Adminzugang</h2>
-      <p>Verwalte veröffentlichte Chroniken und externe Verweise.</p>
+      <p>Verwalte veröffentlichte Archiveinträge und externe Verweise.</p>
       <form id="loginForm">
         <label>Passwort<input name="password" type="password" autocomplete="current-password" required></label>
         <p class="form-error" id="loginError"></p>
@@ -106,14 +107,14 @@
       </form>
     </section>
     <section id="adminPanel" class="admin-panel" hidden>
-      <div class="admin-heading"><div><p class="eyebrow">REDAKTION</p><h2>Chroniken verwalten</h2></div><button class="quiet-button" id="logoutButton">Abmelden</button></div>
+      <div class="admin-heading"><div><p class="eyebrow">REDAKTION</p><h2>Archiv verwalten</h2></div><button class="quiet-button" id="logoutButton">Abmelden</button></div>
       <div class="admin-tabs"><button class="active" data-admin-tab="books">Bücher</button><button data-admin-tab="display">Darstellung</button><button data-admin-tab="links">Links</button></div>
       <div id="booksAdmin">
         <div class="admin-book-list" id="adminBookList"></div>
-        <button class="secondary-button full" id="newBookButton">+ Neue Chronik</button>
+        <button class="secondary-button full" id="newBookButton">+ Neuer Archiveintrag</button>
         <form class="book-form" id="bookForm" hidden>
           <input type="hidden" name="id">
-          <div class="form-title"><h3 id="formTitle">Neue Chronik</h3><button type="button" class="text-button" id="cancelEdit">Abbrechen</button></div>
+          <div class="form-title"><h3 id="formTitle">Neuer Archiveintrag</h3><button type="button" class="text-button" id="cancelEdit">Abbrechen</button></div>
           <div class="form-grid">
             <label>Offizielle Nummer *<input name="number" type="number" min="0" value="0" required></label>
             <span></span>
@@ -130,7 +131,7 @@
             <label class="wide">Text *<textarea class="content-input" name="content" rows="12" required placeholder="Markdown oder Klartext…"></textarea></label>
           </div>
           <p class="form-error" id="bookFormError"></p>
-          <button class="primary-button" type="submit">Chronik speichern</button>
+          <button class="primary-button" type="submit">Archiveintrag speichern</button>
         </form>
       </div>
       <form id="displayAdmin" hidden>
@@ -151,6 +152,7 @@
         <button type="button" class="secondary-button" id="addLink">+ Link</button>
         <button class="primary-button" type="submit">Links speichern</button>
       </form>
+      <div class="admin-version" id="adminVersion">BUILD // development</div>
     </section>
   </dialog>
   <div class="toast" id="toast" role="status"></div>

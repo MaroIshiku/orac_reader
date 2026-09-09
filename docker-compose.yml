@@ -21,13 +21,13 @@ services:
       retries: 3
       start_period: 10s
     labels:
-      org.opencontainers.image.title: "ORACLE Chroniken"
+      org.opencontainers.image.title: "ORACLE Archiv"
       org.opencontainers.image.description: "Öffentlicher Reader für Geschichten aus dem ORACLE-Universum"
       org.opencontainers.image.vendor: "MaroIshiku"
       org.opencontainers.image.source: "https://github.com/MaroIshiku/orac_reader"
       org.opencontainers.image.url: "https://github.com/MaroIshiku/orac_reader"
       com.centurylinklabs.watchtower.enable: "true"
-      casaos.name: "ORACLE Chroniken"
+      casaos.name: "ORACLE Archiv"
       casaos.webui: "http://[HOST]:[PORT:4180]"
     networks:
       - oracle-reader
@@ -48,11 +48,11 @@ x-casaos:
     de_de: "Geschichten aus dem ORACLE-Universum"
     en_us: "Stories from the ORACLE universe"
   description:
-    de_de: "Öffentliche, lesefreundliche Chronik-Bibliothek mit geschützter Redaktion."
+    de_de: "Öffentliches, lesefreundliches ORACLE-Archiv mit geschützter Redaktion."
     en_us: "Public reading library with a protected editorial area."
   port_map: "4180"
   scheme: "http"
   index: "/"
   title:
-    de_de: "ORACLE Chroniken"
+    de_de: "ORACLE Archiv"
     en_us: "ORACLE Chronicles"
