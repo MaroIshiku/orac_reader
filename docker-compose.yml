@@ -1,0 +1,58 @@
+services:
+  oracle-reader:
+    image: ghcr.io/maroishiku/orac_reader:latest
+    container_name: oracle-reader
+    hostname: oracle-reader
+    restart: unless-stopped
+    pull_policy: always
+    ports:
+      - "4180:4180"
+    environment:
+      TZ: Europe/Berlin
+      ADMIN_PASSWORD: ${ORACLE_READER_ADMIN_PASSWORD:?ORACLE_READER_ADMIN_PASSWORD muss gesetzt sein}
+      COOKIE_SECURE: "true"
+      DATA_DIR: /data
+    volumes:
+      - ./data-runtime:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4180/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    labels:
+      org.opencontainers.image.title: "ORACLE Chroniken"
+      org.opencontainers.image.description: "Öffentlicher Reader für Geschichten aus dem ORACLE-Universum"
+      org.opencontainers.image.vendor: "MaroIshiku"
+      org.opencontainers.image.source: "https://github.com/MaroIshiku/orac_reader"
+      org.opencontainers.image.url: "https://github.com/MaroIshiku/orac_reader"
+      com.centurylinklabs.watchtower.enable: "true"
+      casaos.name: "ORACLE Chroniken"
+      casaos.webui: "http://[HOST]:[PORT:4180]"
+    networks:
+      - oracle-reader
+
+networks:
+  oracle-reader:
+    name: oracle-reader
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: oracle-reader
+  author: MaroIshiku
+  developer: MaroIshiku
+  category: Books
+  tagline:
+    de_de: "Geschichten aus dem ORACLE-Universum"
+    en_us: "Stories from the ORACLE universe"
+  description:
+    de_de: "Öffentliche, lesefreundliche Chronik-Bibliothek mit geschützter Redaktion."
+    en_us: "Public reading library with a protected editorial area."
+  port_map: "4180"
+  scheme: "http"
+  index: "/"
+  title:
+    de_de: "ORACLE Chroniken"
+    en_us: "ORACLE Chronicles"

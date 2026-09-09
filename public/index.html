@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eee8dc">
+  <title>ORACLE — Chroniken</title>
+  <meta name="description" content="Geschichten und Chroniken aus dem ORACLE-Universum.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body data-theme="paper" data-view="scroll">
+  <header class="site-header">
+    <a class="wordmark" href="#home" aria-label="ORACLE Chroniken Startseite">
+      <span class="wordmark-mark"><img src="/oracle-logo.png" alt=""></span>
+      <span><b>ORACLE</b><small>CHRONIKEN</small></span>
+    </a>
+    <nav class="header-nav" id="customLinks" aria-label="Externe Links"></nav>
+    <button class="quiet-button" id="adminOpen">Admin</button>
+  </header>
+
+  <main id="homeView" class="home-view">
+    <button class="floating-explore" id="continueButton">Chroniken entdecken ↓</button>
+    <section class="home-shelves" id="homeShelves">
+      <div id="recentShelf" hidden><p class="eyebrow">ZULETZT GELESEN</p><div class="shelf-row" id="recentBooks"></div></div>
+      <div><p class="eyebrow">NEU VERÖFFENTLICHT</p><div class="shelf-row" id="newBooks"></div></div>
+    </section>
+    <section class="library-section" aria-labelledby="libraryHeading">
+      <div class="section-heading">
+        <div><p class="eyebrow">BIBLIOTHEK</p><h2 id="libraryHeading">Veröffentlichte Chroniken</h2></div>
+        <label class="search-box"><span>⌕</span><input id="bookSearch" type="search" placeholder="Titel durchsuchen…"></label>
+      </div>
+      <div class="book-grid" id="bookGrid"></div>
+      <div class="empty-state" id="emptyLibrary" hidden>Keine Chronik entspricht dieser Suche.</div>
+    </section>
+  </main>
+
+  <main id="readerView" class="reader-view" hidden>
+    <aside class="chapter-drawer" id="chapterDrawer">
+      <div class="drawer-head">
+        <a class="back-link" href="#home">← Bibliothek</a>
+        <button class="icon-button mobile-only" id="chapterClose" aria-label="Kapitel schließen">×</button>
+      </div>
+      <p class="eyebrow">INHALT</p>
+      <h2 id="drawerBookTitle"></h2>
+      <ol id="chapterList" class="chapter-list"></ol>
+      <div class="drawer-progress"><span><b id="progressLabel">0%</b> gelesen</span><div><i id="progressBar"></i></div></div>
+    </aside>
+
+    <section class="reading-shell">
+      <div class="reader-toolbar">
+        <button class="tool-button" id="chapterToggle">☰ <span>Kapitel</span></button>
+        <div class="toolbar-spacer"></div>
+        <button class="tool-button" id="fontDown" aria-label="Schrift verkleinern">A−</button>
+        <button class="tool-button" id="fontUp" aria-label="Schrift vergrößern">A+</button>
+        <div class="theme-picker" id="themePicker" aria-label="Hintergrundfarbe">
+          <button data-theme-choice="paper" class="swatch paper active" aria-label="Papier"></button>
+          <button data-theme-choice="sand" class="swatch sand" aria-label="Sand"></button>
+          <button data-theme-choice="mist" class="swatch mist" aria-label="Nebel"></button>
+          <button data-theme-choice="night" class="swatch night" aria-label="Nacht"></button>
+        </div>
+        <button class="tool-button view-toggle" id="viewToggle" title="Leseansicht wechseln">▤ <span id="viewLabel">Scrollen</span></button>
+        <button class="tool-button" id="readToggle" title="Lesestatus ändern">○ <span>Ungelesen</span></button>
+        <button class="tool-button" id="shareButton" title="Diesen Teil teilen">↗ <span>Teilen</span></button>
+      </div>
+
+      <div class="reading-viewport" id="readingViewport">
+        <article class="reading-page" id="readingPage">
+          <header class="story-header">
+            <p class="eyebrow" id="storyKicker"></p>
+            <h1 id="storyTitle"></h1>
+            <p class="story-description" id="storyDescription"></p>
+            <details class="tldr" id="storyTldr"><summary>Kurzfassung · TL;DR</summary><p></p></details>
+            <div class="story-meta"><span id="storyPart"></span><span id="readingTime"></span></div>
+          </header>
+          <div class="prose" id="storyContent"></div>
+          <footer class="chapter-footer">
+            <span>Ende dieses Teils</span>
+            <button class="primary-button" id="nextChapter">Nächster Teil →</button>
+          </footer>
+        </article>
+        <nav class="page-controls" id="pageControls" aria-label="Seitensteuerung">
+          <button id="pagePrev" aria-label="Vorherige Seite">←</button>
+          <span id="pageCounter">1 / 1</span>
+          <button id="pageNext" aria-label="Nächste Seite">→</button>
+        </nav>
+      </div>
+    </section>
+  </main>
+
+  <dialog class="admin-dialog" id="adminDialog">
+    <button class="dialog-close" id="adminClose" aria-label="Schließen">×</button>
+    <section id="loginPanel" class="login-panel">
+      <p class="eyebrow">REDAKTION</p>
+      <h2>Adminzugang</h2>
+      <p>Verwalte veröffentlichte Chroniken und externe Verweise.</p>
+      <form id="loginForm">
+        <label>Passwort<input name="password" type="password" autocomplete="current-password" required></label>
+        <p class="form-error" id="loginError"></p>
+        <button class="primary-button" type="submit">Anmelden</button>
+      </form>
+    </section>
+    <section id="adminPanel" class="admin-panel" hidden>
+      <div class="admin-heading"><div><p class="eyebrow">REDAKTION</p><h2>Chroniken verwalten</h2></div><button class="quiet-button" id="logoutButton">Abmelden</button></div>
+      <div class="admin-tabs"><button class="active" data-admin-tab="books">Bücher</button><button data-admin-tab="links">Links</button></div>
+      <div id="booksAdmin">
+        <div class="admin-book-list" id="adminBookList"></div>
+        <button class="secondary-button full" id="newBookButton">+ Neue Chronik</button>
+        <form class="book-form" id="bookForm" hidden>
+          <input type="hidden" name="id">
+          <div class="form-title"><h3 id="formTitle">Neue Chronik</h3><button type="button" class="text-button" id="cancelEdit">Abbrechen</button></div>
+          <div class="form-grid">
+            <label class="wide">Name *<input name="title" required maxlength="160"></label>
+            <label>Kapitel *<input name="chapter" type="number" min="0" value="0" required></label>
+            <label>Teil *<input name="part" type="number" min="1" value="1" required></label>
+            <label class="wide">Kapitelname *<input name="chapterTitle" required maxlength="160"></label>
+            <label class="wide">Teilname *<input name="partTitle" required maxlength="160"></label>
+            <label class="wide">Beschreibung *<textarea name="description" rows="3" required></textarea></label>
+            <label class="wide">TL;DR <textarea name="tldr" rows="3"></textarea></label>
+            <label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label>
+            <label>Veröffentlichung<input name="publishAt" type="datetime-local"></label>
+            <label>Datei laden<input id="storyFile" type="file" accept=".md,.txt,text/markdown,text/plain"></label>
+            <label class="wide">Text *<textarea class="content-input" name="content" rows="12" required placeholder="Markdown oder Klartext…"></textarea></label>
+          </div>
+          <p class="form-error" id="bookFormError"></p>
+          <button class="primary-button" type="submit">Chronik speichern</button>
+        </form>
+      </div>
+      <form id="linksAdmin" hidden>
+        <p class="admin-hint">Bis zu acht unabhängige Verweise, zum Beispiel zu OracleDB oder Discord.</p>
+        <div id="linkRows"></div>
+        <button type="button" class="secondary-button" id="addLink">+ Link</button>
+        <button class="primary-button" type="submit">Links speichern</button>
+      </form>
+    </section>
+  </dialog>
+  <div class="toast" id="toast" role="status"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
