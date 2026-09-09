@@ -13,6 +13,24 @@
   <link rel="stylesheet" href="/styles.css?v=__APP_VERSION__">
 </head>
 <body data-theme="paper" data-view="scroll">
+  <svg class="icon-sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></symbol>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m14.5 5-7 7 7 7"></path></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="m9.5 5 7 7-7 7"></path></symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="m5 9 7 7 7-7"></path></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"></path></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M8 7h11M8 12h11M8 17h11"></path><circle cx="4.5" cy="7" r=".75" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="12" r=".75" fill="currentColor" stroke="none"></circle><circle cx="4.5" cy="17" r=".75" fill="currentColor" stroke="none"></circle></symbol>
+    <symbol id="i-font-down" viewBox="0 0 24 24"><path d="M3.5 18 9 5l5.5 13M5.5 13.5h7M16.5 15h5"></path></symbol>
+    <symbol id="i-font-up" viewBox="0 0 24 24"><path d="M3.5 18 9 5l5.5 13M5.5 13.5h7M19 12.5v5M16.5 15h5"></path></symbol>
+    <symbol id="i-add" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></symbol>
+    <symbol id="i-scroll" viewBox="0 0 24 24"><path d="M7 5h10M7 9h10M7 13h10M7 17h6"></path></symbol>
+    <symbol id="i-pages" viewBox="0 0 24 24"><path d="M4.5 5.5h6.75v13H4.5zM12.75 5.5h6.75v13h-6.75z"></path></symbol>
+    <symbol id="i-unread" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"></circle></symbol>
+    <symbol id="i-read" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="m8.5 12 2.3 2.4 4.9-5.2"></path></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4m0 0L8 8m4-4 4 4M6 11v8h12v-8"></path></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M10 5h9v9M19 5 9 15M17 13v6H5V7h6"></path></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M8 8v10m4-10v10m4-10v10M5 5h14M9 5V3h6v2M6.5 5l.8 16h9.4l.8-16"></path></symbol>
+  </svg>
   <header class="site-header">
     <a class="wordmark" href="#home" aria-label="ORACLE Archiv Startseite">
       <span class="wordmark-mark"><img src="/oracle-logo.png" alt=""></span>
@@ -23,7 +41,7 @@
   </header>
 
   <main id="homeView" class="home-view">
-    <button class="floating-explore" id="continueButton">Archiv entdecken ↓</button>
+    <button class="floating-explore" id="continueButton"><span>Archiv entdecken</span><svg class="ui-icon"><use href="#i-arrow-down"></use></svg></button>
     <section class="archive-register" aria-label="Archivstatus"><span>ARCHIVSTATUS // ÖFFENTLICH</span><span id="archiveStats"></span><span>LESEZUGRIFF // FREIGEGEBEN</span></section>
     <section class="home-shelves" id="homeShelves">
       <div id="recentShelf" hidden><p class="eyebrow">ZULETZT GELESEN</p><div class="shelf-row" id="recentBooks"></div></div>
@@ -32,7 +50,7 @@
     <section class="library-section" aria-labelledby="libraryHeading">
       <div class="section-heading">
         <div><p class="eyebrow">ARCHIV</p><h2 id="libraryHeading">Freigegebene Akten</h2></div>
-        <label class="search-box"><span>⌕</span><input id="bookSearch" type="search" placeholder="Archiv durchsuchen…"></label>
+        <label class="search-box"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input id="bookSearch" type="search" placeholder="Archiv durchsuchen…"></label>
       </div>
       <div class="book-grid" id="bookGrid"></div>
       <div class="empty-state" id="emptyLibrary" hidden>Kein Archiveintrag entspricht dieser Suche.</div>
@@ -42,8 +60,8 @@
   <main id="readerView" class="reader-view" hidden>
     <aside class="chapter-drawer" id="chapterDrawer">
       <div class="drawer-head">
-        <a class="back-link" href="#home">← Bibliothek</a>
-        <button class="icon-button mobile-only" id="chapterClose" aria-label="Kapitel schließen">×</button>
+        <a class="back-link" href="#home"><svg class="ui-icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg><span>Bibliothek</span></a>
+        <button class="icon-button mobile-only" id="chapterClose" aria-label="Kapitel schließen"><svg class="ui-icon"><use href="#i-close"></use></svg></button>
       </div>
       <p class="eyebrow">INHALT</p>
       <h2 id="drawerBookTitle"></h2>
@@ -53,19 +71,19 @@
 
     <section class="reading-shell">
       <div class="reader-toolbar">
-        <button class="tool-button" id="chapterToggle">☰ <span>Kapitel</span></button>
+        <button class="tool-button" id="chapterToggle" aria-label="Kapitelübersicht öffnen"><svg class="ui-icon"><use href="#i-menu"></use></svg><span>Kapitel</span></button>
         <div class="toolbar-spacer"></div>
-        <button class="tool-button" id="fontDown" aria-label="Schrift verkleinern">A−</button>
-        <button class="tool-button" id="fontUp" aria-label="Schrift vergrößern">A+</button>
+        <button class="tool-button" id="fontDown" aria-label="Schrift verkleinern" title="Schrift verkleinern"><svg class="ui-icon"><use href="#i-font-down"></use></svg></button>
+        <button class="tool-button" id="fontUp" aria-label="Schrift vergrößern" title="Schrift vergrößern"><svg class="ui-icon"><use href="#i-font-up"></use></svg></button>
         <div class="theme-picker" id="themePicker" aria-label="Hintergrundfarbe">
           <button data-theme-choice="paper" class="swatch paper active" aria-label="Papier"></button>
           <button data-theme-choice="sand" class="swatch sand" aria-label="Sand"></button>
           <button data-theme-choice="mist" class="swatch mist" aria-label="Nebel"></button>
           <button data-theme-choice="night" class="swatch night" aria-label="Nacht"></button>
         </div>
-        <button class="tool-button view-toggle" id="viewToggle" title="Leseansicht wechseln">▤ <span id="viewLabel">Scrollen</span></button>
-        <button class="tool-button" id="readToggle" title="Lesestatus ändern">○ <span>Ungelesen</span></button>
-        <button class="tool-button" id="shareButton" title="Diesen Teil teilen">↗ <span>Teilen</span></button>
+        <button class="tool-button view-toggle" id="viewToggle" aria-label="Leseansicht wechseln" title="Leseansicht wechseln"><svg class="ui-icon"><use href="#i-scroll"></use></svg><span id="viewLabel">Scrollen</span></button>
+        <button class="tool-button" id="readToggle" aria-label="Lesestatus ändern" title="Lesestatus ändern"><svg class="ui-icon"><use href="#i-unread"></use></svg><span>Ungelesen</span></button>
+        <button class="tool-button" id="shareButton" aria-label="Diesen Teil teilen" title="Diesen Teil teilen"><svg class="ui-icon"><use href="#i-share"></use></svg><span>Teilen</span></button>
       </div>
 
       <div class="reading-viewport" id="readingViewport">
@@ -82,20 +100,20 @@
           <div class="prose" id="storyContent"></div>
           <footer class="chapter-footer">
             <span>Ende dieses Teils</span>
-            <button class="primary-button" id="nextChapter">Nächster Teil →</button>
+            <button class="primary-button" id="nextChapter"><span>Nächster Teil</span><svg class="ui-icon"><use href="#i-arrow-right"></use></svg></button>
           </footer>
         </article>
         <nav class="page-controls" id="pageControls" aria-label="Seitensteuerung">
-          <button id="pagePrev" aria-label="Vorherige Seite">←</button>
+          <button id="pagePrev" aria-label="Vorherige Seite"><svg class="ui-icon"><use href="#i-arrow-left"></use></svg></button>
           <span id="pageCounter">1 / 1</span>
-          <button id="pageNext" aria-label="Nächste Seite">→</button>
+          <button id="pageNext" aria-label="Nächste Seite"><svg class="ui-icon"><use href="#i-arrow-right"></use></svg></button>
         </nav>
       </div>
     </section>
   </main>
 
   <dialog class="admin-dialog" id="adminDialog">
-    <button class="dialog-close" id="adminClose" aria-label="Schließen">×</button>
+    <button class="dialog-close" id="adminClose" aria-label="Schließen"><svg class="ui-icon"><use href="#i-close"></use></svg></button>
     <section id="loginPanel" class="login-panel">
       <p class="eyebrow">REDAKTION</p>
       <h2>Adminzugang</h2>
@@ -111,7 +129,7 @@
       <div class="admin-tabs"><button class="active" data-admin-tab="books">Bücher</button><button data-admin-tab="display">Darstellung</button><button data-admin-tab="links">Links</button></div>
       <div id="booksAdmin">
         <div class="admin-book-list" id="adminBookList"></div>
-        <button class="secondary-button full" id="newBookButton">+ Neuer Archiveintrag</button>
+        <button class="secondary-button full with-icon" id="newBookButton"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Neuer Archiveintrag</span></button>
         <form class="book-form" id="bookForm" hidden>
           <input type="hidden" name="id">
           <div class="form-title"><h3 id="formTitle">Neuer Archiveintrag</h3><button type="button" class="text-button" id="cancelEdit">Abbrechen</button></div>
@@ -149,7 +167,7 @@
       <form id="linksAdmin" hidden>
         <p class="admin-hint">Bis zu acht unabhängige Verweise, zum Beispiel zu OracleDB oder Discord.</p>
         <div id="linkRows"></div>
-        <button type="button" class="secondary-button" id="addLink">+ Link</button>
+        <button type="button" class="secondary-button with-icon" id="addLink"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Link</span></button>
         <button class="primary-button" type="submit">Links speichern</button>
       </form>
       <div class="admin-version" id="adminVersion">BUILD // development</div>

@@ -233,5 +233,6 @@
       "url": "https://discord.com",
       "kind": "community"
     }
-  ]
+  ],
+  "schemaVersion": 3
 }

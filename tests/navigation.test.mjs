@@ -27,4 +27,8 @@ test("Kapitel und Archivkarten verwenden getrennte, delegierte Navigation", asyn
   assert.doesNotMatch(source, /\[data-card-book\].*\.onclick/);
   assert.match(markup, /app\.js\?v=__APP_VERSION__/);
   assert.match(source, /navigation\.js\?v=__APP_VERSION__/);
+  assert.match(markup, /<symbol id="i-pages"/);
+  assert.match(source, /iconSvg\(allRead \? "read" : "unread"\)/);
+  assert.doesNotMatch(markup, />[☰⌕○↗×←→][^<]*</);
+  assert.doesNotMatch(markup, />A[+−]</);
 });
