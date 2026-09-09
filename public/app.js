@@ -1,8 +1,10 @@
 import { cardDestination, readerHash } from "/navigation.js?v=__APP_VERSION__";
+import { aggregateRead, nextGroupRead } from "/read-status.js?v=__APP_VERSION__";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
-const state = { books: [], links: [], settings: { numberDigits: 4 }, version: "development", admin: false, book: null, part: null, fontSize: Number(localStorage.getItem("oracle-font-size")) || 19, view: localStorage.getItem("oracle-view") || "scroll", theme: localStorage.getItem("oracle-theme") || "paper" };
+const storedMotion = localStorage.getItem("oracle-motion");
+const state = { books: [], links: [], settings: { numberDigits: 4 }, version: "development", admin: false, book: null, part: null, fontSize: Number(localStorage.getItem("oracle-font-size")) || 19, view: localStorage.getItem("oracle-view") || "scroll", theme: localStorage.getItem("oracle-theme") || "paper", motion: storedMotion === null ? !matchMedia("(prefers-reduced-motion: reduce)").matches : storedMotion !== "off" };
 const historyKey = "oracle-reading-history";
 const progressKey = "oracle-reading-progress";
 const readStatusKey = "oracle-reading-status";
@@ -33,6 +35,8 @@ const isRead = (bookId, partId) => {
 const setRead = (bookId, partId, value) => { const status = getReadStatus(); status[`${bookId}:${partId}`] = value; localStorage.setItem(readStatusKey, JSON.stringify(status)); };
 const partCount = (book) => book.chapters.reduce((sum, chapter) => sum + chapter.parts.length, 0);
 const allParts = (book) => book.chapters.flatMap((chapter) => chapter.parts.map((part) => ({ chapter, part })));
+const readStats = (book) => aggregateRead(allParts(book).map(({part}) => isRead(book.id, part.id)));
+const chapterReadStats = (book, chapter) => aggregateRead(chapter.parts.map((part) => isRead(book.id, part.id)));
 const formatNumber = (number) => String(Number(number) || 0).padStart(state.settings.numberDigits || 4, "0");
 const formatDate = (date) => new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(date));
 const api = async (path, options = {}) => {
@@ -52,8 +56,9 @@ function renderLibrary(query = "") {
   $("#emptyLibrary").hidden = books.length > 0;
   $("#archiveStats").textContent = `${state.books.length} AKTEN // ${state.books.reduce((sum, book) => sum + partCount(book), 0)} TEILE`;
   $("#bookGrid").innerHTML = books.map((book, index) => {
-    const displayNumber = formatNumber(book.number); const parts = allParts(book); const target = cardDestination(book, getHistory()); const allRead = parts.length && parts.every(({part}) => isRead(book.id, part.id)); const status = book.status !== "published" ? `<span class="status-badge">${book.status === "draft" ? "ENTWURF" : "GEPLANT"}</span>` : "";
-    return `<article class="book-card" tabindex="0" role="link" data-card-book="${escapeHtml(book.id)}" data-card-part="${escapeHtml(target?.part.id || "")}" data-index="${displayNumber}"><div class="generated-cover"><img src="/oracle-logo.png" alt=""><span>ARCHIVAKTE</span><strong>${displayNumber}</strong></div><div class="book-number">KAPITEL ${displayNumber} ${status}</div><h3>${escapeHtml(book.title)}</h3><p>${escapeHtml(book.description)}</p><footer><span>${partCount(book)} ${partCount(book) === 1 ? "Teil" : "Teile"} · ${formatDate(book.updatedAt)}</span>${target ? `<button data-toggle-book-read="${escapeHtml(book.id)}">${iconSvg(allRead ? "read" : "unread")}<span>${allRead ? "Gelesen" : "Ungelesen"}</span></button>` : ""}</footer></article>`;
+    const displayNumber = formatNumber(book.number); const target = cardDestination(book, getHistory()); const progress = readStats(book); const status = book.status !== "published" ? `<span class="status-badge">${book.status === "draft" ? "ENTWURF" : "GEPLANT"}</span>` : "";
+    const readLabel = progress.state === "read" ? "Gelesen" : progress.state === "partial" ? `${progress.read} von ${progress.total} gelesen` : "Ungelesen";
+    return `<article class="book-card is-${progress.state}" tabindex="0" role="link" data-card-book="${escapeHtml(book.id)}" data-card-part="${escapeHtml(target?.part.id || "")}" data-index="${displayNumber}"><div class="generated-cover"><img src="/oracle-logo.png" alt=""><span>ARCHIVAKTE</span><strong>${displayNumber}</strong></div><div class="book-number">KAPITEL ${displayNumber} ${status}</div><h3>${escapeHtml(book.title)}</h3><p>${escapeHtml(book.description)}</p><div class="card-progress" role="progressbar" aria-label="Lesefortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.percent}"><div><i style="width:${progress.percent}%"></i></div><span>${progress.percent}%</span></div><footer><span>${partCount(book)} ${partCount(book) === 1 ? "Teil" : "Teile"} · ${formatDate(book.updatedAt)}</span>${target ? `<button data-toggle-book-read="${escapeHtml(book.id)}" aria-label="Archiv als ${progress.state === "read" ? "ungelesen" : "gelesen"} markieren">${iconSvg(progress.state)}<span>${readLabel}</span></button>` : ""}</footer></article>`;
   }).join("");
   // Card navigation is delegated once on #bookGrid below. Re-rendering cannot overwrite another book's destination.
   $("#continueButton").innerHTML = `<span>Archiv entdecken</span>${iconSvg("arrow-down")}`; $("#continueButton").onclick = () => $("#libraryHeading").scrollIntoView({ behavior: "smooth" });
@@ -72,6 +77,11 @@ function route() {
   const entry = allParts(book).find(({part}) => part.id === decodeURIComponent(match[2])) || allParts(book)[0]; if (!entry) return location.hash = "home";
   openPart(book, entry.chapter, entry.part);
 }
+function renderChapterList(book, activePartId) {
+  $("#chapterList").innerHTML = book.chapters.map((item) => { const progress = chapterReadStats(book, item); const label = progress.state === "read" ? "Kapitel als ungelesen markieren" : "Kapitel als gelesen markieren"; return `<li><div class="chapter-group-row"><small class="chapter-group">KAPITEL ${formatNumber(item.number)} · ${escapeHtml(item.title)}</small><button data-toggle-chapter-read="${escapeHtml(item.id)}" aria-label="${label}" title="${label}">${iconSvg(progress.state)}<span>${progress.read}/${progress.total}</span></button></div>${item.parts.map((candidate) => `<button class="${candidate.id === activePartId ? "active" : ""} ${isRead(book.id, candidate.id) ? "read" : ""}" data-chapter-part="${escapeHtml(candidate.id)}"><small>${formatNumber(item.number)}.${candidate.number}</small><span>${escapeHtml(candidate.title)}</span></button>`).join("")}</li>`; }).join("");
+  $$('#chapterList [data-chapter-part]').forEach((button) => button.onclick = () => location.hash = readerHash(book.id, button.dataset.chapterPart));
+  $$('#chapterList [data-toggle-chapter-read]').forEach((button) => button.onclick = () => toggleChapterRead(book.id, button.dataset.toggleChapterRead));
+}
 function openPart(book, chapter, part) {
   state.book = book; state.part = part; $("#homeView").hidden = true; $("#readerView").hidden = false; $("#chapterDrawer").classList.remove("open"); document.body.classList.add("reading");
   $("#drawerBookTitle").textContent = book.title; $("#storyKicker").textContent = book.kicker; $("#storyTitle").textContent = part.title;
@@ -79,8 +89,7 @@ function openPart(book, chapter, part) {
   const words = part.content.trim().split(/\s+/).length; $("#readingTime").textContent = `${Math.max(1, Math.ceil(words / 220))} Min. Lesezeit`;
   $("#storyContent").innerHTML = markdown(part.content); $("#storyTldr").hidden = !book.tldr; $("#storyTldr p").textContent = `Spoilerwarnung — ${book.tldr}`;
   const entries = allParts(book); const currentIndex = entries.findIndex((item) => item.part.id === part.id);
-  $("#chapterList").innerHTML = book.chapters.map((item) => `<li><small class="chapter-group">KAPITEL ${formatNumber(item.number)} · ${escapeHtml(item.title)}</small>${item.parts.map((candidate) => `<button class="${candidate.id === part.id ? "active" : ""} ${isRead(book.id, candidate.id) ? "read" : ""}" data-chapter-part="${escapeHtml(candidate.id)}"><small>${formatNumber(item.number)}.${candidate.number}</small><span>${escapeHtml(candidate.title)}</span></button>`).join("")}</li>`).join("");
-  $$('#chapterList [data-chapter-part]').forEach((button) => button.onclick = () => location.hash = readerHash(book.id, button.dataset.chapterPart));
+  renderChapterList(book, part.id);
   const next = entries[currentIndex + 1]; $("#nextChapter").hidden = !next; if (next) $("#nextChapter").onclick = () => location.hash = readerHash(book.id, next.part.id);
   const history = getHistory().filter((item) => !(item.bookId === book.id && item.partId === part.id)); history.unshift({ bookId: book.id, partId: part.id, at: Date.now() }); localStorage.setItem(historyKey, JSON.stringify(history.slice(0, 20)));
   updateReadToggle(); requestAnimationFrame(() => { restoreProgress(book.id, part.id); updatePageControls(); }); document.title = `${part.title} — ORACLE`;
@@ -88,13 +97,15 @@ function openPart(book, chapter, part) {
 function progressPosition() { const viewport = $("#readingViewport"); if (state.view === "pages") return viewport.querySelector(".reading-page")?.scrollLeft || 0; return window.scrollY; }
 function progressMaximum() { const page = $("#readingPage"); if (state.view === "pages") return Math.max(1, page.scrollWidth - page.clientWidth); return Math.max(1, document.documentElement.scrollHeight - innerHeight); }
 function updateProgress() {
-  if (!state.book || !state.part || $("#readerView").hidden) return; const ratio = Math.min(1, Math.max(0, progressPosition() / progressMaximum())); const percent = Math.round(ratio * 100);
-  $("#progressLabel").textContent = `${percent}%`; $("#progressBar").style.width = `${percent}%`; const progress = getProgress(); progress[`${state.book.id}:${state.part.id}:${state.view}`] = { position: progressPosition(), percent, read: percent >= 90 }; localStorage.setItem(progressKey, JSON.stringify(progress)); updatePageControls(); updateReadToggle();
+  if (!state.book || !state.part || $("#readerView").hidden) return; const wasRead = isRead(state.book.id, state.part.id); const ratio = Math.min(1, Math.max(0, progressPosition() / progressMaximum())); const percent = Math.round(ratio * 100);
+  $("#progressLabel").textContent = `${percent}%`; $("#progressBar").style.width = `${percent}%`; const progress = getProgress(); const key = `${state.book.id}:${state.part.id}:${state.view}`; progress[key] = { position: progressPosition(), percent, read: Boolean(progress[key]?.read || percent >= 90) }; localStorage.setItem(progressKey, JSON.stringify(progress)); updatePageControls(); updateReadToggle();
+  if (wasRead !== isRead(state.book.id, state.part.id)) { renderChapterList(state.book, state.part.id); renderLibrary($("#bookSearch").value); renderHomeShelves(); }
 }
 function restoreProgress(bookId, partId) { const saved = getProgress()[`${bookId}:${partId}:${state.view}`]; if (state.view === "pages") $("#readingPage").scrollLeft = saved?.position || 0; else scrollTo(0, saved?.position || 0); updateProgress(); }
 function applyPreferences() {
-  document.body.dataset.theme = state.theme; document.body.dataset.view = state.view; document.documentElement.style.setProperty("--reader-size", `${state.fontSize}px`); $("#viewLabel").textContent = state.view === "pages" ? "Seiten" : "Scrollen";
+  document.body.dataset.theme = state.theme; document.body.dataset.view = state.view; document.body.dataset.motion = state.motion ? "on" : "off"; document.documentElement.style.setProperty("--reader-size", `${state.fontSize}px`); $("#viewLabel").textContent = state.view === "pages" ? "Seiten" : "Scrollen";
   $("#viewToggle use").setAttribute("href", state.view === "pages" ? "#i-pages" : "#i-scroll");
+  $("#motionLabel").textContent = state.motion ? "Animationen an" : "Animationen aus"; $("#motionToggle use").setAttribute("href", state.motion ? "#i-motion" : "#i-motion-off"); $("#motionToggle").setAttribute("aria-pressed", String(state.motion)); $("#motionToggle").setAttribute("aria-label", state.motion ? "Animationen ausschalten" : "Animationen einschalten");
   document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.body).backgroundColor;
   $$("[data-theme-choice]").forEach((button) => button.classList.toggle("active", button.dataset.themeChoice === state.theme));
 }
@@ -129,7 +140,8 @@ function renderLinkRows() { $("#linkRows").innerHTML = state.links.map((link) =>
 const linkRow = (link = {}) => `<div class="link-row"><input name="label" value="${escapeHtml(link.label || "")}" placeholder="Bezeichnung"><input name="url" type="url" value="${escapeHtml(link.url || "")}" placeholder="https://…"><button type="button" class="text-button icon-button" data-remove-link aria-label="Link entfernen">${iconSvg("trash")}</button></div>`;
 
 function openCard(card) { if (card?.dataset.cardPart) location.hash = readerHash(card.dataset.cardBook, card.dataset.cardPart); }
-function toggleBookRead(bookId) { const book = state.books.find((item) => item.id === bookId); if (!book) return; const next = !allParts(book).every(({part}) => isRead(book.id, part.id)); allParts(book).forEach(({part}) => setRead(book.id, part.id, next)); renderLibrary($("#bookSearch").value); renderHomeShelves(); toast(next ? "Archiv als gelesen markiert" : "Archiv als ungelesen markiert"); }
+function toggleBookRead(bookId) { const book = state.books.find((item) => item.id === bookId); if (!book) return; const parts = allParts(book); const next = nextGroupRead(parts.map(({part}) => isRead(book.id, part.id))); parts.forEach(({part}) => setRead(book.id, part.id, next)); renderLibrary($("#bookSearch").value); renderHomeShelves(); toast(next ? "Archiv als gelesen markiert" : "Archiv als ungelesen markiert"); }
+function toggleChapterRead(bookId, chapterId) { const book = state.books.find((item) => item.id === bookId); const chapter = book?.chapters.find((item) => item.id === chapterId); if (!book || !chapter) return; const next = nextGroupRead(chapter.parts.map((part) => isRead(book.id, part.id))); chapter.parts.forEach((part) => setRead(book.id, part.id, next)); renderChapterList(book, state.part?.id); updateReadToggle(); renderLibrary($("#bookSearch").value); renderHomeShelves(); toast(next ? "Kapitel als gelesen markiert" : "Kapitel als ungelesen markiert"); }
 
 $("#bookSearch").oninput = (event) => renderLibrary(event.target.value); window.addEventListener("hashchange", route); window.addEventListener("resize", updatePageControls); window.addEventListener("scroll", updateProgress, { passive: true }); $("#readingPage").addEventListener("scroll", updateProgress, { passive: true });
 $("#bookGrid").addEventListener("click", (event) => { const readButton = event.target.closest("[data-toggle-book-read]"); if (readButton) return toggleBookRead(readButton.dataset.toggleBookRead); openCard(event.target.closest("[data-card-book]")); });
@@ -137,10 +149,12 @@ $("#bookGrid").addEventListener("keydown", (event) => { if (!["Enter", " "].incl
 $("#fontDown").onclick = () => { state.fontSize = Math.max(15, state.fontSize - 1); localStorage.setItem("oracle-font-size", state.fontSize); applyPreferences(); };
 $("#fontUp").onclick = () => { state.fontSize = Math.min(26, state.fontSize + 1); localStorage.setItem("oracle-font-size", state.fontSize); applyPreferences(); };
 $("#themePicker").onclick = (event) => { const choice = event.target.dataset.themeChoice; if (choice) { state.theme = choice; localStorage.setItem("oracle-theme", choice); applyPreferences(); } };
-$("#viewToggle").onclick = () => { state.view = state.view === "scroll" ? "pages" : "scroll"; localStorage.setItem("oracle-view", state.view); applyPreferences(); requestAnimationFrame(() => restoreProgress(state.book.id, state.part.id)); };
+$("#viewToggle").onclick = () => { state.view = state.view === "scroll" ? "pages" : "scroll"; localStorage.setItem("oracle-view", state.view); applyPreferences(); if (state.view === "pages") scrollTo(0, 0); requestAnimationFrame(() => restoreProgress(state.book.id, state.part.id)); };
+$("#motionToggle").onclick = () => { state.motion = !state.motion; localStorage.setItem("oracle-motion", state.motion ? "on" : "off"); applyPreferences(); toast(state.motion ? "Animationen eingeschaltet" : "Animationen ausgeschaltet"); };
 $("#chapterToggle").onclick = () => $("#chapterDrawer").classList.toggle("open"); $("#chapterClose").onclick = () => $("#chapterDrawer").classList.remove("open");
 $("#pagePrev").onclick = () => turnPage(-1); $("#pageNext").onclick = () => turnPage(1); $("#pageEdgePrev").onclick = () => turnPage(-1); $("#pageEdgeNext").onclick = () => turnPage(1); $("#shareButton").onclick = shareCurrent;
-$("#readToggle").onclick = () => { const next = !isRead(state.book.id, state.part.id); setRead(state.book.id, state.part.id, next); updateReadToggle(); openPart(state.book, allParts(state.book).find(({part}) => part.id === state.part.id).chapter, state.part); toast(next ? "Als gelesen markiert" : "Als ungelesen markiert"); };
+for (const [selector, direction] of [["#pageEdgePrev", -1], ["#pageEdgeNext", 1]]) $(selector).addEventListener("touchend", (event) => { event.preventDefault(); event.stopPropagation(); turnPage(direction); }, { passive: false });
+$("#readToggle").onclick = () => { const next = !isRead(state.book.id, state.part.id); setRead(state.book.id, state.part.id, next); openPart(state.book, allParts(state.book).find(({part}) => part.id === state.part.id).chapter, state.part); renderLibrary($("#bookSearch").value); renderHomeShelves(); toast(next ? "Als gelesen markiert" : "Als ungelesen markiert"); };
 window.addEventListener("keydown", (event) => { if (state.view !== "pages" || $("#readerView").hidden || !["ArrowLeft","ArrowRight"].includes(event.key)) return; event.preventDefault(); turnPage(event.key === "ArrowRight" ? 1 : -1); });
 $("#readingPage").addEventListener("wheel", (event) => { if (state.view !== "pages" || Math.abs(event.deltaY) < 12) return; event.preventDefault(); if (Date.now() - (turnPage.lastWheel || 0) < 450) return; turnPage.lastWheel = Date.now(); turnPage(event.deltaY > 0 ? 1 : -1); }, { passive: false });
 let touchStartX = 0; $("#readingViewport").addEventListener("touchstart", (event) => { touchStartX = event.changedTouches[0].clientX; }, { passive: true }); $("#readingViewport").addEventListener("touchend", (event) => { if (state.view !== "pages") return; const distance = touchStartX - event.changedTouches[0].clientX; if (Math.abs(distance) > 45) turnPage(distance > 0 ? 1 : -1); }, { passive: true });

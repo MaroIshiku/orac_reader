@@ -26,7 +26,10 @@
     <symbol id="i-scroll" viewBox="0 0 24 24"><path d="M7 5h10M7 9h10M7 13h10M7 17h6"></path></symbol>
     <symbol id="i-pages" viewBox="0 0 24 24"><path d="M4.5 5.5h6.75v13H4.5zM12.75 5.5h6.75v13h-6.75z"></path></symbol>
     <symbol id="i-unread" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"></circle></symbol>
+    <symbol id="i-partial" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15"></path></symbol>
     <symbol id="i-read" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="m8.5 12 2.3 2.4 4.9-5.2"></path></symbol>
+    <symbol id="i-motion" viewBox="0 0 24 24"><path d="M5 15c1.2-5.5 2.8-5.5 4 0s2.8 5.5 4 0 2.8-5.5 4 0 2.3 3.7 3 1.5"></path></symbol>
+    <symbol id="i-motion-off" viewBox="0 0 24 24"><path d="M5 15c1.2-5.5 2.8-5.5 4 0s2.8 5.5 4 0 2.8-5.5 4 0 2.3 3.7 3 1.5M4 4l16 16"></path></symbol>
     <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4m0 0L8 8m4-4 4 4M6 11v8h12v-8"></path></symbol>
     <symbol id="i-external" viewBox="0 0 24 24"><path d="M10 5h9v9M19 5 9 15M17 13v6H5V7h6"></path></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M8 8v10m4-10v10m4-10v10M5 5h14M9 5V3h6v2M6.5 5l.8 16h9.4l.8-16"></path></symbol>
@@ -67,21 +70,35 @@
       <h2 id="drawerBookTitle"></h2>
       <ol id="chapterList" class="chapter-list"></ol>
       <div class="drawer-progress"><span><b id="progressLabel">0%</b> gelesen</span><div><i id="progressBar"></i></div></div>
+      <section class="drawer-settings" aria-labelledby="readerSettingsTitle">
+        <p class="eyebrow" id="readerSettingsTitle">LESEANSICHT</p>
+        <div class="drawer-setting-row">
+          <span>Schrift</span>
+          <div class="compact-actions">
+            <button class="tool-button" id="fontDown" aria-label="Schrift verkleinern" title="Schrift verkleinern"><svg class="ui-icon"><use href="#i-font-down"></use></svg></button>
+            <button class="tool-button" id="fontUp" aria-label="Schrift vergrößern" title="Schrift vergrößern"><svg class="ui-icon"><use href="#i-font-up"></use></svg></button>
+          </div>
+        </div>
+        <div class="drawer-setting-row">
+          <span>Hintergrund</span>
+          <div class="theme-picker" id="themePicker" aria-label="Hintergrundfarbe">
+            <button data-theme-choice="paper" class="swatch paper active" aria-label="Papier"></button>
+            <button data-theme-choice="sand" class="swatch sand" aria-label="Sand"></button>
+            <button data-theme-choice="mist" class="swatch mist" aria-label="Nebel"></button>
+            <button data-theme-choice="night" class="swatch night" aria-label="Nacht"></button>
+          </div>
+        </div>
+        <div class="drawer-setting-grid">
+          <button class="drawer-setting-button" id="viewToggle" aria-label="Leseansicht wechseln"><svg class="ui-icon"><use href="#i-scroll"></use></svg><span id="viewLabel">Scrollen</span></button>
+          <button class="drawer-setting-button" id="motionToggle" aria-label="Animationen ausschalten" aria-pressed="true"><svg class="ui-icon"><use href="#i-motion"></use></svg><span id="motionLabel">Animationen an</span></button>
+        </div>
+      </section>
     </aside>
 
     <section class="reading-shell">
       <div class="reader-toolbar">
-        <button class="tool-button" id="chapterToggle" aria-label="Kapitelübersicht öffnen"><svg class="ui-icon"><use href="#i-menu"></use></svg><span>Kapitel</span></button>
+        <button class="tool-button mobile-only" id="chapterToggle" aria-label="Kapitelübersicht öffnen"><svg class="ui-icon"><use href="#i-menu"></use></svg><span>Kapitel</span></button>
         <div class="toolbar-spacer"></div>
-        <button class="tool-button" id="fontDown" aria-label="Schrift verkleinern" title="Schrift verkleinern"><svg class="ui-icon"><use href="#i-font-down"></use></svg></button>
-        <button class="tool-button" id="fontUp" aria-label="Schrift vergrößern" title="Schrift vergrößern"><svg class="ui-icon"><use href="#i-font-up"></use></svg></button>
-        <div class="theme-picker" id="themePicker" aria-label="Hintergrundfarbe">
-          <button data-theme-choice="paper" class="swatch paper active" aria-label="Papier"></button>
-          <button data-theme-choice="sand" class="swatch sand" aria-label="Sand"></button>
-          <button data-theme-choice="mist" class="swatch mist" aria-label="Nebel"></button>
-          <button data-theme-choice="night" class="swatch night" aria-label="Nacht"></button>
-        </div>
-        <button class="tool-button view-toggle" id="viewToggle" aria-label="Leseansicht wechseln" title="Leseansicht wechseln"><svg class="ui-icon"><use href="#i-scroll"></use></svg><span id="viewLabel">Scrollen</span></button>
         <button class="tool-button" id="readToggle" aria-label="Lesestatus ändern" title="Lesestatus ändern"><svg class="ui-icon"><use href="#i-unread"></use></svg><span>Ungelesen</span></button>
         <button class="tool-button" id="shareButton" aria-label="Diesen Teil teilen" title="Diesen Teil teilen"><svg class="ui-icon"><use href="#i-share"></use></svg><span>Teilen</span></button>
       </div>
