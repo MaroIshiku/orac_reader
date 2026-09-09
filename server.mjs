@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { readFile, writeFile, rename, mkdir, copyFile, stat } from "node:fs/promises";
-import { extname, join, normalize } from "node:path";
+import { extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
@@ -69,7 +69,8 @@ function validatePart(input, old = null) {
 }
 function findPart(book, partId) { for (const chapter of book.chapters) { const index = chapter.parts.findIndex((part) => part.id === partId); if (index >= 0) return { chapter, index, part: chapter.parts[index] }; } return null; }
 function sortContent(book) { book.chapters.sort((a,b) => a.number - b.number); for (const chapter of book.chapters) chapter.parts.sort((a,b) => a.number - b.number); }
-function sameOrigin(req) { const origin = req.headers.origin; if (!origin) return true; const host = req.headers["x-forwarded-host"] || req.headers.host; return new URL(origin).host === host; }
+const hasContent = (book) => book.chapters.some((chapter) => chapter.parts.length > 0);
+function sameOrigin(req) { const origin = req.headers.origin; if (!origin) return true; try { const host = req.headers["x-forwarded-host"] || req.headers.host; return new URL(origin).host === host; } catch { return false; } }
 
 async function api(req, res, url) {
   if (["POST", "PUT", "DELETE"].includes(req.method) && !sameOrigin(req)) return json(res, 403, { error: "Ungültige Anfrage." });
@@ -88,10 +89,10 @@ async function api(req, res, url) {
   if (req.method === "GET" && url.pathname === "/api/library") return json(res, 200, { books: library.books.filter((book) => isAdmin(req) || isPublished(book)), links: library.links || [], settings: library.settings || { numberDigits: 4 }, admin: isAdmin(req) });
   if (url.pathname.startsWith("/api/admin/") && !isAdmin(req)) return json(res, 401, { error: "Admin-Anmeldung erforderlich." });
 
-  if (req.method === "POST" && url.pathname === "/api/admin/books") { const book = validateBook(await requestBody(req)); library.books.unshift(book); await saveLibrary(library); return json(res, 201, book); }
+  if (req.method === "POST" && url.pathname === "/api/admin/books") { const book = validateBook(await requestBody(req)); if (book.status !== "draft") return json(res, 409, { error: "Eine neue Chronik muss vor dem Veröffentlichen mindestens einen Teil enthalten." }); if (library.books.some((item) => item.number === book.number)) return json(res, 409, { error: "Diese offizielle Nummer ist bereits vergeben." }); library.books.unshift(book); await saveLibrary(library); return json(res, 201, book); }
   const bookMatch = url.pathname.match(/^\/api\/admin\/books\/([^/]+)$/); const book = bookMatch ? library.books.find((item) => item.id === decodeURIComponent(bookMatch[1])) : null;
   if (bookMatch && !book) return json(res, 404, { error: "Chronik nicht gefunden." });
-  if (req.method === "PUT" && bookMatch) { Object.assign(book, validateBook(await requestBody(req), book)); await saveLibrary(library); return json(res, 200, book); }
+  if (req.method === "PUT" && bookMatch) { const updated = validateBook(await requestBody(req), book); if (library.books.some((item) => item !== book && item.number === updated.number)) return json(res, 409, { error: "Diese offizielle Nummer ist bereits vergeben." }); if (updated.status !== "draft" && !hasContent(updated)) return json(res, 409, { error: "Eine leere Chronik kann nicht veröffentlicht werden." }); Object.assign(book, updated); await saveLibrary(library); return json(res, 200, book); }
   if (req.method === "DELETE" && bookMatch) { library.books.splice(library.books.indexOf(book), 1); await saveLibrary(library); return json(res, 200, { ok: true }); }
 
   const partCollection = url.pathname.match(/^\/api\/admin\/books\/([^/]+)\/parts$/);
@@ -99,12 +100,13 @@ async function api(req, res, url) {
     const target = library.books.find((item) => item.id === decodeURIComponent(partCollection[1])); if (!target) return json(res, 404, { error: "Chronik nicht gefunden." });
     const valid = validatePart(await requestBody(req)); let chapter = target.chapters.find((item) => item.number === valid.chapterNumber);
     if (!chapter) { chapter = { id: `chapter-${Date.now().toString(36)}`, number: valid.chapterNumber, title: valid.chapterTitle, parts: [] }; target.chapters.push(chapter); }
+    if (chapter.parts.some((part) => part.number === valid.part.number)) return json(res, 409, { error: "Diese Teilnummer ist im Kapitel bereits vergeben." });
     chapter.title = valid.chapterTitle; chapter.parts.push(valid.part); sortContent(target); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 201, target);
   }
   const partMatch = url.pathname.match(/^\/api\/admin\/books\/([^/]+)\/parts\/([^/]+)$/);
   if (partMatch) {
     const target = library.books.find((item) => item.id === decodeURIComponent(partMatch[1])); const found = target && findPart(target, decodeURIComponent(partMatch[2])); if (!found) return json(res, 404, { error: "Teil nicht gefunden." });
-    if (req.method === "PUT") { const valid = validatePart(await requestBody(req), found.part); found.chapter.parts.splice(found.index, 1); if (!found.chapter.parts.length) target.chapters.splice(target.chapters.indexOf(found.chapter), 1); let chapter = target.chapters.find((item) => item.number === valid.chapterNumber); if (!chapter) { chapter = { id: `chapter-${Date.now().toString(36)}`, number: valid.chapterNumber, title: valid.chapterTitle, parts: [] }; target.chapters.push(chapter); } chapter.title = valid.chapterTitle; chapter.parts.push(valid.part); sortContent(target); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 200, target); }
+    if (req.method === "PUT") { const valid = validatePart(await requestBody(req), found.part); const destination = target.chapters.find((item) => item.number === valid.chapterNumber); if (destination?.parts.some((part) => part.id !== found.part.id && part.number === valid.part.number)) return json(res, 409, { error: "Diese Teilnummer ist im Kapitel bereits vergeben." }); found.chapter.parts.splice(found.index, 1); if (!found.chapter.parts.length) target.chapters.splice(target.chapters.indexOf(found.chapter), 1); let chapter = target.chapters.find((item) => item.number === valid.chapterNumber); if (!chapter) { chapter = { id: `chapter-${Date.now().toString(36)}`, number: valid.chapterNumber, title: valid.chapterTitle, parts: [] }; target.chapters.push(chapter); } chapter.title = valid.chapterTitle; chapter.parts.push(valid.part); sortContent(target); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 200, target); }
     if (req.method === "DELETE") { found.chapter.parts.splice(found.index, 1); if (!found.chapter.parts.length) target.chapters.splice(target.chapters.indexOf(found.chapter), 1); await saveLibrary(library); return json(res, 200, { ok: true }); }
   }
   if (req.method === "PUT" && url.pathname === "/api/admin/links") { const input = await requestBody(req); library.links = (input.links || []).slice(0,8).map((link) => ({ label: safeText(link.label,60), url: safeText(link.url,500) })).filter((link) => link.label && /^https?:\/\//.test(link.url)); await saveLibrary(library); return json(res, 200, library.links); }
@@ -117,7 +119,7 @@ await migrateLibrary();
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`); if (url.pathname.startsWith("/api/")) return await api(req, res, url);
-    const requested = url.pathname === "/" ? "index.html" : url.pathname.slice(1); const file = normalize(join(publicRoot, requested)); if (!file.startsWith(publicRoot)) return send(res, 403, "Nicht erlaubt"); await stat(file);
+    const requested = url.pathname === "/" ? "index.html" : url.pathname.slice(1); const file = normalize(join(publicRoot, requested)); if (file !== publicRoot && !file.startsWith(`${publicRoot}${sep}`)) return send(res, 403, "Nicht erlaubt"); await stat(file);
     return send(res, 200, await readFile(file), { "Content-Type": types[extname(file)] || "application/octet-stream", "Cache-Control": "public, max-age=300" });
   } catch (error) { if (error?.code === "ENOENT") return send(res, 404, "Nicht gefunden", { "Content-Type": "text/plain; charset=utf-8" }); console.error(error); return json(res, error instanceof SyntaxError ? 400 : 500, { error: error.message || "Interner Fehler." }); }
 }).listen(port, "0.0.0.0", () => console.log(`ORACLE Reader läuft auf Port ${port}`));

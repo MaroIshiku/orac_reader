@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "import": "node scripts/import-stories.mjs",
+    "test": "node --test tests/*.test.mjs",
     "start": "node server.mjs",
     "dev": "node server.mjs"
   },

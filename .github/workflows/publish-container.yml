@@ -20,6 +20,9 @@ jobs:
       - name: Repository auschecken
         uses: actions/checkout@v4
 
+      - name: Regressionstests ausführen
+        run: npm test
+
       - name: QEMU einrichten
         uses: docker/setup-qemu-action@v3
 
