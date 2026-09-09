@@ -108,7 +108,9 @@ button { cursor: pointer; }
 .chapter-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 80px; padding-top: 28px; border-top: 1px solid var(--line); color: var(--muted); font: italic 13px "Literata", serif; }
 body[data-theme="sand"] { --paper: #dfd2bb; --paper-deep: #d3c3a8; --ink: #2c251c; --muted: #746754; --line: rgba(44,37,28,.16); }
 body[data-theme="mist"] { --paper: #d9e2de; --paper-deep: #cbd8d3; --ink: #1d2926; --muted: #60706a; --line: rgba(29,41,38,.15); }
-body[data-theme="night"] { --paper: #15201d; --paper-deep: #101916; --ink: #d8dfd8; --muted: #8f9d96; --line: rgba(216,223,216,.13); --forest: #a54436; }
+body[data-theme="night"] { --paper: #15201d; --paper-deep: #101916; --ink: #e1e7e2; --muted: #a8b4ae; --line: rgba(225,231,226,.18); --accent: #ef8f80; --accent-dark: #d86f61; --forest: #b95043; }
+body[data-theme="night"] .wordmark-mark img,
+body[data-theme="night"] .generated-cover img { filter: brightness(1.32) saturate(.82); }
 body[data-view="pages"] .reading-viewport { height: calc(100vh - 102px); overflow: hidden; padding: 20px 28px 54px; }
 body[data-view="pages"] .reading-page { height: 100%; max-width: 900px; min-height: 0; padding: 52px 70px; overflow-x: hidden; overflow-y: hidden; scroll-behavior: smooth; scrollbar-width: none; background: rgba(255,255,255,.12); border: 1px solid var(--line); column-width: calc(900px - 140px); column-gap: 140px; column-fill: auto; }
 body[data-view="pages"] .reading-page::-webkit-scrollbar { display: none; }
