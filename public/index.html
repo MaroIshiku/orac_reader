@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#eee8dc">
   <title>ORACLE — Chroniken</title>
   <meta name="description" content="Geschichten und Chroniken aus dem ORACLE-Universum.">
+  <link rel="icon" type="image/png" href="/oracle-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&display=swap" rel="stylesheet">
@@ -67,6 +68,8 @@
       </div>
 
       <div class="reading-viewport" id="readingViewport">
+        <button class="page-edge page-edge-prev" id="pageEdgePrev" aria-label="Vorherige Seite" title="Vorherige Seite"></button>
+        <button class="page-edge page-edge-next" id="pageEdgeNext" aria-label="Nächste Seite" title="Nächste Seite"></button>
         <article class="reading-page" id="readingPage">
           <header class="story-header">
             <p class="eyebrow" id="storyKicker"></p>
@@ -104,7 +107,7 @@
     </section>
     <section id="adminPanel" class="admin-panel" hidden>
       <div class="admin-heading"><div><p class="eyebrow">REDAKTION</p><h2>Chroniken verwalten</h2></div><button class="quiet-button" id="logoutButton">Abmelden</button></div>
-      <div class="admin-tabs"><button class="active" data-admin-tab="books">Bücher</button><button data-admin-tab="links">Links</button></div>
+      <div class="admin-tabs"><button class="active" data-admin-tab="books">Bücher</button><button data-admin-tab="display">Darstellung</button><button data-admin-tab="links">Links</button></div>
       <div id="booksAdmin">
         <div class="admin-book-list" id="adminBookList"></div>
         <button class="secondary-button full" id="newBookButton">+ Neue Chronik</button>
@@ -112,6 +115,8 @@
           <input type="hidden" name="id">
           <div class="form-title"><h3 id="formTitle">Neue Chronik</h3><button type="button" class="text-button" id="cancelEdit">Abbrechen</button></div>
           <div class="form-grid">
+            <label>Offizielle Nummer *<input name="number" type="number" min="0" value="0" required></label>
+            <span></span>
             <label class="wide">Name *<input name="title" required maxlength="160"></label>
             <label>Kapitel *<input name="chapter" type="number" min="0" value="0" required></label>
             <label>Teil *<input name="part" type="number" min="1" value="1" required></label>
@@ -128,6 +133,18 @@
           <button class="primary-button" type="submit">Chronik speichern</button>
         </form>
       </div>
+      <form id="displayAdmin" hidden>
+        <p class="admin-hint">Legt fest, wie offizielle Kapitelnummern im gesamten Reader erscheinen.</p>
+        <label>Nummernformat
+          <select name="numberDigits">
+            <option value="1">1</option>
+            <option value="2">01</option>
+            <option value="3">001</option>
+            <option value="4">0001</option>
+          </select>
+        </label>
+        <button class="primary-button" type="submit">Darstellung speichern</button>
+      </form>
       <form id="linksAdmin" hidden>
         <p class="admin-hint">Bis zu acht unabhängige Verweise, zum Beispiel zu OracleDB oder Discord.</p>
         <div id="linkRows"></div>

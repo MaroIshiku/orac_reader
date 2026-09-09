@@ -46,14 +46,21 @@ const isPublished = (book) => book.status === "published" || (book.status === "s
 async function ensureData() { await mkdir(dataRoot, { recursive: true }); try { await stat(dataFile); } catch { await copyFile(bundledData, dataFile); } }
 const loadLibrary = async () => JSON.parse(await readFile(dataFile, "utf8"));
 const saveLibrary = async (library) => { const temp = `${dataFile}.${process.pid}.tmp`; await writeFile(temp, `${JSON.stringify(library, null, 2)}\n`, "utf8"); await rename(temp, dataFile); };
+async function migrateLibrary() {
+  const library = await loadLibrary(); let changed = false;
+  if (!library.settings) { library.settings = { numberDigits: 4 }; changed = true; }
+  library.books.forEach((book, index) => { if (!Number.isInteger(book.number)) { const stored = book.id?.match(/oracle-(\d+)/)?.[1]; book.number = stored !== undefined ? Number(stored) : index; changed = true; } });
+  if (changed) await saveLibrary(library);
+}
 
 function validateBook(input, old = null) {
   const title = safeText(input.title, 160); const description = safeText(input.description, 2000);
-  if (!title || !description) throw new Error("Name und Beschreibung sind Pflichtfelder.");
+  const number = Number(input.number);
+  if (!title || !description || !Number.isInteger(number) || number < 0) throw new Error("Offizielle Nummer, Name und Beschreibung sind Pflichtfelder.");
   const status = ["draft", "scheduled", "published"].includes(input.status) ? input.status : "draft";
   let publishAt = null;
   if (status === "scheduled") { const timestamp = new Date(input.publishAt).getTime(); if (!Number.isFinite(timestamp)) throw new Error("Für eine geplante Veröffentlichung wird ein Datum benötigt."); publishAt = new Date(timestamp).toISOString(); }
-  return { id: old?.id || `${slug(title)}-${Date.now().toString(36)}`, title, kicker: safeText(input.kicker, 80) || "ORACLE · CHRONIK", description, tldr: safeText(input.tldr, 3000), status, publishAt, updatedAt: new Date().toISOString(), chapters: old?.chapters || [] };
+  return { id: old?.id || `${slug(title)}-${Date.now().toString(36)}`, number, title, kicker: safeText(input.kicker, 80) || "ORACLE · CHRONIK", description, tldr: safeText(input.tldr, 3000), status, publishAt, updatedAt: new Date().toISOString(), chapters: old?.chapters || [] };
 }
 function validatePart(input, old = null) {
   const chapterNumber = Number(input.chapter); const partNumber = Number(input.part); const chapterTitle = safeText(input.chapterTitle, 160); const title = safeText(input.partTitle, 160); const content = String(input.content || "").trim().slice(0, 5_000_000);
@@ -78,7 +85,7 @@ async function api(req, res, url) {
   if (req.method === "POST" && url.pathname === "/api/logout") { sessions.delete(parseCookies(req).oracle_reader_session); return json(res, 200, { ok: true }, { "Set-Cookie": "oracle_reader_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0" }); }
   if (req.method === "GET" && url.pathname === "/api/session") return json(res, 200, { admin: isAdmin(req) });
   const library = await loadLibrary();
-  if (req.method === "GET" && url.pathname === "/api/library") return json(res, 200, { books: library.books.filter((book) => isAdmin(req) || isPublished(book)), links: library.links || [], admin: isAdmin(req) });
+  if (req.method === "GET" && url.pathname === "/api/library") return json(res, 200, { books: library.books.filter((book) => isAdmin(req) || isPublished(book)), links: library.links || [], settings: library.settings || { numberDigits: 4 }, admin: isAdmin(req) });
   if (url.pathname.startsWith("/api/admin/") && !isAdmin(req)) return json(res, 401, { error: "Admin-Anmeldung erforderlich." });
 
   if (req.method === "POST" && url.pathname === "/api/admin/books") { const book = validateBook(await requestBody(req)); library.books.unshift(book); await saveLibrary(library); return json(res, 201, book); }
@@ -101,14 +108,16 @@ async function api(req, res, url) {
     if (req.method === "DELETE") { found.chapter.parts.splice(found.index, 1); if (!found.chapter.parts.length) target.chapters.splice(target.chapters.indexOf(found.chapter), 1); await saveLibrary(library); return json(res, 200, { ok: true }); }
   }
   if (req.method === "PUT" && url.pathname === "/api/admin/links") { const input = await requestBody(req); library.links = (input.links || []).slice(0,8).map((link) => ({ label: safeText(link.label,60), url: safeText(link.url,500) })).filter((link) => link.label && /^https?:\/\//.test(link.url)); await saveLibrary(library); return json(res, 200, library.links); }
+  if (req.method === "PUT" && url.pathname === "/api/admin/settings") { const input = await requestBody(req); const numberDigits = Number(input.numberDigits); if (![1,2,3,4].includes(numberDigits)) return json(res, 400, { error: "Ungültiges Nummernformat." }); library.settings = { ...(library.settings || {}), numberDigits }; await saveLibrary(library); return json(res, 200, library.settings); }
   return json(res, 404, { error: "Nicht gefunden." });
 }
 
 await ensureData();
+await migrateLibrary();
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`); if (url.pathname.startsWith("/api/")) return await api(req, res, url);
     const requested = url.pathname === "/" ? "index.html" : url.pathname.slice(1); const file = normalize(join(publicRoot, requested)); if (!file.startsWith(publicRoot)) return send(res, 403, "Nicht erlaubt"); await stat(file);
     return send(res, 200, await readFile(file), { "Content-Type": types[extname(file)] || "application/octet-stream", "Cache-Control": "public, max-age=300" });
-  } catch (error) { console.error(error); return json(res, error instanceof SyntaxError ? 400 : 500, { error: error.message || "Interner Fehler." }); }
+  } catch (error) { if (error?.code === "ENOENT") return send(res, 404, "Nicht gefunden", { "Content-Type": "text/plain; charset=utf-8" }); console.error(error); return json(res, error instanceof SyntaxError ? 400 : 500, { error: error.message || "Interner Fehler." }); }
 }).listen(port, "0.0.0.0", () => console.log(`ORACLE Reader läuft auf Port ${port}`));

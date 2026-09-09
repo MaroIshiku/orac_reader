@@ -28,8 +28,7 @@ for (const folder of folders) {
     const readingText = raw.replace(/^#\s+.+\r?\n(?:\r?\n)?/, "");
     const firstHeading = raw.match(/^#\s+(.+)$/m)?.[1]?.trim();
     const partTitle = file.name.replace(/\.md$/i, "").replace(/^Teil\s*\d+\s*[-–]?\s*/i, "").trim();
-    const chapterMatch = firstHeading?.match(/KAPITEL\s+(\d+)/i)?.[1];
-    const chapterNumber = chapterMatch !== undefined ? Number(chapterMatch) : folder.name.startsWith("0000") ? 0 : 1;
+    const chapterNumber = Number(folder.name.match(/^\d{4}/)?.[0]) || 0;
     let chapter = chapters.find((item) => item.number === chapterNumber);
     if (!chapter) {
       chapter = { id: `${id}-chapter-${chapterNumber}`, number: chapterNumber, title: `Kapitel ${chapterNumber}`, parts: [] };
@@ -46,6 +45,7 @@ for (const folder of folders) {
   const importedPartCount = chapters.reduce((sum, chapter) => sum + chapter.parts.length, 0);
   books.push({
     id,
+    number: Number(folder.name.match(/^\d{4}/)?.[0]) || 0,
     title: folderTitle || "ORACLE",
     kicker: "ORACLE · CHRONIK",
     description: `Eine Chronik aus dem ORACLE-Universum. ${importedPartCount} ${importedPartCount === 1 ? "Teil" : "Teile"}.`,
@@ -59,6 +59,7 @@ for (const folder of folders) {
 
 const library = {
   books,
+  settings: { "numberDigits": 4 },
   links: [
     { "label": "OracleDB", "url": "https://oracledb.ishiku.de", "kind": "database" },
     { "label": "Discord", "url": "https://discord.com", "kind": "community" }
