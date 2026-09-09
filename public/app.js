@@ -1,4 +1,4 @@
-import { cardDestination, readerHash } from "/navigation.js";
+import { cardDestination, readerHash } from "/navigation.js?v=__APP_VERSION__";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -66,13 +66,13 @@ function renderHomeShelves() {
 }
 function route() {
   const match = location.hash.match(/^#?read\/([^/]+)\/([^/]+)/);
-  if (!match) { $("#homeView").hidden = false; $("#readerView").hidden = true; document.body.classList.remove("reading"); document.title = "ORACLE — Archiv"; return; }
+  if (!match) { const wasReading = !$("#readerView").hidden; $("#homeView").hidden = false; $("#readerView").hidden = true; $("#chapterDrawer").classList.remove("open"); document.body.classList.remove("reading"); document.title = "ORACLE — Archiv"; if (wasReading) requestAnimationFrame(() => scrollTo(0, 0)); return; }
   const book = state.books.find((item) => item.id === decodeURIComponent(match[1])); if (!book) return location.hash = "home";
   const entry = allParts(book).find(({part}) => part.id === decodeURIComponent(match[2])) || allParts(book)[0]; if (!entry) return location.hash = "home";
   openPart(book, entry.chapter, entry.part);
 }
 function openPart(book, chapter, part) {
-  state.book = book; state.part = part; $("#homeView").hidden = true; $("#readerView").hidden = false; document.body.classList.add("reading");
+  state.book = book; state.part = part; $("#homeView").hidden = true; $("#readerView").hidden = false; $("#chapterDrawer").classList.remove("open"); document.body.classList.add("reading");
   $("#drawerBookTitle").textContent = book.title; $("#storyKicker").textContent = book.kicker; $("#storyTitle").textContent = part.title;
   $("#storyDescription").textContent = book.description; $("#storyPart").textContent = `Kapitel ${formatNumber(chapter.number)} · Teil ${part.number}`;
   const words = part.content.trim().split(/\s+/).length; $("#readingTime").textContent = `${Math.max(1, Math.ceil(words / 220))} Min. Lesezeit`;

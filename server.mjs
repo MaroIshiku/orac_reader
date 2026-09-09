@@ -50,9 +50,13 @@ async function ensureData() { await mkdir(dataRoot, { recursive: true }); try { 
 const loadLibrary = async () => JSON.parse(await readFile(dataFile, "utf8"));
 const saveLibrary = async (library) => { const temp = `${dataFile}.${process.pid}.tmp`; await writeFile(temp, `${JSON.stringify(library, null, 2)}\n`, "utf8"); await rename(temp, dataFile); };
 async function migrateLibrary() {
-  const library = await loadLibrary(); let changed = false;
+  const library = await loadLibrary(); let changed = false; const schemaVersion = Number(library.schemaVersion) || 1;
   if (!library.settings) { library.settings = { numberDigits: 4 }; changed = true; }
   library.books.forEach((book, index) => { if (!Number.isInteger(book.number)) { const stored = book.id?.match(/oracle-(\d+)/)?.[1]; book.number = stored !== undefined ? Number(stored) : index; changed = true; } if (book.kicker === "ORACLE · CHRONIK") { book.kicker = "ORACLE · ARCHIV"; changed = true; } if (book.description?.startsWith("Eine Chronik aus dem ORACLE-Universum.")) { book.description = book.description.replace("Eine Chronik aus dem ORACLE-Universum.", "Ein Eintrag des ORACLE-Archivs."); changed = true; } });
+  if (schemaVersion < 3) {
+    library.books.forEach((book) => { const official = book.id?.match(/^oracle-(\d+)$/)?.[1]; if (official !== undefined && book.chapters.length === 1 && book.chapters[0].number !== Number(official)) { book.chapters[0].number = Number(official); changed = true; } });
+    library.schemaVersion = 3; changed = true;
+  }
   if (changed) await saveLibrary(library);
 }
 
@@ -123,7 +127,8 @@ createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`); if (url.pathname.startsWith("/api/")) return await api(req, res, url);
     const requested = url.pathname === "/" ? "index.html" : url.pathname.slice(1); const file = normalize(join(publicRoot, requested)); if (file !== publicRoot && !file.startsWith(`${publicRoot}${sep}`)) return send(res, 403, "Nicht erlaubt"); await stat(file);
-    const extension = extname(file); const cacheControl = [".html", ".css", ".js", ".json"].includes(extension) ? "no-cache, must-revalidate" : "public, max-age=86400";
-    return send(res, 200, await readFile(file), { "Content-Type": types[extension] || "application/octet-stream", "Cache-Control": cacheControl });
+    const extension = extname(file); const cacheControl = [".html", ".css", ".js", ".json"].includes(extension) ? "no-cache, must-revalidate" : "public, max-age=86400"; let payload = await readFile(file);
+    if ([".html", ".js"].includes(extension)) payload = payload.toString("utf8").replaceAll("__APP_VERSION__", encodeURIComponent(appVersion));
+    return send(res, 200, payload, { "Content-Type": types[extension] || "application/octet-stream", "Cache-Control": cacheControl });
   } catch (error) { if (error?.code === "ENOENT") return send(res, 404, "Nicht gefunden", { "Content-Type": "text/plain; charset=utf-8" }); console.error(error); return json(res, error instanceof SyntaxError ? 400 : 500, { error: error.message || "Interner Fehler." }); }
 }).listen(port, "0.0.0.0", () => console.log(`ORACLE Reader läuft auf Port ${port}`));

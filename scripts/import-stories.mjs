@@ -58,6 +58,7 @@ for (const folder of folders) {
 }
 
 const library = {
+  schemaVersion: 3,
   books,
   settings: { "numberDigits": 4 },
   links: [
