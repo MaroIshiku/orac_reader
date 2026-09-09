@@ -111,7 +111,9 @@
             <p class="eyebrow" id="storyKicker"></p>
             <h1 id="storyTitle"></h1>
             <p class="story-description" id="storyDescription"></p>
-            <details class="tldr" id="storyTldr"><summary>Kurzfassung · TL;DR</summary><p></p></details>
+            <div class="tldr-stack">
+              <details class="tldr" id="partTldr"><summary>Teilkurzfassung · TL;DR</summary><div class="tldr-gate"><p>Dieses Teil-TL;DR enthält Spoiler. Trotzdem anzeigen?</p><div><button type="button" data-reveal-tldr>Ja</button><button type="button" data-close-tldr>Nein</button></div></div><p class="tldr-content" hidden></p></details>
+            </div>
             <div class="story-meta"><span id="storyPart"></span><span id="readingTime"></span></div>
           </header>
           <div class="prose" id="storyContent"></div>
@@ -147,26 +149,41 @@
       <div id="booksAdmin">
         <div class="admin-book-list" id="adminBookList"></div>
         <button class="secondary-button full with-icon" id="newBookButton"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Neuer Archiveintrag</span></button>
-        <form class="book-form" id="bookForm" hidden>
-          <input type="hidden" name="id">
-          <div class="form-title"><h3 id="formTitle">Neuer Archiveintrag</h3><button type="button" class="text-button" id="cancelEdit">Abbrechen</button></div>
+        <form class="editor-form" id="archiveForm" hidden>
+          <div class="form-title"><div><p class="eyebrow">ARCHIVEINTRAG</p><h3 id="archiveFormTitle">Neuer Archiveintrag</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
           <div class="form-grid">
             <label>Offizielle Nummer *<input name="number" type="number" min="0" value="0" required></label>
-            <span></span>
-            <label class="wide">Name *<input name="title" required maxlength="160"></label>
-            <label>Kapitel *<input name="chapter" type="number" min="0" value="0" required></label>
-            <label>Teil *<input name="part" type="number" min="1" value="1" required></label>
-            <label class="wide">Kapitelname *<input name="chapterTitle" required maxlength="160"></label>
-            <label class="wide">Teilname *<input name="partTitle" required maxlength="160"></label>
-            <label class="wide">Beschreibung *<textarea name="description" rows="3" required></textarea></label>
-            <label class="wide">TL;DR <textarea name="tldr" rows="3"></textarea></label>
             <label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label>
+            <label class="wide">Name *<input name="title" required maxlength="160"></label>
+            <label class="wide">Beschreibung *<textarea name="description" rows="3" required></textarea></label>
             <label>Veröffentlichung<input name="publishAt" type="datetime-local"></label>
+          </div>
+          <p class="admin-hint">Ein neuer Archiveintrag beginnt als Entwurf. Kapitel und Teile werden anschließend separat angelegt.</p>
+          <p class="form-error" id="archiveFormError"></p>
+          <button class="primary-button" type="submit">Archiveintrag speichern</button>
+        </form>
+        <form class="editor-form" id="chapterForm" hidden>
+          <div class="form-title"><div><p class="eyebrow">KAPITEL</p><h3 id="chapterFormTitle">Neues Kapitel</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
+          <div class="form-grid">
+            <label>Kapitelnummer *<input name="number" type="number" min="0" value="0" required></label>
+            <label>Kapitelname *<input name="title" required maxlength="160"></label>
+            <label class="wide">Kapitel-TL;DR <textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label>
+          </div>
+          <p class="form-error" id="chapterFormError"></p>
+          <button class="primary-button" type="submit">Kapitel speichern</button>
+        </form>
+        <form class="editor-form" id="partForm" hidden>
+          <div class="form-title"><div><p class="eyebrow">TEIL</p><h3 id="partFormTitle">Neuer Teil</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
+          <div class="form-grid">
+            <label>Kapitel *<select name="chapterId" required></select></label>
+            <label>Teilnummer *<input name="part" type="number" min="1" value="1" required></label>
+            <label class="wide">Teilname *<input name="partTitle" required maxlength="160"></label>
+            <label class="wide">Teil-TL;DR <textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label>
             <label>Datei laden<input id="storyFile" type="file" accept=".md,.txt,text/markdown,text/plain"></label>
             <label class="wide">Text *<textarea class="content-input" name="content" rows="12" required placeholder="Markdown oder Klartext…"></textarea></label>
           </div>
-          <p class="form-error" id="bookFormError"></p>
-          <button class="primary-button" type="submit">Archiveintrag speichern</button>
+          <p class="form-error" id="partFormError"></p>
+          <button class="primary-button" type="submit">Teil speichern</button>
         </form>
       </div>
       <form id="displayAdmin" hidden>

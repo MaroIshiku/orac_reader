@@ -57,6 +57,17 @@ async function migrateLibrary() {
     library.books.forEach((book) => { const official = book.id?.match(/^oracle-(\d+)$/)?.[1]; if (official !== undefined && book.chapters.length === 1 && book.chapters[0].number !== Number(official)) { book.chapters[0].number = Number(official); changed = true; } });
     library.schemaVersion = 3; changed = true;
   }
+  if (schemaVersion < 4) {
+    library.books.forEach((book) => {
+      const legacyTldr = safeText(book.tldr, 3000);
+      book.chapters.forEach((chapter, index) => {
+        if (typeof chapter.tldr !== "string") { chapter.tldr = index === 0 ? legacyTldr : ""; changed = true; }
+        chapter.parts.forEach((part) => { if (typeof part.tldr !== "string") { part.tldr = ""; changed = true; } });
+      });
+      if (Object.hasOwn(book, "tldr")) { delete book.tldr; changed = true; }
+    });
+    library.schemaVersion = 4; changed = true;
+  }
   if (changed) await saveLibrary(library);
 }
 
@@ -67,16 +78,22 @@ function validateBook(input, old = null) {
   const status = ["draft", "scheduled", "published"].includes(input.status) ? input.status : "draft";
   let publishAt = null;
   if (status === "scheduled") { const timestamp = new Date(input.publishAt).getTime(); if (!Number.isFinite(timestamp)) throw new Error("Für eine geplante Veröffentlichung wird ein Datum benötigt."); publishAt = new Date(timestamp).toISOString(); }
-  return { id: old?.id || `${slug(title)}-${Date.now().toString(36)}`, number, title, kicker: safeText(input.kicker, 80) || "ORACLE · ARCHIV", description, tldr: safeText(input.tldr, 3000), status, publishAt, updatedAt: new Date().toISOString(), chapters: old?.chapters || [] };
+  return { id: old?.id || `${slug(title)}-${Date.now().toString(36)}`, number, title, kicker: safeText(input.kicker, 80) || "ORACLE · ARCHIV", description, status, publishAt, updatedAt: new Date().toISOString(), chapters: old?.chapters || [] };
+}
+function validateChapter(input, old = null) {
+  const number = Number(input.number); const title = safeText(input.title, 160); const tldr = safeText(input.tldr, 3000);
+  if (!Number.isInteger(number) || number < 0 || !title) throw new Error("Kapitelnummer (ab 0) und Kapitelname sind Pflichtfelder.");
+  return { id: old?.id || `chapter-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number, title, tldr, parts: old?.parts || [] };
 }
 function validatePart(input, old = null) {
-  const chapterNumber = Number(input.chapter); const partNumber = Number(input.part); const chapterTitle = safeText(input.chapterTitle, 160); const title = safeText(input.partTitle, 160); const content = String(input.content || "").trim().slice(0, 5_000_000);
-  if (!Number.isInteger(chapterNumber) || chapterNumber < 0 || !Number.isInteger(partNumber) || partNumber < 1 || !chapterTitle || !title || !content) throw new Error("Kapitel (ab 0), Teil (ab 1), beide Namen und Text sind Pflichtfelder.");
-  return { chapterNumber, chapterTitle, part: { id: old?.id || `part-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number: partNumber, title, content } };
+  const chapterId = safeText(input.chapterId, 200); const partNumber = Number(input.part); const title = safeText(input.partTitle, 160); const tldr = safeText(input.tldr, 3000); const content = String(input.content || "").trim().slice(0, 5_000_000);
+  if (!chapterId || !Number.isInteger(partNumber) || partNumber < 1 || !title || !content) throw new Error("Kapitel, Teilnummer (ab 1), Teilname und Text sind Pflichtfelder.");
+  return { chapterId, part: { id: old?.id || `part-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number: partNumber, title, tldr, content } };
 }
 function findPart(book, partId) { for (const chapter of book.chapters) { const index = chapter.parts.findIndex((part) => part.id === partId); if (index >= 0) return { chapter, index, part: chapter.parts[index] }; } return null; }
 function sortContent(book) { book.chapters.sort((a,b) => a.number - b.number); for (const chapter of book.chapters) chapter.parts.sort((a,b) => a.number - b.number); }
 const hasContent = (book) => book.chapters.some((chapter) => chapter.parts.length > 0);
+const partCountAfter = (book, removed) => book.chapters.reduce((sum, chapter) => sum + chapter.parts.length, 0) - removed;
 function sameOrigin(req) { const origin = req.headers.origin; if (!origin) return true; try { const host = req.headers["x-forwarded-host"] || req.headers.host; return new URL(origin).host === host; } catch { return false; } }
 
 async function api(req, res, url) {
@@ -102,19 +119,31 @@ async function api(req, res, url) {
   if (req.method === "PUT" && bookMatch) { const updated = validateBook(await requestBody(req), book); if (library.books.some((item) => item !== book && item.number === updated.number)) return json(res, 409, { error: "Diese offizielle Nummer ist bereits vergeben." }); if (updated.status !== "draft" && !hasContent(updated)) return json(res, 409, { error: "Ein leerer Archiveintrag kann nicht veröffentlicht werden." }); Object.assign(book, updated); await saveLibrary(library); return json(res, 200, book); }
   if (req.method === "DELETE" && bookMatch) { library.books.splice(library.books.indexOf(book), 1); await saveLibrary(library); return json(res, 200, { ok: true }); }
 
+  const chapterCollection = url.pathname.match(/^\/api\/admin\/books\/([^/]+)\/chapters$/);
+  if (req.method === "POST" && chapterCollection) {
+    const target = library.books.find((item) => item.id === decodeURIComponent(chapterCollection[1])); if (!target) return json(res, 404, { error: "Archiveintrag nicht gefunden." });
+    const chapter = validateChapter(await requestBody(req)); if (target.chapters.some((item) => item.number === chapter.number)) return json(res, 409, { error: "Diese Kapitelnummer ist im Archiveintrag bereits vergeben." });
+    target.chapters.push(chapter); sortContent(target); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 201, chapter);
+  }
+  const chapterMatch = url.pathname.match(/^\/api\/admin\/books\/([^/]+)\/chapters\/([^/]+)$/);
+  if (chapterMatch) {
+    const target = library.books.find((item) => item.id === decodeURIComponent(chapterMatch[1])); const chapter = target?.chapters.find((item) => item.id === decodeURIComponent(chapterMatch[2])); if (!target || !chapter) return json(res, 404, { error: "Kapitel nicht gefunden." });
+    if (req.method === "PUT") { const updated = validateChapter(await requestBody(req), chapter); if (target.chapters.some((item) => item !== chapter && item.number === updated.number)) return json(res, 409, { error: "Diese Kapitelnummer ist im Archiveintrag bereits vergeben." }); Object.assign(chapter, updated); sortContent(target); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 200, chapter); }
+    if (req.method === "DELETE") { if (target.status !== "draft" && partCountAfter(target, chapter.parts.length) === 0) return json(res, 409, { error: "Der letzte Teil eines veröffentlichten Archiveintrags kann nicht gelöscht werden. Setze ihn zuerst auf Entwurf." }); target.chapters.splice(target.chapters.indexOf(chapter), 1); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 200, { ok: true }); }
+  }
+
   const partCollection = url.pathname.match(/^\/api\/admin\/books\/([^/]+)\/parts$/);
   if (req.method === "POST" && partCollection) {
     const target = library.books.find((item) => item.id === decodeURIComponent(partCollection[1])); if (!target) return json(res, 404, { error: "Archiveintrag nicht gefunden." });
-    const valid = validatePart(await requestBody(req)); let chapter = target.chapters.find((item) => item.number === valid.chapterNumber);
-    if (!chapter) { chapter = { id: `chapter-${Date.now().toString(36)}`, number: valid.chapterNumber, title: valid.chapterTitle, parts: [] }; target.chapters.push(chapter); }
+    const valid = validatePart(await requestBody(req)); const chapter = target.chapters.find((item) => item.id === valid.chapterId); if (!chapter) return json(res, 404, { error: "Kapitel nicht gefunden." });
     if (chapter.parts.some((part) => part.number === valid.part.number)) return json(res, 409, { error: "Diese Teilnummer ist im Kapitel bereits vergeben." });
-    chapter.title = valid.chapterTitle; chapter.parts.push(valid.part); sortContent(target); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 201, target);
+    chapter.parts.push(valid.part); sortContent(target); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 201, valid.part);
   }
   const partMatch = url.pathname.match(/^\/api\/admin\/books\/([^/]+)\/parts\/([^/]+)$/);
   if (partMatch) {
     const target = library.books.find((item) => item.id === decodeURIComponent(partMatch[1])); const found = target && findPart(target, decodeURIComponent(partMatch[2])); if (!found) return json(res, 404, { error: "Teil nicht gefunden." });
-    if (req.method === "PUT") { const valid = validatePart(await requestBody(req), found.part); const destination = target.chapters.find((item) => item.number === valid.chapterNumber); if (destination?.parts.some((part) => part.id !== found.part.id && part.number === valid.part.number)) return json(res, 409, { error: "Diese Teilnummer ist im Kapitel bereits vergeben." }); found.chapter.parts.splice(found.index, 1); if (!found.chapter.parts.length) target.chapters.splice(target.chapters.indexOf(found.chapter), 1); let chapter = target.chapters.find((item) => item.number === valid.chapterNumber); if (!chapter) { chapter = { id: `chapter-${Date.now().toString(36)}`, number: valid.chapterNumber, title: valid.chapterTitle, parts: [] }; target.chapters.push(chapter); } chapter.title = valid.chapterTitle; chapter.parts.push(valid.part); sortContent(target); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 200, target); }
-    if (req.method === "DELETE") { found.chapter.parts.splice(found.index, 1); if (!found.chapter.parts.length) target.chapters.splice(target.chapters.indexOf(found.chapter), 1); await saveLibrary(library); return json(res, 200, { ok: true }); }
+    if (req.method === "PUT") { const valid = validatePart(await requestBody(req), found.part); const destination = target.chapters.find((item) => item.id === valid.chapterId); if (!destination) return json(res, 404, { error: "Kapitel nicht gefunden." }); if (destination.parts.some((part) => part.id !== found.part.id && part.number === valid.part.number)) return json(res, 409, { error: "Diese Teilnummer ist im Kapitel bereits vergeben." }); found.chapter.parts.splice(found.index, 1); destination.parts.push(valid.part); sortContent(target); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 200, valid.part); }
+    if (req.method === "DELETE") { if (target.status !== "draft" && partCountAfter(target, 1) === 0) return json(res, 409, { error: "Der letzte Teil eines veröffentlichten Archiveintrags kann nicht gelöscht werden. Setze ihn zuerst auf Entwurf." }); found.chapter.parts.splice(found.index, 1); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 200, { ok: true }); }
   }
   if (req.method === "PUT" && url.pathname === "/api/admin/links") { const input = await requestBody(req); library.links = (input.links || []).slice(0,8).map((link) => ({ label: safeText(link.label,60), url: safeText(link.url,500) })).filter((link) => link.label && /^https?:\/\//.test(link.url)); await saveLibrary(library); return json(res, 200, library.links); }
   if (req.method === "PUT" && url.pathname === "/api/admin/settings") { const input = await requestBody(req); const numberDigits = Number(input.numberDigits); if (![1,2,3,4].includes(numberDigits)) return json(res, 400, { error: "Ungültiges Nummernformat." }); library.settings = { ...(library.settings || {}), numberDigits }; await saveLibrary(library); return json(res, 200, library.settings); }

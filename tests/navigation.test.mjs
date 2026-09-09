@@ -28,6 +28,10 @@ test("Kapitel und Archivkarten verwenden getrennte, delegierte Navigation", asyn
   assert.match(markup, /app\.js\?v=__APP_VERSION__/);
   assert.match(source, /navigation\.js\?v=__APP_VERSION__/);
   assert.match(source, /read-status\.js\?v=__APP_VERSION__/);
+  assert.match(source, /behavior: state\.motion \? "smooth" : "auto"/);
+  const styles = await readFile(new URL("../public/styles.css", import.meta.url), "utf8");
+  assert.match(styles, /height: calc\(100dvh - 96px\)/);
+  assert.match(styles, /\.reading-page :is\(a, button, details\).*z-index: 4/);
   assert.match(markup, /<symbol id="i-pages"/);
   assert.match(source, /iconSvg\(progress\.state\)/);
   assert.doesNotMatch(markup, />[☰⌕○↗×←→][^<]*</);

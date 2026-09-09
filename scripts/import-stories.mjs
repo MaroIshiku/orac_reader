@@ -31,13 +31,14 @@ for (const folder of folders) {
     const chapterNumber = Number(folder.name.match(/^\d{4}/)?.[0]) || 0;
     let chapter = chapters.find((item) => item.number === chapterNumber);
     if (!chapter) {
-      chapter = { id: `${id}-chapter-${chapterNumber}`, number: chapterNumber, title: `Kapitel ${chapterNumber}`, parts: [] };
+      chapter = { id: `${id}-chapter-${chapterNumber}`, number: chapterNumber, title: `Kapitel ${chapterNumber}`, tldr: "", parts: [] };
       chapters.push(chapter);
     }
     chapter.parts.push({
       id: `${id}-chapter-${chapterNumber}-part-${index + 1}`,
       number: index + 1,
       title: partTitle || firstHeading || `Teil ${index + 1}`,
+      tldr: "",
       content: readingText
     });
   }
@@ -49,7 +50,6 @@ for (const folder of folders) {
     title: folderTitle || "ORACLE",
     kicker: "ORACLE · ARCHIV",
     description: `Ein Eintrag des ORACLE-Archivs. ${importedPartCount} ${importedPartCount === 1 ? "Teil" : "Teile"}.`,
-    tldr: "",
     status: "published",
     publishAt: null,
     updatedAt: new Date().toISOString(),
@@ -58,7 +58,7 @@ for (const folder of folders) {
 }
 
 const library = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   books,
   settings: { "numberDigits": 4 },
   links: [
