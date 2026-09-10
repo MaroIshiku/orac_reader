@@ -31,7 +31,7 @@ for (const folder of folders) {
     const chapterNumber = Number(folder.name.match(/^\d{4}/)?.[0]) || 0;
     let chapter = chapters.find((item) => item.number === chapterNumber);
     if (!chapter) {
-      chapter = { id: `${id}-chapter-${chapterNumber}`, number: chapterNumber, title: `Kapitel ${chapterNumber}`, tldr: "", parts: [] };
+      chapter = { id: `${id}-chapter-${chapterNumber}`, number: chapterNumber, title: `Kapitel ${chapterNumber}`, tldr: "", order: chapters.length, parts: [] };
       chapters.push(chapter);
     }
     chapter.parts.push({
@@ -58,7 +58,7 @@ for (const folder of folders) {
 }
 
 const library = {
-  schemaVersion: 4,
+  schemaVersion: 6,
   books,
   settings: { "numberDigits": 4 },
   links: [

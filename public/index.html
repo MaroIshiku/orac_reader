@@ -33,6 +33,10 @@
     <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4m0 0L8 8m4-4 4 4M6 11v8h12v-8"></path></symbol>
     <symbol id="i-external" viewBox="0 0 24 24"><path d="M10 5h9v9M19 5 9 15M17 13v6H5V7h6"></path></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M8 8v10m4-10v10m4-10v10M5 5h14M9 5V3h6v2M6.5 5l.8 16h9.4l.8-16"></path></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M9.5 14.5 14.5 9M7.5 16.5l-1 1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0M16.5 7.5l1-1a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0"></path></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"></path><circle cx="12" cy="12" r="2.5"></circle></symbol>
+    <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="8" cy="7" r="1" fill="currentColor" stroke="none"></circle><circle cx="16" cy="7" r="1" fill="currentColor" stroke="none"></circle><circle cx="8" cy="12" r="1" fill="currentColor" stroke="none"></circle><circle cx="16" cy="12" r="1" fill="currentColor" stroke="none"></circle><circle cx="8" cy="17" r="1" fill="currentColor" stroke="none"></circle><circle cx="16" cy="17" r="1" fill="currentColor" stroke="none"></circle></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 14 7-7 7 7"></path></symbol>
   </svg>
   <header class="site-header">
     <a class="wordmark" href="#home" aria-label="ORACLE Archiv Startseite">
@@ -40,6 +44,10 @@
       <span><b>ORACLE</b><small>ARCHIV</small></span>
     </a>
     <nav class="header-nav" id="customLinks" aria-label="Externe Links"></nav>
+    <details class="mobile-link-menu mobile-only" id="mobileLinkMenu">
+      <summary aria-label="Externe Links öffnen"><svg class="ui-icon"><use href="#i-link"></use></svg><span>Links</span></summary>
+      <nav id="mobileLinks" aria-label="Externe Links"></nav>
+    </details>
     <button class="quiet-button" id="adminOpen">Admin</button>
   </header>
 
@@ -47,6 +55,7 @@
     <button class="floating-explore" id="continueButton"><span>Archiv entdecken</span><svg class="ui-icon"><use href="#i-arrow-down"></use></svg></button>
     <section class="archive-register" aria-label="Archivstatus"><span>ARCHIVSTATUS // ÖFFENTLICH</span><span id="archiveStats"></span><span>LESEZUGRIFF // FREIGEGEBEN</span></section>
     <section class="home-shelves" id="homeShelves">
+      <div id="continueShelf" hidden><p class="eyebrow">WEITERLESEN</p><div class="shelf-row" id="continueBook"></div></div>
       <div id="recentShelf" hidden><p class="eyebrow">ZULETZT GELESEN</p><div class="shelf-row" id="recentBooks"></div></div>
       <div><p class="eyebrow">NEU VERÖFFENTLICHT</p><div class="shelf-row" id="newBooks"></div></div>
     </section>
@@ -94,10 +103,12 @@
         </div>
       </section>
     </aside>
+    <button class="drawer-backdrop" id="drawerBackdrop" aria-label="Kapitelübersicht schließen" tabindex="-1"></button>
 
     <section class="reading-shell">
       <div class="reader-toolbar">
-        <button class="tool-button mobile-only" id="chapterToggle" aria-label="Kapitelübersicht öffnen"><svg class="ui-icon"><use href="#i-menu"></use></svg><span>Kapitel</span></button>
+        <button class="tool-button mobile-only" id="chapterToggle" aria-label="Kapitelübersicht öffnen" aria-controls="chapterDrawer" aria-expanded="false"><svg class="ui-icon"><use href="#i-menu"></use></svg><span>Kapitel</span></button>
+        <span class="reader-status-badge" id="readerStatusBadge" hidden>ENTWURFSVORSCHAU</span>
         <div class="toolbar-spacer"></div>
         <button class="tool-button" id="readToggle" aria-label="Lesestatus ändern" title="Lesestatus ändern"><svg class="ui-icon"><use href="#i-unread"></use></svg><span>Ungelesen</span></button>
         <button class="tool-button" id="shareButton" aria-label="Diesen Teil teilen" title="Diesen Teil teilen"><svg class="ui-icon"><use href="#i-share"></use></svg><span>Teilen</span></button>
@@ -145,8 +156,9 @@
     </section>
     <section id="adminPanel" class="admin-panel" hidden>
       <div class="admin-heading"><div><p class="eyebrow">REDAKTION</p><h2>Archiv verwalten</h2></div><button class="quiet-button" id="logoutButton">Abmelden</button></div>
-      <div class="admin-tabs"><button class="active" data-admin-tab="books">Bücher</button><button data-admin-tab="display">Darstellung</button><button data-admin-tab="links">Links</button></div>
+      <div class="admin-tabs" role="tablist" aria-label="Administrationsbereiche"><button class="active" role="tab" aria-selected="true" data-admin-tab="books">Inhalte</button><button role="tab" aria-selected="false" data-admin-tab="display">Darstellung</button><button role="tab" aria-selected="false" data-admin-tab="links">Links</button></div>
       <div id="booksAdmin">
+        <p class="admin-hint admin-sort-hint">Kapitel lassen sich am Griff ziehen oder über die Pfeiltasten umordnen. Die offizielle Kapitelnummer bleibt dabei unverändert.</p>
         <div class="admin-book-list" id="adminBookList"></div>
         <button class="secondary-button full with-icon" id="newBookButton"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Neuer Archiveintrag</span></button>
         <form class="editor-form" id="archiveForm" hidden>
@@ -156,7 +168,7 @@
             <label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label>
             <label class="wide">Name *<input name="title" required maxlength="160"></label>
             <label class="wide">Beschreibung *<textarea name="description" rows="3" required></textarea></label>
-            <label>Veröffentlichung<input name="publishAt" type="datetime-local"></label>
+            <label id="archivePublishField">Geplante Veröffentlichung<input name="publishAt" type="datetime-local"></label>
           </div>
           <p class="admin-hint">Ein neuer Archiveintrag beginnt als Entwurf. Kapitel und Teile werden anschließend separat angelegt.</p>
           <p class="form-error" id="archiveFormError"></p>
@@ -199,9 +211,9 @@
         <button class="primary-button" type="submit">Darstellung speichern</button>
       </form>
       <form id="linksAdmin" hidden>
-        <p class="admin-hint">Bis zu acht unabhängige Verweise, zum Beispiel zu OracleDB oder Discord.</p>
+        <p class="admin-hint">Bis zu acht Verweise. Unterstützt werden <code>https://</code>, <code>http://</code> und <code>discord://</code> zum direkten Öffnen der Discord-App.</p>
         <div id="linkRows"></div>
-        <button type="button" class="secondary-button with-icon" id="addLink"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Link</span></button>
+        <button type="button" class="secondary-button with-icon" id="addLink"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Link hinzufügen</span></button>
         <button class="primary-button" type="submit">Links speichern</button>
       </form>
       <div class="admin-version" id="adminVersion">BUILD // development</div>

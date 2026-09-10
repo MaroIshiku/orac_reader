@@ -23,7 +23,8 @@
               "tldr": ""
             }
           ],
-          "tldr": ""
+          "tldr": "",
+          "order": 0
         }
       ]
     },
@@ -71,7 +72,8 @@
               "tldr": ""
             }
           ],
-          "tldr": ""
+          "tldr": "",
+          "order": 0
         }
       ]
     },
@@ -147,7 +149,8 @@
               "tldr": ""
             }
           ],
-          "tldr": ""
+          "tldr": "",
+          "order": 0
         }
       ]
     },
@@ -237,7 +240,8 @@
               "tldr": ""
             }
           ],
-          "tldr": ""
+          "tldr": "",
+          "order": 0
         }
       ]
     }
@@ -257,5 +261,5 @@
       "kind": "community"
     }
   ],
-  "schemaVersion": 4
+  "schemaVersion": 6
 }

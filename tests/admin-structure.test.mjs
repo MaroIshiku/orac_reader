@@ -16,6 +16,12 @@ test("Archiveintrag, Kapitel und Teil besitzen getrennte Bearbeitungsmasken", ()
   assert.match(form("partForm"), /Teil-TL;DR/);
   assert.doesNotMatch(form("partForm"), /chapterTitle|name="description"|name="status"/);
   assert.match(server, /const chapterMatch = url\.pathname\.match/);
+  assert.match(server, /chapters\\\/order/);
+  assert.match(source, /data-preview-book/);
+  assert.match(source, /ondragstart/);
+  assert.match(server, /discord:\\\/\\\//);
+  assert.doesNotMatch(markup + source + server, /contentWarning|Inhaltswarnung/i);
+  assert.match(source, /activeReaderHash/);
 });
 
 test("TL;DR wird erst nach einer eigenen Spoilerbestätigung eingesetzt", () => {

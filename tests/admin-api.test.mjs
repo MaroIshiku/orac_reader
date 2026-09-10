@@ -33,6 +33,8 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     const headers = { "Content-Type": "application/json", Origin: origin, Cookie: cookie };
     const library = await (await fetch(`${origin}/api/library`, { headers })).json();
     const book = library.books.find((item) => item.id === "oracle-0000");
+    assert.equal(library.adminBooks.length, library.books.length);
+    assert.equal(Object.hasOwn(book, "previewToken"), false);
     const chapter = book.chapters.find((item) => item.id === "oracle-0000-chapter-0");
     const part = chapter.parts[0];
 
@@ -53,6 +55,38 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     assert.equal(updatedChapter.tldr, "Kapitelzusammenfassung");
     assert.equal(updatedChapter.parts[0].tldr, "Teilzusammenfassung");
     assert.equal(Object.hasOwn(updated.books.find((item) => item.id === book.id), "tldr"), false);
+
+    const draftResponse = await fetch(`${origin}/api/admin/books`, { method: "POST", headers, body: JSON.stringify({ number: 999, title: "Testentwurf", description: "Nicht öffentlich", status: "draft" }) });
+    assert.equal(draftResponse.status, 201);
+    const draft = await draftResponse.json();
+    assert.match(draft.previewToken, /^[a-zA-Z0-9_-]{24,80}$/);
+    const editorialLibrary = await (await fetch(`${origin}/api/library`, { headers })).json();
+    assert.equal(editorialLibrary.books.some((item) => item.id === draft.id), false);
+    assert.equal(editorialLibrary.adminBooks.some((item) => item.id === draft.id && item.previewToken === draft.previewToken), true);
+    const firstChapter = await (await fetch(`${origin}/api/admin/books/${draft.id}/chapters`, { method: "POST", headers, body: JSON.stringify({ number: 0, title: "Erstes Kapitel", tldr: "" }) })).json();
+    const secondChapter = await (await fetch(`${origin}/api/admin/books/${draft.id}/chapters`, { method: "POST", headers, body: JSON.stringify({ number: 1, title: "Zweites Kapitel", tldr: "" }) })).json();
+    await fetch(`${origin}/api/admin/books/${draft.id}/parts`, { method: "POST", headers, body: JSON.stringify({ chapterId: firstChapter.id, part: 1, partTitle: "Vorschautext", tldr: "", content: "Ein geheimer Entwurf." }) });
+    const reorder = await fetch(`${origin}/api/admin/books/${draft.id}/chapters/order`, { method: "PUT", headers, body: JSON.stringify({ chapterIds: [secondChapter.id, firstChapter.id] }) });
+    assert.equal(reorder.status, 200);
+    assert.deepEqual((await reorder.json()).map((item) => item.id), [secondChapter.id, firstChapter.id]);
+
+    const publicLibrary = await (await fetch(`${origin}/api/library`)).json();
+    assert.equal(publicLibrary.books.some((item) => item.id === draft.id), false);
+    assert.equal(publicLibrary.books.some((item) => Object.hasOwn(item, "previewToken")), false);
+    const preview = await fetch(`${origin}/api/preview/${draft.previewToken}`);
+    assert.equal(preview.status, 200);
+    const previewBook = (await preview.json()).book;
+    assert.equal(previewBook.id, draft.id);
+    assert.equal(Object.hasOwn(previewBook, "previewToken"), false);
+
+    const publishDraft = await fetch(`${origin}/api/admin/books/${draft.id}`, { method: "PUT", headers, body: JSON.stringify({ number: draft.number, title: draft.title, description: draft.description, status: "published" }) });
+    assert.equal(publishDraft.status, 200);
+    assert.equal(Object.hasOwn(await publishDraft.json(), "previewToken"), false);
+    assert.equal((await fetch(`${origin}/api/preview/${draft.previewToken}`)).status, 404);
+
+    const links = await fetch(`${origin}/api/admin/links`, { method: "PUT", headers, body: JSON.stringify({ links: [{ label: "Discord-App", url: "discord://channels/@me" }, { label: "Web", url: "https://example.com" }, { label: "Blockiert", url: "javascript:alert(1)" }] }) });
+    assert.equal(links.status, 200);
+    assert.deepEqual(await links.json(), [{ label: "Discord-App", url: "discord://channels/@me" }, { label: "Web", url: "https://example.com" }]);
   } finally {
     server.kill("SIGTERM");
     await new Promise((resolve) => server.once("exit", resolve));
