@@ -11,7 +11,7 @@ const folders = (await readdir(storyRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory() && /^\d{4}/.test(entry.name))
   .sort((a, b) => a.name.localeCompare(b.name, "de", { numeric: true }));
 
-const books = [];
+const chapters = [];
 for (const folder of folders) {
   const folderPath = join(storyRoot, folder.name);
   const files = (await readdir(folderPath, { withFileTypes: true }))
@@ -19,46 +19,41 @@ for (const folder of folders) {
     .sort((a, b) => a.name.localeCompare(b.name, "de", { numeric: true }));
 
   if (!files.length) continue;
-  const folderTitle = folder.name.replace(/^\d{4}\s*[-–]?\s*/, "").trim();
-  const id = `oracle-${folder.name.match(/^\d{4}/)?.[0] || books.length}`;
-  const chapters = [];
+  const official = folder.name.match(/^\d{4}/)?.[0] || String(chapters.length).padStart(4, "0");
+  const chapterNumber = Number(official) || 0;
+  const chapterId = `oracle-${official}-chapter-${chapterNumber}`;
+  const chapter = { id: chapterId, number: chapterNumber, title: `Kapitel ${chapterNumber}`, tldr: "", order: chapters.length, parts: [] };
 
   for (const [index, file] of files.entries()) {
     const raw = await readFile(join(folderPath, file.name), "utf8");
     const readingText = raw.replace(/^#\s+.+\r?\n(?:\r?\n)?/, "");
     const firstHeading = raw.match(/^#\s+(.+)$/m)?.[1]?.trim();
     const partTitle = file.name.replace(/\.md$/i, "").replace(/^Teil\s*\d+\s*[-–]?\s*/i, "").trim();
-    const chapterNumber = Number(folder.name.match(/^\d{4}/)?.[0]) || 0;
-    let chapter = chapters.find((item) => item.number === chapterNumber);
-    if (!chapter) {
-      chapter = { id: `${id}-chapter-${chapterNumber}`, number: chapterNumber, title: `Kapitel ${chapterNumber}`, tldr: "", order: chapters.length, parts: [] };
-      chapters.push(chapter);
-    }
     chapter.parts.push({
-      id: `${id}-chapter-${chapterNumber}-part-${index + 1}`,
+      id: `${chapterId}-part-${index + 1}`,
       number: index + 1,
       title: partTitle || firstHeading || `Teil ${index + 1}`,
       tldr: "",
       content: readingText
     });
   }
-
-  const importedPartCount = chapters.reduce((sum, chapter) => sum + chapter.parts.length, 0);
-  books.push({
-    id,
-    number: Number(folder.name.match(/^\d{4}/)?.[0]) || 0,
-    title: folderTitle || "ORACLE",
-    kicker: "ORACLE · ARCHIV",
-    description: `Ein Eintrag des ORACLE-Archivs. ${importedPartCount} ${importedPartCount === 1 ? "Teil" : "Teile"}.`,
-    status: "published",
-    publishAt: null,
-    updatedAt: new Date().toISOString(),
-    chapters
-  });
+  chapters.push(chapter);
 }
 
+const books = [{
+  id: "oracle-0000",
+  number: 0,
+  title: "Oracle",
+  kicker: "ORACLE · ARCHIV",
+  description: "ORACLE ist eine geheime Organisation für Fälle, die außerhalb jeder bekannten Ordnung liegen. Ihre Mitglieder besitzen ungewöhnliche Fähigkeiten – und tragen ebenso ungewöhnliche Lasten. Als sich übernatürliche Vorfälle häufen und längst vergessene Wesen zurückkehren, gerät das Team in einen Kampf um Kontrolle, Vertrauen und die Frage, wie viel Menschlichkeit im Angesicht des Unbegreiflichen bestehen bleibt. Eine düstere Mystery-Geschichte über gefundene Familie, uralte Legenden und die Dinge, die besser im Verborgenen geblieben wären.",
+  status: "published",
+  publishAt: null,
+  updatedAt: new Date().toISOString(),
+  chapters
+}];
+
 const library = {
-  schemaVersion: 6,
+  schemaVersion: 7,
   books,
   settings: { "numberDigits": 4 },
   links: [

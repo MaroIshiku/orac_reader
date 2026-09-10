@@ -17,8 +17,11 @@ test("Archiveintrag, Kapitel und Teil besitzen getrennte Bearbeitungsmasken", ()
   assert.doesNotMatch(form("partForm"), /chapterTitle|name="description"|name="status"/);
   assert.match(server, /const chapterMatch = url\.pathname\.match/);
   assert.match(server, /chapters\\\/order/);
+  assert.match(server, /api\/admin\/chapters\/move/);
   assert.match(source, /data-preview-book/);
   assert.match(source, /ondragstart/);
+  assert.match(source, /data-transfer-chapter/);
+  assert.match(source, /saveChapterMove/);
   assert.match(server, /discord:\\\/\\\//);
   assert.doesNotMatch(markup + source + server, /contentWarning|Inhaltswarnung/i);
   assert.match(source, /activeReaderHash/);

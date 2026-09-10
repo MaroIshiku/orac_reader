@@ -70,6 +70,27 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     assert.equal(reorder.status, 200);
     assert.deepEqual((await reorder.json()).map((item) => item.id), [secondChapter.id, firstChapter.id]);
 
+    const target = await (await fetch(`${origin}/api/admin/books`, { method: "POST", headers, body: JSON.stringify({ number: 998, title: "Zielakte", description: "Ziel für verschobene Kapitel", status: "draft" }) })).json();
+    const move = await fetch(`${origin}/api/admin/chapters/move`, { method: "PUT", headers, body: JSON.stringify({ sourceBookId: draft.id, targetBookId: target.id, chapterId: secondChapter.id }) });
+    assert.equal(move.status, 200);
+    const moved = await move.json();
+    assert.deepEqual(moved.source.chapters.map((item) => item.id), [firstChapter.id]);
+    assert.deepEqual(moved.target.chapters.map((item) => item.id), [secondChapter.id]);
+    await fetch(`${origin}/api/admin/books/${target.id}/chapters`, { method: "POST", headers, body: JSON.stringify({ number: 0, title: "Kollision", tldr: "" }) });
+    const collision = await fetch(`${origin}/api/admin/chapters/move`, { method: "PUT", headers, body: JSON.stringify({ sourceBookId: draft.id, targetBookId: target.id, chapterId: firstChapter.id }) });
+    assert.equal(collision.status, 409);
+
+    const publishedMover = await (await fetch(`${origin}/api/admin/books`, { method: "POST", headers, body: JSON.stringify({ number: 997, title: "Veröffentlichte Quelle", description: "Wird nach dem Verschieben automatisch Entwurf", status: "draft" }) })).json();
+    const moverChapter = await (await fetch(`${origin}/api/admin/books/${publishedMover.id}/chapters`, { method: "POST", headers, body: JSON.stringify({ number: 7, title: "Wanderkapitel", tldr: "" }) })).json();
+    await fetch(`${origin}/api/admin/books/${publishedMover.id}/parts`, { method: "POST", headers, body: JSON.stringify({ chapterId: moverChapter.id, part: 1, partTitle: "Wanderteil", tldr: "", content: "Dieser Teil wird verschoben." }) });
+    await fetch(`${origin}/api/admin/books/${publishedMover.id}`, { method: "PUT", headers, body: JSON.stringify({ number: 997, title: "Veröffentlichte Quelle", description: "Wird nach dem Verschieben automatisch Entwurf", status: "published" }) });
+    const moveLast = await fetch(`${origin}/api/admin/chapters/move`, { method: "PUT", headers, body: JSON.stringify({ sourceBookId: publishedMover.id, targetBookId: target.id, chapterId: moverChapter.id }) });
+    assert.equal(moveLast.status, 200);
+    const movedLast = await moveLast.json();
+    assert.equal(movedLast.sourceBecameDraft, true);
+    assert.equal(movedLast.source.status, "draft");
+    assert.match(movedLast.source.previewToken, /^[a-zA-Z0-9_-]{24,80}$/);
+
     const publicLibrary = await (await fetch(`${origin}/api/library`)).json();
     assert.equal(publicLibrary.books.some((item) => item.id === draft.id), false);
     assert.equal(publicLibrary.books.some((item) => Object.hasOwn(item, "previewToken")), false);

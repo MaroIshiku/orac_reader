@@ -9,9 +9,9 @@ Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. OracleDB bleibt a
 - automatische Leseposition, Fortschritt und synchronisierter Gelesen-Status im jeweiligen Browser – ohne Leserkonto
 - vier kontrastgeprüfte Lesethemes, verstellbare Schriftgröße sowie echte Scroll- und Seitenansicht
 - geschützter Adminbereich für Entwurf, kryptischen Vorschaulink, geplante Veröffentlichung und Veröffentlichung
-- getrennte Bearbeitungsmasken für Archiveintrag, Kapitel und Teil; Kapitel lassen sich ziehen oder über Pfeile sortieren
+- getrennte Bearbeitungsmasken für Archiveintrag, Kapitel und Teil; Kapitel lassen sich innerhalb eines Buchs sortieren oder in einen anderen Archiveintrag verschieben
 - Markdown-/Text-Upload und getrennte Kapitel- sowie Teil-TL;DR mit vorgeschalteter Spoilerbestätigung
-- automatisch gesetzte Archivcover mit offizieller Kapitel-/Teilnummer
+- automatisch gesetzte Archivcover mit Buchtitel und offizieller Archivnummer
 - frei administrierbare Weblinks und `discord://`-App-Links auf Desktop und Mobilgeräten
 - Teilen einzelner Teile, Touch-Blätterzonen, Tastatursteuerung und abschaltbare Blätteranimationen
 - persistente Inhalte unter `/data`

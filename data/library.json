@@ -3,12 +3,12 @@
     {
       "id": "oracle-0000",
       "number": 0,
-      "title": "Prolog",
+      "title": "Oracle",
       "kicker": "ORACLE · ARCHIV",
-      "description": "Ein Eintrag des ORACLE-Archivs. 1 Teil.",
+      "description": "ORACLE ist eine geheime Organisation für Fälle, die außerhalb jeder bekannten Ordnung liegen. Ihre Mitglieder besitzen ungewöhnliche Fähigkeiten – und tragen ebenso ungewöhnliche Lasten. Als sich übernatürliche Vorfälle häufen und längst vergessene Wesen zurückkehren, gerät das Team in einen Kampf um Kontrolle, Vertrauen und die Frage, wie viel Menschlichkeit im Angesicht des Unbegreiflichen bestehen bleibt. Eine düstere Mystery-Geschichte über gefundene Familie, uralte Legenden und die Dinge, die besser im Verborgenen geblieben wären.",
       "status": "published",
       "publishAt": null,
-      "updatedAt": "2026-09-09T19:18:38.944Z",
+      "updatedAt": "2026-09-09T19:18:39.076Z",
       "chapters": [
         {
           "id": "oracle-0000-chapter-0",
@@ -25,19 +25,7 @@
           ],
           "tldr": "",
           "order": 0
-        }
-      ]
-    },
-    {
-      "id": "oracle-0001",
-      "number": 1,
-      "title": "Der Schrecken von Traverspine",
-      "kicker": "ORACLE · ARCHIV",
-      "description": "Ein Eintrag des ORACLE-Archivs. 4 Teile.",
-      "status": "published",
-      "publishAt": null,
-      "updatedAt": "2026-09-09T19:18:38.972Z",
-      "chapters": [
+        },
         {
           "id": "oracle-0001-chapter-1",
           "number": 1,
@@ -73,20 +61,8 @@
             }
           ],
           "tldr": "",
-          "order": 0
-        }
-      ]
-    },
-    {
-      "id": "oracle-0002",
-      "number": 2,
-      "title": "Es ist noch nicht vorbei",
-      "kicker": "ORACLE · ARCHIV",
-      "description": "Ein Eintrag des ORACLE-Archivs. 8 Teile.",
-      "status": "published",
-      "publishAt": null,
-      "updatedAt": "2026-09-09T19:18:39.011Z",
-      "chapters": [
+          "order": 1
+        },
         {
           "id": "oracle-0002-chapter-2",
           "number": 2,
@@ -150,20 +126,8 @@
             }
           ],
           "tldr": "",
-          "order": 0
-        }
-      ]
-    },
-    {
-      "id": "oracle-0003",
-      "number": 3,
-      "title": "Transsilvanien!",
-      "kicker": "ORACLE · ARCHIV",
-      "description": "Ein Eintrag des ORACLE-Archivs. 10 Teile.",
-      "status": "published",
-      "publishAt": null,
-      "updatedAt": "2026-09-09T19:18:39.076Z",
-      "chapters": [
+          "order": 2
+        },
         {
           "id": "oracle-0003-chapter-3",
           "number": 3,
@@ -241,7 +205,7 @@
             }
           ],
           "tldr": "",
-          "order": 0
+          "order": 3
         }
       ]
     }
@@ -261,5 +225,5 @@
       "kind": "community"
     }
   ],
-  "schemaVersion": 6
+  "schemaVersion": 7
 }

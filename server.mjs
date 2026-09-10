@@ -46,6 +46,7 @@ const safeText = (value, max = 1000) => String(value ?? "").trim().slice(0, max)
 const slug = (value) => safeText(value, 100).toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || randomBytes(4).toString("hex");
 const isPublished = (book) => book.status === "published" || (book.status === "scheduled" && book.publishAt && new Date(book.publishAt).getTime() <= Date.now());
 const publicBook = (book) => { const { previewToken, ...visible } = book; return visible; };
+const oracleDescription = "ORACLE ist eine geheime Organisation für Fälle, die außerhalb jeder bekannten Ordnung liegen. Ihre Mitglieder besitzen ungewöhnliche Fähigkeiten – und tragen ebenso ungewöhnliche Lasten. Als sich übernatürliche Vorfälle häufen und längst vergessene Wesen zurückkehren, gerät das Team in einen Kampf um Kontrolle, Vertrauen und die Frage, wie viel Menschlichkeit im Angesicht des Unbegreiflichen bestehen bleibt. Eine düstere Mystery-Geschichte über gefundene Familie, uralte Legenden und die Dinge, die besser im Verborgenen geblieben wären.";
 
 async function ensureData() { await mkdir(dataRoot, { recursive: true }); try { await stat(dataFile); } catch { await copyFile(bundledData, dataFile); } }
 const loadLibrary = async () => JSON.parse(await readFile(dataFile, "utf8"));
@@ -83,6 +84,21 @@ async function migrateLibrary() {
       if (book.status === "published" && Object.hasOwn(book, "previewToken")) { delete book.previewToken; changed = true; }
     });
     library.schemaVersion = 6; changed = true;
+  }
+  if (schemaVersion < 7) {
+    const legacyBooks = [0, 1, 2, 3].map((number) => library.books.find((book) => book.id === `oracle-${String(number).padStart(4, "0")}`));
+    const canConsolidate = legacyBooks.every((book, number) => book?.chapters?.length === 1 && book.chapters[0].number === number);
+    if (canConsolidate) {
+      const target = legacyBooks[0];
+      target.title = target.title === "Prolog" ? "Oracle" : target.title;
+      if (/^Ein Eintrag des ORACLE-Archivs\./.test(target.description || "")) target.description = oracleDescription;
+      target.chapters = legacyBooks.map((book, order) => ({ ...book.chapters[0], order }));
+      target.updatedAt = legacyBooks.map((book) => book.updatedAt).filter(Boolean).sort().at(-1) || new Date().toISOString();
+      const mergedIds = new Set(legacyBooks.slice(1).map((book) => book.id));
+      library.books = library.books.filter((book) => !mergedIds.has(book.id));
+      changed = true;
+    }
+    library.schemaVersion = 7; changed = true;
   }
   if (changed) await saveLibrary(library);
 }
@@ -140,6 +156,22 @@ async function api(req, res, url) {
   if (bookMatch && !book) return json(res, 404, { error: "Archiveintrag nicht gefunden." });
   if (req.method === "PUT" && bookMatch) { const updated = validateBook(await requestBody(req), book); if (library.books.some((item) => item !== book && item.number === updated.number)) return json(res, 409, { error: "Diese offizielle Nummer ist bereits vergeben." }); if (updated.status !== "draft" && !hasContent(updated)) return json(res, 409, { error: "Ein leerer Archiveintrag kann nicht veröffentlicht werden." }); if (updated.status === "published") delete book.previewToken; Object.assign(book, updated); await saveLibrary(library); return json(res, 200, book); }
   if (req.method === "DELETE" && bookMatch) { library.books.splice(library.books.indexOf(book), 1); await saveLibrary(library); return json(res, 200, { ok: true }); }
+
+  if (req.method === "PUT" && url.pathname === "/api/admin/chapters/move") {
+    const input = await requestBody(req); const sourceBookId = safeText(input.sourceBookId, 200); const targetBookId = safeText(input.targetBookId, 200); const chapterId = safeText(input.chapterId, 200); const targetChapterId = safeText(input.targetChapterId, 200);
+    const source = library.books.find((item) => item.id === sourceBookId); const target = library.books.find((item) => item.id === targetBookId); const chapter = source?.chapters.find((item) => item.id === chapterId);
+    if (!source || !target || !chapter) return json(res, 404, { error: "Archiveintrag oder Kapitel nicht gefunden." });
+    if (source !== target && target.chapters.some((item) => item.number === chapter.number)) return json(res, 409, { error: `Kapitel ${chapter.number} ist im Ziel bereits vorhanden.` });
+    if (source === target && targetChapterId === chapter.id) return json(res, 200, { source, target, sourceBecameDraft: false });
+    source.chapters.splice(source.chapters.indexOf(chapter), 1);
+    let targetIndex = targetChapterId ? target.chapters.findIndex((item) => item.id === targetChapterId) : target.chapters.length;
+    if (targetIndex < 0) targetIndex = target.chapters.length; else if (input.placeAfter === true) targetIndex += 1;
+    target.chapters.splice(targetIndex, 0, chapter);
+    source.chapters.forEach((item, order) => { item.order = order; }); target.chapters.forEach((item, order) => { item.order = order; });
+    const now = new Date().toISOString(); source.updatedAt = now; target.updatedAt = now; let sourceBecameDraft = false;
+    if (source !== target && !hasContent(source) && source.status !== "draft") { source.status = "draft"; source.publishAt = null; source.previewToken = randomBytes(24).toString("base64url"); sourceBecameDraft = true; }
+    await saveLibrary(library); return json(res, 200, { source, target, sourceBecameDraft });
+  }
 
   const chapterCollection = url.pathname.match(/^\/api\/admin\/books\/([^/]+)\/chapters$/);
   if (req.method === "POST" && chapterCollection) {
