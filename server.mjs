@@ -45,8 +45,19 @@ const requestBody = async (req) => {
 const safeText = (value, max = 1000) => String(value ?? "").trim().slice(0, max);
 const slug = (value) => safeText(value, 100).toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || randomBytes(4).toString("hex");
 const isPublished = (book) => book.status === "published" || (book.status === "scheduled" && book.publishAt && new Date(book.publishAt).getTime() <= Date.now());
-const publicBook = (book) => { const { previewToken, ...visible } = book; return visible; };
+function publicBook(book, includeHidden = false) {
+  const { previewToken, hidden, ...visible } = book;
+  const chapters = (includeHidden ? book.chapters : book.chapters.filter((chapter) => !chapter.hidden)).map((chapter) => { const { hidden: chapterHidden, ...chapterData } = chapter; const sourceParts = includeHidden ? chapter.parts : chapter.parts.filter((part) => !part.hidden); return { ...chapterData, parts: sourceParts.map((part) => { const { hidden: partHidden, ...partData } = part; return partData; }) }; });
+  return { ...visible, chapters };
+}
 const oracleDescription = "ORACLE ist eine geheime Organisation für Fälle, die außerhalb jeder bekannten Ordnung liegen. Ihre Mitglieder besitzen ungewöhnliche Fähigkeiten – und tragen ebenso ungewöhnliche Lasten. Als sich übernatürliche Vorfälle häufen und längst vergessene Wesen zurückkehren, gerät das Team in einen Kampf um Kontrolle, Vertrauen und die Frage, wie viel Menschlichkeit im Angesicht des Unbegreiflichen bestehen bleibt. Eine düstere Mystery-Geschichte über gefundene Familie, uralte Legenden und die Dinge, die besser im Verborgenen geblieben wären.";
+const numberFormats = new Set(["decimal", "pad2", "pad3", "pad4", "roman-upper", "roman-lower"]);
+const defaultBookDisplay = () => ({ bookSingular: "Buch", bookPlural: "Bücher", chapterSingular: "Kapitel", chapterPlural: "Kapitel", partSingular: "Episode", partPlural: "Episoden", bookNumberFormat: "decimal", chapterNumberFormat: "decimal", partNumberFormat: "decimal" });
+const oracleBookDisplay = () => ({ bookSingular: "Archiv", bookPlural: "Archive", chapterSingular: "Akte", chapterPlural: "Akten", partSingular: "Fragment", partPlural: "Fragmente", bookNumberFormat: "pad4", chapterNumberFormat: "pad4", partNumberFormat: "decimal" });
+function normalizeBookDisplay(input, fallback = defaultBookDisplay()) {
+  const value = input || {}; const text = (key) => safeText(value[key], 32) || fallback[key]; const number = (key) => numberFormats.has(value[key]) ? value[key] : fallback[key];
+  return { bookSingular: text("bookSingular"), bookPlural: text("bookPlural"), chapterSingular: text("chapterSingular"), chapterPlural: text("chapterPlural"), partSingular: text("partSingular"), partPlural: text("partPlural"), bookNumberFormat: number("bookNumberFormat"), chapterNumberFormat: number("chapterNumberFormat"), partNumberFormat: number("partNumberFormat") };
+}
 
 async function ensureData() { await mkdir(dataRoot, { recursive: true }); try { await stat(dataFile); } catch { await copyFile(bundledData, dataFile); } }
 const loadLibrary = async () => JSON.parse(await readFile(dataFile, "utf8"));
@@ -104,6 +115,14 @@ async function migrateLibrary() {
     }
     library.schemaVersion = 7; changed = true;
   }
+  if (schemaVersion < 8) {
+    library.books.forEach((book) => { book.display = normalizeBookDisplay(book.display, book.id === "oracle-0000" ? oracleBookDisplay() : defaultBookDisplay()); });
+    library.schemaVersion = 8; changed = true;
+  }
+  if (schemaVersion < 9) {
+    library.books.forEach((book) => { book.hidden = Boolean(book.hidden); book.chapters.forEach((chapter) => { chapter.hidden = Boolean(chapter.hidden); chapter.parts.forEach((part) => { part.hidden = Boolean(part.hidden); }); }); });
+    library.schemaVersion = 9; changed = true;
+  }
   if (changed) await saveLibrary(library);
 }
 
@@ -116,19 +135,19 @@ function validateBook(input, old = null) {
   if (status === "scheduled") { const timestamp = new Date(input.publishAt).getTime(); if (!Number.isFinite(timestamp)) throw new Error("Für eine geplante Veröffentlichung wird ein Datum benötigt."); publishAt = new Date(timestamp).toISOString(); }
   const needsPreview = status !== "published";
   const previewToken = needsPreview ? (old?.status !== "published" && /^[a-zA-Z0-9_-]{24,80}$/.test(old?.previewToken || "") ? old.previewToken : randomBytes(24).toString("base64url")) : undefined;
-  const book = { id: old?.id || `${slug(title)}-${Date.now().toString(36)}`, number, title, kicker: safeText(input.kicker, 80) || "ORACLE · ARCHIV", description, status, publishAt, updatedAt: new Date().toISOString(), chapters: old?.chapters || [] };
+  const book = { id: old?.id || `${slug(title)}-${Date.now().toString(36)}`, number, title, kicker: safeText(input.kicker, 80) || "ORACLE · ARCHIV", description, status, publishAt, updatedAt: new Date().toISOString(), chapters: old?.chapters || [], display: normalizeBookDisplay(old?.display), hidden: input.hidden === undefined ? old?.hidden === true : input.hidden === true };
   if (previewToken) book.previewToken = previewToken;
   return book;
 }
 function validateChapter(input, old = null) {
   const number = Number(input.number); const title = safeText(input.title, 160); const tldr = safeText(input.tldr, 3000);
   if (!Number.isInteger(number) || number < 0 || !title) throw new Error("Kapitelnummer (ab 0) und Kapitelname sind Pflichtfelder.");
-  return { id: old?.id || `chapter-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number, title, tldr, order: old?.order ?? 0, parts: old?.parts || [] };
+  return { id: old?.id || `chapter-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number, title, tldr, order: old?.order ?? 0, parts: old?.parts || [], hidden: input.hidden === undefined ? old?.hidden === true : input.hidden === true };
 }
 function validatePart(input, old = null) {
   const chapterId = safeText(input.chapterId, 200); const partNumber = Number(input.part); const title = safeText(input.partTitle, 160); const tldr = safeText(input.tldr, 3000); const content = String(input.content || "").trim().slice(0, 5_000_000);
   if (!chapterId || !Number.isInteger(partNumber) || partNumber < 1 || !title || !content) throw new Error("Kapitel, Teilnummer (ab 1), Teilname und Text sind Pflichtfelder.");
-  return { chapterId, part: { id: old?.id || `part-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number: partNumber, title, tldr, content } };
+  return { chapterId, part: { id: old?.id || `part-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number: partNumber, title, tldr, content, hidden: input.hidden === undefined ? old?.hidden === true : input.hidden === true } };
 }
 function findPart(book, partId) { for (const chapter of book.chapters) { const index = chapter.parts.findIndex((part) => part.id === partId); if (index >= 0) return { chapter, index, part: chapter.parts[index] }; } return null; }
 function sortContent(book) { book.chapters.sort((a,b) => (a.order ?? a.number) - (b.order ?? b.number) || a.number - b.number); for (const chapter of book.chapters) chapter.parts.sort((a,b) => a.number - b.number); }
@@ -150,9 +169,9 @@ async function api(req, res, url) {
   if (req.method === "POST" && url.pathname === "/api/logout") { sessions.delete(parseCookies(req).oracle_reader_session); return json(res, 200, { ok: true }, { "Set-Cookie": "oracle_reader_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0" }); }
   if (req.method === "GET" && url.pathname === "/api/session") return json(res, 200, { admin: isAdmin(req) });
   const library = await loadLibrary();
-  if (req.method === "GET" && url.pathname === "/api/library") { const admin = isAdmin(req); return json(res, 200, { books: library.books.filter(isPublished).map(publicBook), ...(admin ? { adminBooks: library.books } : {}), links: library.links || [], settings: library.settings || { numberDigits: 4 }, admin, version: appVersion }); }
+  if (req.method === "GET" && url.pathname === "/api/library") { const admin = isAdmin(req); return json(res, 200, { books: library.books.filter((book) => isPublished(book) && !book.hidden).map((book) => publicBook(book)), ...(admin ? { adminBooks: library.books } : {}), links: library.links || [], settings: library.settings || { numberDigits: 4 }, admin, version: appVersion }); }
   const previewMatch = url.pathname.match(/^\/api\/preview\/([a-zA-Z0-9_-]{24,80})$/);
-  if (req.method === "GET" && previewMatch) { const book = library.books.find((item) => !isPublished(item) && item.previewToken === previewMatch[1]); return book ? json(res, 200, { book: publicBook(book) }) : json(res, 404, { error: "Vorschau nicht gefunden." }); }
+  if (req.method === "GET" && previewMatch) { const book = library.books.find((item) => !isPublished(item) && item.previewToken === previewMatch[1]); return book ? json(res, 200, { book: publicBook(book, true) }) : json(res, 404, { error: "Vorschau nicht gefunden." }); }
   if (url.pathname.startsWith("/api/admin/") && !isAdmin(req)) return json(res, 401, { error: "Admin-Anmeldung erforderlich." });
 
   if (req.method === "POST" && url.pathname === "/api/admin/books") { const book = validateBook(await requestBody(req)); if (book.status !== "draft") return json(res, 409, { error: "Ein neuer Archiveintrag muss vor dem Veröffentlichen mindestens einen Teil enthalten." }); if (library.books.some((item) => item.number === book.number)) return json(res, 409, { error: "Diese offizielle Nummer ist bereits vergeben." }); library.books.unshift(book); await saveLibrary(library); return json(res, 201, book); }
@@ -211,6 +230,8 @@ async function api(req, res, url) {
     if (req.method === "PUT") { const valid = validatePart(await requestBody(req), found.part); const destination = target.chapters.find((item) => item.id === valid.chapterId); if (!destination) return json(res, 404, { error: "Kapitel nicht gefunden." }); if (destination.parts.some((part) => part.id !== found.part.id && part.number === valid.part.number)) return json(res, 409, { error: "Diese Teilnummer ist im Kapitel bereits vergeben." }); found.chapter.parts.splice(found.index, 1); destination.parts.push(valid.part); sortContent(target); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 200, valid.part); }
     if (req.method === "DELETE") { if (target.status !== "draft" && partCountAfter(target, 1) === 0) return json(res, 409, { error: "Der letzte Teil eines veröffentlichten Archiveintrags kann nicht gelöscht werden. Setze ihn zuerst auf Entwurf." }); found.chapter.parts.splice(found.index, 1); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 200, { ok: true }); }
   }
+  const displayMatch = url.pathname.match(/^\/api\/admin\/books\/([^/]+)\/display$/);
+  if (req.method === "PUT" && displayMatch) { const target = library.books.find((item) => item.id === decodeURIComponent(displayMatch[1])); if (!target) return json(res, 404, { error: "Buch nicht gefunden." }); target.display = normalizeBookDisplay(await requestBody(req), target.display || defaultBookDisplay()); target.updatedAt = new Date().toISOString(); await saveLibrary(library); return json(res, 200, target.display); }
   if (req.method === "PUT" && url.pathname === "/api/admin/links") { const input = await requestBody(req); library.links = (input.links || []).slice(0,8).map((link) => ({ label: safeText(link.label,60), url: safeText(link.url,500) })).filter((link) => link.label && (/^https?:\/\/\S+$/i.test(link.url) || /^discord:\/\/\S+$/i.test(link.url))); await saveLibrary(library); return json(res, 200, library.links); }
   if (req.method === "PUT" && url.pathname === "/api/admin/settings") { const input = await requestBody(req); const numberDigits = Number(input.numberDigits); if (![1,2,3,4].includes(numberDigits)) return json(res, 400, { error: "Ungültiges Nummernformat." }); library.settings = { ...(library.settings || {}), numberDigits }; await saveLibrary(library); return json(res, 200, library.settings); }
   return json(res, 404, { error: "Nicht gefunden." });

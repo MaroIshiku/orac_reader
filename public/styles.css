@@ -374,14 +374,20 @@ label { display: grid; gap: 6px; color: var(--muted); font-size: 10px; font-weig
 label.wide { grid-column: 1 / -1; }
 input, textarea, select { width: 100%; min-height: 42px; padding: 10px 11px; border: 1px solid var(--line-strong); border-radius: 2px; outline: 0; color: var(--ink); background: var(--paper); text-transform: none; letter-spacing: 0; }
 textarea { resize: vertical; }
+.checkbox-label { min-height: 42px; padding: 10px 11px; display: flex; grid-column: 1 / -1; align-items: center; gap: 10px; border: 1px solid var(--line); color: var(--ink); background: color-mix(in srgb, var(--surface) 44%, transparent); text-transform: none; }
+.checkbox-label input { width: 17px; min-height: 17px; height: 17px; margin: 0; padding: 0; accent-color: var(--accent); }
 input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .content-input { font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.55; }
 .form-error { min-height: 1em; color: var(--accent); font-size: 11px; }
 #linksAdmin { display: flex; flex-wrap: wrap; gap: 12px; }
 #linksAdmin .admin-hint, #linkRows { width: 100%; }
 #linksAdmin code { color: var(--ink); font-size: .92em; }
-#displayAdmin { max-width: 440px; padding: 18px; border: 1px solid var(--line); }
-#displayAdmin label { margin: 18px 0; }
+#displayAdmin { max-width: 720px; padding: 18px; border: 1px solid var(--line); }
+#displayAdmin > label { margin: 18px 0; }
+.display-section { margin: 24px 0; padding-top: 20px; border-top: 1px solid var(--line); }
+.display-section > .eyebrow { margin: 0 0 14px; }
+.display-section label { margin: 0; }
+.display-example { margin: 15px 0 0; color: var(--accent); font: 11px/1.5 ui-monospace, monospace; }
 .link-row { margin-bottom: 8px; display: grid; grid-template-columns: .7fr 1.3fr auto; gap: 8px; }
 .admin-version { width: max-content; margin: 24px 0 0 auto; padding: 6px 9px; border: 1px solid var(--line); color: var(--muted); font: 8px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
 .toast { max-width: min(420px, calc(100% - 30px)); padding: 10px 16px; position: fixed; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); z-index: 60; transform: translate(-50%, 18px); border: 1px solid rgba(255,255,255,.16); border-radius: 2px; color: #fff; background: var(--forest); box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: .18s; text-align: center; font-size: 12px; }

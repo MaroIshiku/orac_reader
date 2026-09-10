@@ -8,15 +8,23 @@ const html = await readFile(new URL("../public/index.html", import.meta.url), "u
 const styles = await readFile(new URL("../public/styles.css", import.meta.url), "utf8");
 
 test("Oracle wird als ein Buch mit vier geordneten Kapiteln ausgeliefert", () => {
-  assert.equal(data.schemaVersion, 7);
+  assert.equal(data.schemaVersion, 9);
   assert.equal(data.books.length, 1);
   const book = data.books[0];
   assert.equal(book.id, "oracle-0000");
   assert.equal(book.title, "Oracle");
+  assert.deepEqual([book.display.bookSingular, book.display.chapterSingular, book.display.partSingular], ["Archiv", "Akte", "Fragment"]);
+  assert.deepEqual([book.display.bookNumberFormat, book.display.chapterNumberFormat, book.display.partNumberFormat], ["pad4", "pad4", "decimal"]);
   assert.deepEqual(book.chapters.map((chapter) => chapter.number), [0, 1, 2, 3]);
   assert.deepEqual(book.chapters.map((chapter) => chapter.order), [0, 1, 2, 3]);
   assert.equal(book.chapters.reduce((sum, chapter) => sum + chapter.parts.length, 0), 23);
   assert.equal(new Set(book.chapters.flatMap((chapter) => chapter.parts.map((part) => part.id))).size, 23);
+});
+
+test("Bezeichnungen und Nummerierung sind pro Buch konfigurierbar", () => {
+  assert.match(source, /bookSingular: "Buch"[\s\S]*?chapterSingular: "Kapitel"[\s\S]*?partSingular: "Episode"/);
+  assert.match(source, /roman-upper/);
+  assert.match(source, /api\/admin\/books\/\$\{encodeURIComponent\(bookId\)\}\/display/);
 });
 
 test("Buchkarten zeigen den Titel nur auf dem Cover und keine Kapiteldaten", () => {

@@ -61,11 +61,11 @@
     </section>
     <section class="library-section" aria-labelledby="libraryHeading">
       <div class="section-heading">
-        <div><p class="eyebrow">ARCHIV</p><h2 id="libraryHeading">Freigegebene Akten</h2></div>
+        <div><p class="eyebrow">BIBLIOTHEK</p><h2 id="libraryHeading">Veröffentlichte Bücher</h2></div>
         <label class="search-box"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input id="bookSearch" type="search" placeholder="Archiv durchsuchen…"></label>
       </div>
       <div class="book-grid" id="bookGrid"></div>
-      <div class="empty-state" id="emptyLibrary" hidden>Kein Archiveintrag entspricht dieser Suche.</div>
+      <div class="empty-state" id="emptyLibrary" hidden>Kein Buch entspricht dieser Suche.</div>
     </section>
   </main>
 
@@ -107,7 +107,7 @@
 
     <section class="reading-shell">
       <div class="reader-toolbar">
-        <button class="tool-button mobile-only" id="chapterToggle" aria-label="Kapitelübersicht öffnen" aria-controls="chapterDrawer" aria-expanded="false"><svg class="ui-icon"><use href="#i-menu"></use></svg><span>Kapitel</span></button>
+        <button class="tool-button mobile-only" id="chapterToggle" aria-label="Inhaltsübersicht öffnen" aria-controls="chapterDrawer" aria-expanded="false"><svg class="ui-icon"><use href="#i-menu"></use></svg><span id="chapterToggleLabel">Kapitel</span></button>
         <span class="reader-status-badge" id="readerStatusBadge" hidden>ENTWURFSVORSCHAU</span>
         <div class="toolbar-spacer"></div>
         <button class="tool-button" id="readToggle" aria-label="Lesestatus ändern" title="Lesestatus ändern"><svg class="ui-icon"><use href="#i-unread"></use></svg><span>Ungelesen</span></button>
@@ -122,14 +122,14 @@
             <p class="eyebrow" id="storyKicker"></p>
             <h1 id="storyTitle"></h1>
             <div class="tldr-stack">
-              <details class="tldr" id="partTldr"><summary>Teilkurzfassung · TL;DR</summary><div class="tldr-gate"><p>Dieses Teil-TL;DR enthält Spoiler. Trotzdem anzeigen?</p><div><button type="button" data-reveal-tldr>Ja</button><button type="button" data-close-tldr>Nein</button></div></div><p class="tldr-content" hidden></p></details>
+              <details class="tldr" id="partTldr"><summary id="partTldrSummary">Episodenkurzfassung · TL;DR</summary><div class="tldr-gate"><p id="partTldrWarning">Dieses Episoden-TL;DR enthält Spoiler. Trotzdem anzeigen?</p><div><button type="button" data-reveal-tldr>Ja</button><button type="button" data-close-tldr>Nein</button></div></div><p class="tldr-content" hidden></p></details>
             </div>
             <div class="story-meta"><span id="storyPart"></span><span id="readingTime"></span></div>
           </header>
           <div class="prose" id="storyContent"></div>
           <footer class="chapter-footer">
-            <span>Ende dieses Teils</span>
-            <button class="primary-button" id="nextChapter"><span>Nächster Teil</span><svg class="ui-icon"><use href="#i-arrow-right"></use></svg></button>
+            <span id="partEndLabel">Episode beendet</span>
+            <button class="primary-button" id="nextChapter"><span id="nextPartLabel">Nächste Episode</span><svg class="ui-icon"><use href="#i-arrow-right"></use></svg></button>
           </footer>
         </article>
         <nav class="page-controls" id="pageControls" aria-label="Seitensteuerung">
@@ -157,56 +157,72 @@
       <div class="admin-heading"><div><p class="eyebrow">REDAKTION</p><h2>Archiv verwalten</h2></div><button class="quiet-button" id="logoutButton">Abmelden</button></div>
       <div class="admin-tabs" role="tablist" aria-label="Administrationsbereiche"><button class="active" role="tab" aria-selected="true" data-admin-tab="books">Inhalte</button><button role="tab" aria-selected="false" data-admin-tab="display">Darstellung</button><button role="tab" aria-selected="false" data-admin-tab="links">Links</button></div>
       <div id="booksAdmin">
-        <p class="admin-hint admin-sort-hint">Kapitel lassen sich am Griff sortieren und auch in andere Archiveinträge ziehen. Alternativ stehen Pfeile und das Zielmenü bereit. Die offizielle Kapitelnummer bleibt unverändert.</p>
+        <p class="admin-hint admin-sort-hint">Gliederungsebenen lassen sich am Griff sortieren und auch in andere Bücher ziehen. Alternativ stehen Pfeile und das Zielmenü bereit. Die offizielle Nummer bleibt unverändert.</p>
         <div class="admin-book-list" id="adminBookList"></div>
-        <button class="secondary-button full with-icon" id="newBookButton"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Neuer Archiveintrag</span></button>
+        <button class="secondary-button full with-icon" id="newBookButton"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Neues Buch</span></button>
         <form class="editor-form" id="archiveForm" hidden>
-          <div class="form-title"><div><p class="eyebrow">ARCHIVEINTRAG</p><h3 id="archiveFormTitle">Neuer Archiveintrag</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
+          <div class="form-title"><div><p class="eyebrow">BUCH</p><h3 id="archiveFormTitle">Neues Buch</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
           <div class="form-grid">
             <label>Offizielle Nummer *<input name="number" type="number" min="0" value="0" required></label>
             <label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label>
             <label class="wide">Name *<input name="title" required maxlength="160"></label>
             <label class="wide">Beschreibung *<textarea name="description" rows="3" required></textarea></label>
             <label id="archivePublishField">Geplante Veröffentlichung<input name="publishAt" type="datetime-local"></label>
+            <label class="checkbox-label wide"><input name="hidden" type="checkbox"><span>Dieses Buch öffentlich ausblenden</span></label>
           </div>
-          <p class="admin-hint">Ein neuer Archiveintrag beginnt als Entwurf. Kapitel und Teile werden anschließend separat angelegt.</p>
+          <p class="admin-hint">Ein neues Buch beginnt als Entwurf. Kapitel und Episoden werden anschließend separat angelegt.</p>
           <p class="form-error" id="archiveFormError"></p>
-          <button class="primary-button" type="submit">Archiveintrag speichern</button>
+          <button class="primary-button" type="submit">Buch speichern</button>
         </form>
         <form class="editor-form" id="chapterForm" hidden>
-          <div class="form-title"><div><p class="eyebrow">KAPITEL</p><h3 id="chapterFormTitle">Neues Kapitel</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
+          <div class="form-title"><div><p class="eyebrow" id="chapterFormEyebrow">KAPITEL</p><h3 id="chapterFormTitle">Kapitel anlegen</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
           <div class="form-grid">
-            <label>Kapitelnummer *<input name="number" type="number" min="0" value="0" required></label>
-            <label>Kapitelname *<input name="title" required maxlength="160"></label>
-            <label class="wide">Kapitel-TL;DR <textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label>
+            <label><span id="chapterNumberLabel">Kapitelnummer *</span><input name="number" type="number" min="0" value="0" required></label>
+            <label><span id="chapterNameLabel">Kapitelname *</span><input name="title" required maxlength="160"></label>
+            <label class="wide"><span id="chapterTldrLabel">Kapitel-TL;DR</span><textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label>
+            <label class="checkbox-label wide"><input name="hidden" type="checkbox"><span id="chapterHiddenLabel">Dieses Kapitel öffentlich ausblenden</span></label>
           </div>
           <p class="form-error" id="chapterFormError"></p>
-          <button class="primary-button" type="submit">Kapitel speichern</button>
+          <button class="primary-button" type="submit" id="chapterSaveLabel">Kapitel speichern</button>
         </form>
         <form class="editor-form" id="partForm" hidden>
-          <div class="form-title"><div><p class="eyebrow">TEIL</p><h3 id="partFormTitle">Neuer Teil</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
+          <div class="form-title"><div><p class="eyebrow" id="partFormEyebrow">EPISODE</p><h3 id="partFormTitle">Episode anlegen</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
           <div class="form-grid">
-            <label>Kapitel *<select name="chapterId" required></select></label>
-            <label>Teilnummer *<input name="part" type="number" min="1" value="1" required></label>
-            <label class="wide">Teilname *<input name="partTitle" required maxlength="160"></label>
-            <label class="wide">Teil-TL;DR <textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label>
+            <label><span id="partChapterLabel">Kapitel *</span><select name="chapterId" required></select></label>
+            <label><span id="partNumberLabel">Episodennummer *</span><input name="part" type="number" min="1" value="1" required></label>
+            <label class="wide"><span id="partNameLabel">Episodenname *</span><input name="partTitle" required maxlength="160"></label>
+            <label class="wide"><span id="partTldrFormLabel">Episoden-TL;DR</span><textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label>
+            <label class="checkbox-label wide"><input name="hidden" type="checkbox"><span id="partHiddenLabel">Diese Episode öffentlich ausblenden</span></label>
             <label>Datei laden<input id="storyFile" type="file" accept=".md,.txt,text/markdown,text/plain"></label>
             <label class="wide">Text *<textarea class="content-input" name="content" rows="12" required placeholder="Markdown oder Klartext…"></textarea></label>
           </div>
           <p class="form-error" id="partFormError"></p>
-          <button class="primary-button" type="submit">Teil speichern</button>
+          <button class="primary-button" type="submit" id="partSaveLabel">Episode speichern</button>
         </form>
       </div>
       <form id="displayAdmin" hidden>
-        <p class="admin-hint">Legt fest, wie offizielle Kapitelnummern im gesamten Reader erscheinen.</p>
-        <label>Nummernformat
-          <select name="numberDigits">
-            <option value="1">1</option>
-            <option value="2">01</option>
-            <option value="3">001</option>
-            <option value="4">0001</option>
-          </select>
-        </label>
+        <p class="admin-hint">Begriffe und Nummerierung gelten nur für das ausgewählte Buch. Neue Bücher beginnen neutral mit Buch, Kapitel und Episode.</p>
+        <label class="wide">Buch auswählen<select name="bookId" id="displayBookSelect"></select></label>
+        <div class="display-section">
+          <p class="eyebrow">BEZEICHNUNGEN</p>
+          <div class="form-grid">
+            <label>Buch · Einzahl<input name="bookSingular" maxlength="32" required></label>
+            <label>Buch · Mehrzahl<input name="bookPlural" maxlength="32" required></label>
+            <label>Kapitel · Einzahl<input name="chapterSingular" maxlength="32" required></label>
+            <label>Kapitel · Mehrzahl<input name="chapterPlural" maxlength="32" required></label>
+            <label>Episode · Einzahl<input name="partSingular" maxlength="32" required></label>
+            <label>Episode · Mehrzahl<input name="partPlural" maxlength="32" required></label>
+          </div>
+        </div>
+        <div class="display-section">
+          <p class="eyebrow">NUMMERIERUNG</p>
+          <div class="form-grid">
+            <label>Buchnummer<select name="bookNumberFormat" data-number-format></select></label>
+            <label>Kapitelnummer<select name="chapterNumberFormat" data-number-format></select></label>
+            <label>Episodennummer<select name="partNumberFormat" data-number-format></select></label>
+          </div>
+          <p class="display-example" id="displayExample"></p>
+        </div>
         <button class="primary-button" type="submit">Darstellung speichern</button>
       </form>
       <form id="linksAdmin" hidden>

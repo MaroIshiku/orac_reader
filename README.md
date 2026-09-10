@@ -5,15 +5,17 @@ Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. OracleDB bleibt a
 ## Enthalten
 
 - öffentliche Bibliothek mit Volltextsuche, Weiterlesen, zuletzt gelesenen und neuen Einträgen
-- klare Struktur Archiveintrag → Kapitel → Teil, einschließlich Kapitelnummer `0` und wählbarer Darstellung als `1`, `01`, `001` oder `0001`
+- pro Buch frei benennbare Struktur, standardmäßig Buch → Kapitel → Episode; Oracle verwendet Archiv → Akte → Fragment
+- getrennte Nummerierung pro Buch und Ebene als `1`, `01`, `001`, `0001`, römische Groß- oder Kleinzahl
 - automatische Leseposition, Fortschritt und synchronisierter Gelesen-Status im jeweiligen Browser – ohne Leserkonto
 - vier kontrastgeprüfte Lesethemes, verstellbare Schriftgröße sowie echte Scroll- und Seitenansicht
 - geschützter Adminbereich für Entwurf, kryptischen Vorschaulink, geplante Veröffentlichung und Veröffentlichung
-- getrennte Bearbeitungsmasken für Archiveintrag, Kapitel und Teil; Kapitel lassen sich innerhalb eines Buchs sortieren oder in einen anderen Archiveintrag verschieben
-- Markdown-/Text-Upload und getrennte Kapitel- sowie Teil-TL;DR mit vorgeschalteter Spoilerbestätigung
+- getrennte Bearbeitungsmasken für Buch, Kapitel und Episode; jede Ebene kann gezielt öffentlich ausgeblendet werden
+- Kapitel lassen sich innerhalb eines Buchs sortieren oder in ein anderes Buch verschieben
+- Markdown-/Text-Upload und getrennte Kapitel- sowie Episoden-TL;DR mit vorgeschalteter Spoilerbestätigung
 - automatisch gesetzte Archivcover mit Buchtitel und offizieller Archivnummer
 - frei administrierbare Weblinks und `discord://`-App-Links auf Desktop und Mobilgeräten
-- Teilen einzelner Teile, Touch-Blätterzonen, Tastatursteuerung und abschaltbare Blätteranimationen
+- Teilen einzelner Episoden, Touch-Blätterzonen, Tastatursteuerung und abschaltbare Blätteranimationen
 - persistente Inhalte unter `/data`
 
 ## Geschichten importieren

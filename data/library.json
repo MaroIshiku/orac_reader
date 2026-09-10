@@ -6,6 +6,17 @@
       "title": "Oracle",
       "kicker": "ORACLE · ARCHIV",
       "description": "ORACLE ist eine geheime Organisation für Fälle, die außerhalb jeder bekannten Ordnung liegen. Ihre Mitglieder besitzen ungewöhnliche Fähigkeiten – und tragen ebenso ungewöhnliche Lasten. Als sich übernatürliche Vorfälle häufen und längst vergessene Wesen zurückkehren, gerät das Team in einen Kampf um Kontrolle, Vertrauen und die Frage, wie viel Menschlichkeit im Angesicht des Unbegreiflichen bestehen bleibt. Eine düstere Mystery-Geschichte über gefundene Familie, uralte Legenden und die Dinge, die besser im Verborgenen geblieben wären.",
+      "display": {
+        "bookSingular": "Archiv",
+        "bookPlural": "Archive",
+        "chapterSingular": "Akte",
+        "chapterPlural": "Akten",
+        "partSingular": "Fragment",
+        "partPlural": "Fragmente",
+        "bookNumberFormat": "pad4",
+        "chapterNumberFormat": "pad4",
+        "partNumberFormat": "decimal"
+      },
       "status": "published",
       "publishAt": null,
       "updatedAt": "2026-09-09T19:18:39.076Z",
@@ -225,5 +236,5 @@
       "kind": "community"
     }
   ],
-  "schemaVersion": 7
+  "schemaVersion": 9
 }

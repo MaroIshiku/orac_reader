@@ -49,11 +49,12 @@ const books = [{
   status: "published",
   publishAt: null,
   updatedAt: new Date().toISOString(),
+  display: { bookSingular: "Archiv", bookPlural: "Archive", chapterSingular: "Akte", chapterPlural: "Akten", partSingular: "Fragment", partPlural: "Fragmente", bookNumberFormat: "pad4", chapterNumberFormat: "pad4", partNumberFormat: "decimal" },
   chapters
 }];
 
 const library = {
-  schemaVersion: 7,
+  schemaVersion: 9,
   books,
   settings: { "numberDigits": 4 },
   links: [

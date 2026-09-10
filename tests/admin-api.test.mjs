@@ -56,9 +56,30 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     assert.equal(updatedChapter.parts[0].tldr, "Teilzusammenfassung");
     assert.equal(Object.hasOwn(updated.books.find((item) => item.id === book.id), "tldr"), false);
 
+    const displayResponse = await fetch(`${origin}/api/admin/books/${book.id}/display`, { method: "PUT", headers, body: JSON.stringify({ bookSingular: "Chronik", bookPlural: "Chroniken", chapterSingular: "Band", chapterPlural: "Bände", partSingular: "Szene", partPlural: "Szenen", bookNumberFormat: "roman-upper", chapterNumberFormat: "roman-lower", partNumberFormat: "pad2" }) });
+    assert.equal(displayResponse.status, 200);
+    assert.deepEqual(await displayResponse.json(), { bookSingular: "Chronik", bookPlural: "Chroniken", chapterSingular: "Band", chapterPlural: "Bände", partSingular: "Szene", partPlural: "Szenen", bookNumberFormat: "roman-upper", chapterNumberFormat: "roman-lower", partNumberFormat: "pad2" });
+
+    const hidePart = await fetch(`${origin}/api/admin/books/${book.id}/parts/${part.id}`, { method: "PUT", headers, body: JSON.stringify({ chapterId: chapter.id, part: part.number, partTitle: part.title, tldr: part.tldr, content: part.content, hidden: true }) });
+    assert.equal(hidePart.status, 200);
+    let hiddenLibrary = await (await fetch(`${origin}/api/library`)).json();
+    assert.equal(hiddenLibrary.books.find((item) => item.id === book.id).chapters.find((item) => item.id === chapter.id).parts.some((item) => item.id === part.id), false);
+    await fetch(`${origin}/api/admin/books/${book.id}/parts/${part.id}`, { method: "PUT", headers, body: JSON.stringify({ chapterId: chapter.id, part: part.number, partTitle: part.title, tldr: part.tldr, content: part.content, hidden: false }) });
+
+    await fetch(`${origin}/api/admin/books/${book.id}/chapters/${chapter.id}`, { method: "PUT", headers, body: JSON.stringify({ number: chapter.number, title: chapter.title, tldr: chapter.tldr, hidden: true }) });
+    hiddenLibrary = await (await fetch(`${origin}/api/library`)).json();
+    assert.equal(hiddenLibrary.books.find((item) => item.id === book.id).chapters.some((item) => item.id === chapter.id), false);
+    await fetch(`${origin}/api/admin/books/${book.id}/chapters/${chapter.id}`, { method: "PUT", headers, body: JSON.stringify({ number: chapter.number, title: chapter.title, tldr: chapter.tldr, hidden: false }) });
+
+    await fetch(`${origin}/api/admin/books/${book.id}`, { method: "PUT", headers, body: JSON.stringify({ number: book.number, title: book.title, description: book.description, status: "published", hidden: true }) });
+    hiddenLibrary = await (await fetch(`${origin}/api/library`)).json();
+    assert.equal(hiddenLibrary.books.some((item) => item.id === book.id), false);
+    await fetch(`${origin}/api/admin/books/${book.id}`, { method: "PUT", headers, body: JSON.stringify({ number: book.number, title: book.title, description: book.description, status: "published", hidden: false }) });
+
     const draftResponse = await fetch(`${origin}/api/admin/books`, { method: "POST", headers, body: JSON.stringify({ number: 999, title: "Testentwurf", description: "Nicht öffentlich", status: "draft" }) });
     assert.equal(draftResponse.status, 201);
     const draft = await draftResponse.json();
+    assert.deepEqual([draft.display.bookSingular, draft.display.chapterSingular, draft.display.partSingular], ["Buch", "Kapitel", "Episode"]);
     assert.match(draft.previewToken, /^[a-zA-Z0-9_-]{24,80}$/);
     const editorialLibrary = await (await fetch(`${origin}/api/library`, { headers })).json();
     assert.equal(editorialLibrary.books.some((item) => item.id === draft.id), false);
