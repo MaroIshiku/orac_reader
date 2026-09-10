@@ -129,7 +129,7 @@ function openPart(book, chapter, part) {
   state.book = book; state.part = part; $("#homeView").hidden = true; $("#readerView").hidden = false; setDrawer(false); document.body.classList.add("reading");
   $("#readerStatusBadge").hidden = book.status === "published"; $("#readerStatusBadge").textContent = book.status === "scheduled" ? "GEPLANTE VORSCHAU" : "ENTWURFSVORSCHAU";
   $("#drawerBookTitle").textContent = book.title; $("#storyKicker").textContent = book.kicker; $("#storyTitle").textContent = part.title;
-  $("#storyDescription").textContent = book.description; $("#storyPart").textContent = `Kapitel ${formatNumber(chapter.number)} · Teil ${part.number}`;
+  $("#storyPart").textContent = `Kapitel ${formatNumber(chapter.number)} · Teil ${part.number}`;
   const words = part.content.trim().split(/\s+/).length; $("#readingTime").textContent = `${Math.max(1, Math.ceil(words / 220))} Min. Lesezeit`;
   $("#storyContent").innerHTML = markdown(part.content); resetTldr($("#partTldr"), part.tldr);
   const entries = allParts(book); const currentIndex = entries.findIndex((item) => item.part.id === part.id);
@@ -239,7 +239,9 @@ $("#fontUp").onclick = () => { state.fontSize = Math.min(26, state.fontSize + 1)
 $("#themePicker").onclick = (event) => { const choice = event.target.closest("[data-theme-choice]")?.dataset.themeChoice; if (choice) { state.theme = choice; localStorage.setItem("oracle-theme", choice); applyPreferences(); } };
 $("#viewToggle").onclick = () => { state.view = state.view === "scroll" ? "pages" : "scroll"; localStorage.setItem("oracle-view", state.view); applyPreferences(); if (state.view === "pages") scrollTo(0, 0); requestAnimationFrame(() => restoreProgress(state.book.id, state.part.id)); };
 $("#motionToggle").onclick = () => { state.motion = !state.motion; localStorage.setItem("oracle-motion", state.motion ? "on" : "off"); applyPreferences(); toast(state.motion ? "Animationen eingeschaltet" : "Animationen ausgeschaltet"); };
-$("#chapterToggle").onclick = () => setDrawer(!$("#chapterDrawer").classList.contains("open")); $("#chapterClose").onclick = () => { setDrawer(false); $("#chapterToggle").focus(); }; $("#drawerBackdrop").onclick = () => setDrawer(false);
+$("#chapterToggle").onclick = () => setDrawer(!$("#chapterDrawer").classList.contains("open"));
+const closeChapterDrawer = (event) => { event?.preventDefault(); event?.stopPropagation(); setDrawer(false); $("#chapterToggle").focus({ preventScroll: true }); };
+$("#chapterClose").addEventListener("pointerup", closeChapterDrawer); $("#chapterClose").addEventListener("click", closeChapterDrawer); $("#drawerBackdrop").onclick = closeChapterDrawer;
 $("#pagePrev").onclick = () => turnPage(-1); $("#pageNext").onclick = () => turnPage(1); $("#pageEdgePrev").onclick = () => turnPage(-1); $("#pageEdgeNext").onclick = () => turnPage(1); $("#shareButton").onclick = shareCurrent;
 for (const [selector, direction] of [["#pageEdgePrev", -1], ["#pageEdgeNext", 1]]) $(selector).addEventListener("touchend", (event) => { event.preventDefault(); event.stopPropagation(); turnPage(direction); }, { passive: false });
 $("#readToggle").onclick = () => { const next = !isRead(state.book.id, state.part.id); setRead(state.book.id, state.part.id, next); updateReadToggle(); renderChapterList(state.book, state.part.id); renderLibrary($("#bookSearch").value); renderHomeShelves(); toast(next ? "Als gelesen markiert" : "Als ungelesen markiert"); };
