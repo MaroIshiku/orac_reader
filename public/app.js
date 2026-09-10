@@ -6,7 +6,7 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 const storedMotion = localStorage.getItem("oracle-motion");
 const storedView = localStorage.getItem("oracle-view");
 const storedTheme = localStorage.getItem("oracle-theme");
-const state = { books: [], adminBooks: [], links: [], settings: { numberDigits: 4 }, version: "development", admin: false, book: null, part: null, previewBook: null, previewToken: "", fontSize: Math.min(26, Math.max(15, Number(localStorage.getItem("oracle-font-size")) || 19)), view: ["scroll", "pages"].includes(storedView) ? storedView : "scroll", theme: ["paper", "sand", "mist", "night"].includes(storedTheme) ? storedTheme : "paper", motion: storedMotion === null ? !matchMedia("(prefers-reduced-motion: reduce)").matches : storedMotion !== "off" };
+const state = { books: [], adminBooks: [], links: [], settings: { numberDigits: 4 }, version: "development", admin: false, offline: false, offlineSyncedAt: "", book: null, part: null, previewBook: null, previewToken: "", fontSize: Math.min(26, Math.max(15, Number(localStorage.getItem("oracle-font-size")) || 19)), view: ["scroll", "pages"].includes(storedView) ? storedView : "scroll", theme: ["paper", "sand", "mist", "night"].includes(storedTheme) ? storedTheme : "paper", motion: storedMotion === null ? !matchMedia("(prefers-reduced-motion: reduce)").matches : storedMotion !== "off" };
 const historyKey = "oracle-reading-history";
 const progressKey = "oracle-reading-progress";
 const readStatusKey = "oracle-reading-status";
@@ -73,9 +73,15 @@ function resetTldr(node, text) { node.hidden = !text; node.open = false; node._t
 const sidebarTldr = (chapterId, chapterLabel) => `<details class="tldr sidebar-tldr" data-chapter-tldr="${escapeHtml(chapterId)}"><summary>${escapeHtml(chapterLabel)}-TL;DR</summary><div class="tldr-gate"><p>Dieses TL;DR enthält Spoiler. Trotzdem anzeigen?</p><div><button type="button" data-reveal-tldr>Ja</button><button type="button" data-close-tldr>Nein</button></div></div><p class="tldr-content" hidden></p></details>`;
 
 async function load() {
-  const data = await api("/api/library"); state.books = data.books; state.adminBooks = data.adminBooks || []; state.links = data.links; state.settings = data.settings || { numberDigits: 4 }; state.version = data.version || "development"; state.admin = data.admin; migrateConsolidatedBookStorage(state.books);
+  const data = await api("/api/library"); state.books = data.books; state.adminBooks = data.adminBooks || []; state.links = data.links; state.settings = data.settings || { numberDigits: 4 }; state.version = data.version || "development"; state.admin = data.admin; state.offline = data.offline === true; state.offlineSyncedAt = data.offlineSyncedAt || ""; updateConnectionStatus(); migrateConsolidatedBookStorage(state.books);
   state.previewBook = null; state.previewToken = ""; const preview = location.hash.match(/^#?preview\/([a-zA-Z0-9_-]{24,80})\//); if (preview) { try { state.previewBook = (await api(`/api/preview/${preview[1]}`)).book; state.previewToken = preview[1]; } catch {} }
   renderLinks(); renderLibrary(); renderHomeShelves(); renderAdmin(); route();
+}
+function updateConnectionStatus() {
+  const offline = state.offline || !navigator.onLine; const banner = $("#offlineBanner"); banner.hidden = !offline; document.body.classList.toggle("is-offline", offline);
+  if (!offline) return;
+  const timestamp = state.offlineSyncedAt ? new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "short" }).format(new Date(state.offlineSyncedAt)) : "unbekannt";
+  $("#offlineLabel").textContent = `Offline · Archivstand vom ${timestamp}`;
 }
 function renderLinks() {
   const markup = state.links.filter((link) => /^https?:\/\/\S+$/i.test(link.url) || /^discord:\/\/\S+$/i.test(link.url)).map((link) => { const discord = /^discord:\/\//i.test(link.url); return `<a href="${escapeHtml(link.url)}"${discord ? "" : ' target="_blank" rel="noopener"'}><span>${escapeHtml(link.label)}</span>${iconSvg(discord ? "link" : "external")}</a>`; }).join("");
@@ -270,6 +276,23 @@ window.addEventListener("keydown", (event) => { if (event.key === "Escape" && $(
 $("#readingPage").addEventListener("wheel", (event) => { if (state.view !== "pages" || Math.abs(event.deltaY) < 12) return; event.preventDefault(); if (Date.now() - (turnPage.lastWheel || 0) < 450) return; turnPage.lastWheel = Date.now(); turnPage(event.deltaY > 0 ? 1 : -1); }, { passive: false });
 let touchStartX = 0; $("#readingViewport").addEventListener("touchstart", (event) => { touchStartX = event.changedTouches[0].clientX; }, { passive: true }); $("#readingViewport").addEventListener("touchend", (event) => { if (state.view !== "pages") return; const distance = touchStartX - event.changedTouches[0].clientX; if (Math.abs(distance) > 45) turnPage(distance > 0 ? 1 : -1); }, { passive: true });
 $("#adminOpen").onclick = () => { $("#mobileLinkMenu").open = false; $("#adminDialog").showModal(); }; $("#adminClose").onclick = () => $("#adminDialog").close();
+
+let deferredInstallPrompt = null;
+const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+function updateInstallButton() { $("#installButton").hidden = standalone(); }
+function showInstallHelp() {
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent); const instructions = ios
+    ? "Tippe in Safari auf Teilen und anschließend auf „Zum Home-Bildschirm“. Danach bleibt der zuletzt synchronisierte Archivstand auch offline lesbar."
+    : deferredInstallPrompt
+      ? "Installiere das ORACLE-Archiv direkt als App. Der zuletzt synchronisierte Stand bleibt anschließend auch ohne Verbindung lesbar."
+      : "Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“. Der zuletzt synchronisierte Archivstand bleibt auch offline lesbar.";
+  $("#installInstructions").textContent = instructions; $("#nativeInstallButton").hidden = !deferredInstallPrompt; $("#installDialog").showModal();
+}
+window.addEventListener("beforeinstallprompt", (event) => { event.preventDefault(); deferredInstallPrompt = event; updateInstallButton(); });
+window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; updateInstallButton(); $("#installDialog").close(); toast("ORACLE Archiv wurde installiert"); });
+$("#installButton").onclick = showInstallHelp; $("#installClose").onclick = () => $("#installDialog").close(); $("#installDone").onclick = () => $("#installDialog").close();
+$("#nativeInstallButton").onclick = async () => { if (!deferredInstallPrompt) return; await deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; deferredInstallPrompt = null; updateInstallButton(); $("#installDialog").close(); };
+window.addEventListener("offline", updateConnectionStatus); window.addEventListener("online", () => load().then(() => toast("Archivstand aktualisiert")).catch(updateConnectionStatus));
 $("#loginForm").onsubmit = async (event) => { event.preventDefault(); try { await api("/api/login", { method: "POST", body: JSON.stringify(Object.fromEntries(new FormData(event.target))) }); event.target.reset(); await load(); } catch (error) { $("#loginError").textContent = error.message; } };
 $("#logoutButton").onclick = async () => { await api("/api/logout", { method: "POST" }); await load(); };
 $("#newBookButton").onclick = () => editArchive(); $$('[data-cancel-editor]').forEach((button) => button.onclick = closeEditors);
@@ -294,4 +317,14 @@ $("#displayAdmin").onsubmit = async (event) => { event.preventDefault(); const d
 $("#addLink").onclick = () => { $("#linkRows").insertAdjacentHTML("beforeend", linkRow()); const button = $("#linkRows .link-row:last-child [data-remove-link]"); button.onclick = () => button.closest(".link-row").remove(); };
 $("#linksAdmin").onsubmit = async (event) => { event.preventDefault(); const links = $$("#linkRows .link-row").map((row) => ({ label: row.querySelector('[name="label"]').value, url: row.querySelector('[name="url"]').value })); await api("/api/admin/links", { method: "PUT", body: JSON.stringify({ links }) }); await load(); toast("Links gespeichert"); };
 
-applyPreferences(); load().catch((error) => { $("#bookGrid").innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`; });
+async function registerPwa() {
+  updateInstallButton();
+  if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
+  try {
+    await navigator.serviceWorker.register("/sw.js?v=__APP_VERSION__", { scope: "/" }); await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) await new Promise((resolve) => navigator.serviceWorker.addEventListener("controllerchange", resolve, { once: true }));
+    await fetch("/api/library", { cache: "no-store" });
+  } catch (error) { console.warn("Offline-Modus konnte nicht vorbereitet werden.", error); }
+}
+
+applyPreferences(); registerPwa(); load().catch((error) => { updateConnectionStatus(); $("#bookGrid").innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`; });

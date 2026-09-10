@@ -16,6 +16,7 @@ Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. OracleDB bleibt a
 - automatisch gesetzte Archivcover mit Buchtitel und offizieller Archivnummer
 - frei administrierbare Weblinks und `discord://`-App-Links auf Desktop und Mobilgeräten
 - Teilen einzelner Episoden, Touch-Blätterzonen, Tastatursteuerung und abschaltbare Blätteranimationen
+- als PWA auf Mobilgeräten installierbar; die letzte erfolgreich synchronisierte öffentliche Archivfassung bleibt offline vollständig lesbar
 - persistente Inhalte unter `/data`
 
 ## Geschichten importieren

@@ -23,7 +23,7 @@ if (!adminSecret) {
   process.exit(1);
 }
 
-const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png" };
+const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png" };
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
@@ -243,7 +243,7 @@ createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`); if (url.pathname.startsWith("/api/")) return await api(req, res, url);
     const requested = url.pathname === "/" ? "index.html" : url.pathname.slice(1); const file = normalize(join(publicRoot, requested)); if (file !== publicRoot && !file.startsWith(`${publicRoot}${sep}`)) return send(res, 403, "Nicht erlaubt"); await stat(file);
-    const extension = extname(file); const cacheControl = [".html", ".css", ".js", ".json"].includes(extension) ? "no-cache, must-revalidate" : "public, max-age=86400"; let payload = await readFile(file);
+    const extension = extname(file); const cacheControl = [".html", ".css", ".js", ".json", ".webmanifest"].includes(extension) ? "no-cache, must-revalidate" : "public, max-age=86400"; let payload = await readFile(file);
     if ([".html", ".js"].includes(extension)) payload = payload.toString("utf8").replaceAll("__APP_VERSION__", encodeURIComponent(appVersion));
     return send(res, 200, payload, { "Content-Type": types[extension] || "application/octet-stream", "Cache-Control": cacheControl });
   } catch (error) { if (error?.code === "ENOENT") return send(res, 404, "Nicht gefunden", { "Content-Type": "text/plain; charset=utf-8" }); console.error(error); return json(res, error instanceof SyntaxError ? 400 : 500, { error: error.message || "Interner Fehler." }); }

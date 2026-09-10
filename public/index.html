@@ -4,9 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#eee8dc">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ORACLE Archiv">
   <title>ORACLE — Archiv</title>
   <meta name="description" content="Das öffentliche Lese-Archiv des ORACLE-Universums.">
   <link rel="icon" type="image/png" href="/oracle-logo.png">
+  <link rel="apple-touch-icon" href="/pwa-icon-192.png">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&display=swap" rel="stylesheet">
@@ -37,6 +42,8 @@
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"></path><circle cx="12" cy="12" r="2.5"></circle></symbol>
     <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="8" cy="7" r="1" fill="currentColor" stroke="none"></circle><circle cx="16" cy="7" r="1" fill="currentColor" stroke="none"></circle><circle cx="8" cy="12" r="1" fill="currentColor" stroke="none"></circle><circle cx="16" cy="12" r="1" fill="currentColor" stroke="none"></circle><circle cx="8" cy="17" r="1" fill="currentColor" stroke="none"></circle><circle cx="16" cy="17" r="1" fill="currentColor" stroke="none"></circle></symbol>
     <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 14 7-7 7 7"></path></symbol>
+    <symbol id="i-install" viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"></path></symbol>
+    <symbol id="i-offline" viewBox="0 0 24 24"><path d="M4 9.5A12 12 0 0 1 12 6c3.1 0 5.9 1.2 8 3.2M7.5 13a7.2 7.2 0 0 1 4.5-1.6c1.1 0 2.2.3 3.1.7M11.7 17.5h.6M3 3l18 18"></path></symbol>
   </svg>
   <header class="site-header">
     <a class="wordmark" href="#home" aria-label="ORACLE Archiv Startseite">
@@ -48,8 +55,10 @@
       <summary aria-label="Externe Links öffnen"><svg class="ui-icon"><use href="#i-link"></use></svg><span>Links</span></summary>
       <nav id="mobileLinks" aria-label="Externe Links"></nav>
     </details>
+    <button class="quiet-button install-button" id="installButton" hidden><svg class="ui-icon" aria-hidden="true"><use href="#i-install"></use></svg><span>App</span></button>
     <button class="quiet-button" id="adminOpen">Admin</button>
   </header>
+  <div class="offline-banner" id="offlineBanner" role="status" hidden><svg class="ui-icon" aria-hidden="true"><use href="#i-offline"></use></svg><span id="offlineLabel">Offline · gespeicherter Archivstand</span></div>
 
   <main id="homeView" class="home-view">
     <button class="floating-explore" id="continueButton"><span>Archiv entdecken</span><svg class="ui-icon"><use href="#i-arrow-down"></use></svg></button>
@@ -233,6 +242,14 @@
       </form>
       <div class="admin-version" id="adminVersion">BUILD // development</div>
     </section>
+  </dialog>
+  <dialog class="install-dialog" id="installDialog" aria-labelledby="installTitle">
+    <button class="dialog-close" id="installClose" aria-label="Schließen"><svg class="ui-icon"><use href="#i-close"></use></svg></button>
+    <p class="eyebrow">MOBILES ARCHIV</p>
+    <h2 id="installTitle">ORACLE als App installieren</h2>
+    <p id="installInstructions">Installiere das Archiv über das Browsermenü auf deinem Startbildschirm. Danach bleibt der zuletzt synchronisierte Stand auch ohne Verbindung lesbar.</p>
+    <button class="primary-button" id="nativeInstallButton" hidden><svg class="ui-icon" aria-hidden="true"><use href="#i-install"></use></svg><span>Jetzt installieren</span></button>
+    <button class="secondary-button" id="installDone">Verstanden</button>
   </dialog>
   <div class="toast" id="toast" role="status"></div>
   <script type="module" src="/app.js?v=__APP_VERSION__"></script>
