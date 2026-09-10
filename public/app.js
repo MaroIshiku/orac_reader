@@ -33,7 +33,7 @@ const getReadStatus = () => { try { return JSON.parse(localStorage.getItem(readS
 function migrateConsolidatedBookStorage(books) {
   if (localStorage.getItem("oracle-consolidated-book-v1") === "done") return;
   const target = books.find((book) => book.id === "oracle-0000"); const oldBookIds = ["oracle-0001", "oracle-0002", "oracle-0003"];
-  const containsMovedChapters = target && oldBookIds.every((bookId) => target.chapters.some((chapter) => chapter.id.startsWith(`${bookId}-chapter-`)));
+  const containsMovedChapters = target && [1, 2, 3].every((number) => target.chapters.some((chapter) => chapter.number === number));
   if (!containsMovedChapters || oldBookIds.some((bookId) => books.some((book) => book.id === bookId))) return;
   const history = getHistory().map((entry) => oldBookIds.includes(entry.bookId) ? { ...entry, bookId: target.id } : entry);
   localStorage.setItem(historyKey, JSON.stringify(history));

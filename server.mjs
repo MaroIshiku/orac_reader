@@ -86,15 +86,19 @@ async function migrateLibrary() {
     library.schemaVersion = 6; changed = true;
   }
   if (schemaVersion < 7) {
-    const legacyBooks = [0, 1, 2, 3].map((number) => library.books.find((book) => book.id === `oracle-${String(number).padStart(4, "0")}`));
-    const canConsolidate = legacyBooks.every((book, number) => book?.chapters?.length === 1 && book.chapters[0].number === number);
+    const target = library.books.find((book) => book.id === "oracle-0000");
+    const sourceBooks = [1, 2, 3].map((number) => library.books.find((book) => book.id === `oracle-${String(number).padStart(4, "0")}`));
+    const canConsolidate = target?.chapters?.some((chapter) => chapter.number === 0) && sourceBooks.every((book, index) => book?.chapters?.length === 1 && book.chapters[0].number === index + 1);
     if (canConsolidate) {
-      const target = legacyBooks[0];
       target.title = target.title === "Prolog" ? "Oracle" : target.title;
       if (/^Ein Eintrag des ORACLE-Archivs\./.test(target.description || "")) target.description = oracleDescription;
-      target.chapters = legacyBooks.map((book, order) => ({ ...book.chapters[0], order }));
-      target.updatedAt = legacyBooks.map((book) => book.updatedAt).filter(Boolean).sort().at(-1) || new Date().toISOString();
-      const mergedIds = new Set(legacyBooks.slice(1).map((book) => book.id));
+      const officialNumbers = new Set(sourceBooks.map((book) => book.chapters[0].number));
+      const occupiedNumbers = new Set([...target.chapters.map((chapter) => chapter.number), ...officialNumbers]);
+      let nextNumber = Math.max(-1, ...occupiedNumbers) + 1;
+      target.chapters.forEach((chapter) => { if (officialNumbers.has(chapter.number)) { while (occupiedNumbers.has(nextNumber)) nextNumber += 1; chapter.number = nextNumber; occupiedNumbers.add(nextNumber); nextNumber += 1; } });
+      target.chapters = [...target.chapters, ...sourceBooks.map((book) => book.chapters[0])].sort((a, b) => a.number - b.number).map((chapter, order) => ({ ...chapter, order }));
+      target.updatedAt = [target, ...sourceBooks].map((book) => book.updatedAt).filter(Boolean).sort().at(-1) || new Date().toISOString();
+      const mergedIds = new Set(sourceBooks.map((book) => book.id));
       library.books = library.books.filter((book) => !mergedIds.has(book.id));
       changed = true;
     }
