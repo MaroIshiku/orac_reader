@@ -20,5 +20,8 @@ test("Offline-Synchronisation speichert ausschließlich die öffentliche Bibliot
   assert.match(worker, /books: data\.books \|\| \[\]/);
   assert.doesNotMatch(worker, /adminBooks: data\.adminBooks/);
   assert.match(worker, /offline: true/);
+  assert.match(worker, /\/markdown\.js/);
+  assert.match(worker, /\/markdown-config\.js/);
+  assert.match(worker, /\/vendor\/marked\.esm\.js/);
   assert.match(app, /Archivstand vom/);
 });

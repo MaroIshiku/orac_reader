@@ -1,5 +1,6 @@
 import { cardDestination, readerHash } from "/navigation.js?v=__APP_VERSION__";
 import { aggregateRead, nextGroupRead } from "/read-status.js?v=__APP_VERSION__";
+import { renderMarkdown } from "/markdown.js?v=__APP_VERSION__";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -16,20 +17,6 @@ const numberFormatOptions = [["decimal", "1, 2, 3"], ["pad2", "01, 02, 03"], ["p
 
 const escapeHtml = (text) => String(text ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
 const iconSvg = (name) => `<svg class="ui-icon" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
-const inline = (text) => escapeHtml(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(.+?)\*/g, "<em>$1</em>").replace(/`(.+?)`/g, "<code>$1</code>");
-function markdown(source) {
-  const lines = String(source || "").replace(/\r/g, "").split("\n"); let html = ""; let paragraph = [];
-  const flush = () => { if (paragraph.length) { html += `<p>${inline(paragraph.join(" "))}</p>`; paragraph = []; } };
-  for (const line of lines) {
-    const value = line.trim();
-    if (!value) { flush(); continue; }
-    if (/^-{3,}$/.test(value)) { flush(); html += "<hr>"; continue; }
-    const heading = value.match(/^(#{1,3})\s+(.+)$/); if (heading) { flush(); const level = Math.min(3, heading[1].length + 1); html += `<h${level}>${inline(heading[2])}</h${level}>`; continue; }
-    if (value.startsWith("> ")) { flush(); html += `<blockquote>${inline(value.slice(2))}</blockquote>`; continue; }
-    paragraph.push(value);
-  }
-  flush(); return html;
-}
 const getHistory = () => { try { return JSON.parse(localStorage.getItem(historyKey)) || []; } catch { return []; } };
 const getProgress = () => { try { return JSON.parse(localStorage.getItem(progressKey)) || {}; } catch { return {}; } };
 const getReadStatus = () => { try { return JSON.parse(localStorage.getItem(readStatusKey)) || {}; } catch { return {}; } };
@@ -152,7 +139,7 @@ function openPart(book, chapter, part) {
   $("#storyPart").textContent = `${term(book, "chapter")} ${displayNumber(book, "chapter", chapter.number)} · ${term(book, "part")} ${displayNumber(book, "part", part.number)}`;
   $("#chapterToggleLabel").textContent = term(book, "chapter", 2); $("#partTldrSummary").textContent = `${term(book, "part")}kurzfassung · TL;DR`; $("#partTldrWarning").textContent = `Dieses ${term(book, "part")}-TL;DR enthält Spoiler. Trotzdem anzeigen?`; $("#partEndLabel").textContent = `${term(book, "part")} beendet`; $("#nextPartLabel").textContent = `${term(book, "part")} weiterlesen`;
   const words = part.content.trim().split(/\s+/).length; $("#readingTime").textContent = `${Math.max(1, Math.ceil(words / 220))} Min. Lesezeit`;
-  $("#storyContent").innerHTML = markdown(part.content); resetTldr($("#partTldr"), part.tldr);
+  $("#storyContent").innerHTML = renderMarkdown(part.content); resetTldr($("#partTldr"), part.tldr);
   const entries = allParts(book); const currentIndex = entries.findIndex((item) => item.part.id === part.id);
   renderChapterList(book, part.id);
   const next = entries[currentIndex + 1]; $("#nextChapter").hidden = !next; if (next) $("#nextChapter").onclick = () => location.hash = activeReaderHash(book.id, next.part.id);

@@ -3,7 +3,7 @@ const SHELL_CACHE = `oracle-shell-${BUILD}`;
 const DATA_CACHE = "oracle-synchronized-archive-v1";
 const MEDIA_CACHE = "oracle-read-media-v1";
 const OFFLINE_LIBRARY = "/api/offline-library";
-const SHELL = ["/", "/styles.css", "/app.js", "/navigation.js", "/read-status.js", "/manifest.webmanifest", "/oracle-logo.png", "/pwa-icon-192.png", "/pwa-icon-512.png"];
+const SHELL = ["/", "/styles.css", "/app.js", "/markdown.js", "/markdown-config.js", "/vendor/marked.esm.js", "/navigation.js", "/read-status.js", "/manifest.webmanifest", "/oracle-logo.png", "/pwa-icon-192.png", "/pwa-icon-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));

@@ -296,11 +296,34 @@ button:disabled { cursor: default; }
 .sidebar-tldr .tldr-content { font: 400 11px/1.55 "Literata", Georgia, serif; }
 .prose { color: var(--ink); font: 400 var(--reader-size)/1.9 "Literata", Georgia, serif; letter-spacing: -.005em; }
 .prose p { margin: 0 0 1.38em; }
-.prose h2 { margin: 2.25em 0 .8em; font-size: 1.5em; font-weight: 500; }
-.prose h3 { margin: 2em 0 .7em; font-size: 1.2em; }
+.prose > :first-child { margin-top: 0; }
+.prose h1 { margin: 2.4em 0 .8em; font-size: 1.75em; font-weight: 500; line-height: 1.25; }
+.prose h2 { margin: 2.25em 0 .8em; font-size: 1.5em; font-weight: 500; line-height: 1.3; }
+.prose h3 { margin: 2em 0 .7em; font-size: 1.2em; font-weight: 500; line-height: 1.35; }
+.prose :is(h4, h5, h6) { margin: 1.8em 0 .65em; font-size: 1em; font-weight: 600; letter-spacing: .02em; }
+.prose strong { font-weight: 600; }
 .prose em { color: color-mix(in srgb, var(--ink) 78%, var(--accent)); }
+.prose a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: .16em; }
+.prose :is(ul, ol) { margin: 0 0 1.45em; padding-left: 1.55em; }
+.prose li { padding-left: .22em; }
+.prose li + li { margin-top: .38em; }
+.prose li > :is(p, ul, ol) { margin-bottom: .5em; }
+.prose li::marker { color: var(--accent); font-size: .88em; font-variant-numeric: tabular-nums; }
+.prose li:has(> input[type="checkbox"]) { list-style: none; margin-left: -1.3em; }
+.prose li > input[type="checkbox"] { width: 1em; min-height: 0; margin: 0 .55em 0 0; padding: 0; accent-color: var(--accent); }
 .prose hr { width: 34px; height: 1px; margin: 3.2em auto; border: 0; background: var(--accent); }
 .prose blockquote { margin: 2em 0; padding-left: 18px; border-left: 2px solid var(--accent); color: var(--muted); }
+.prose blockquote > :last-child { margin-bottom: 0; }
+.prose code { padding: .08em .28em; border-radius: 2px; color: color-mix(in srgb, var(--ink) 88%, var(--accent)); background: color-mix(in srgb, var(--accent) 7%, transparent); font: inherit; font-size: .92em; }
+.prose pre { margin: 1.8em 0; padding: 17px 19px; border: 1px solid var(--line); border-left: 2px solid var(--accent); background: color-mix(in srgb, var(--surface) 58%, transparent); white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid-column; }
+.prose pre code { padding: 0; border-radius: 0; background: transparent; font: 400 .82em/1.72 ui-monospace, "SFMono-Regular", Consolas, monospace; letter-spacing: 0; }
+.prose-table { max-width: 100%; margin: 1.9em 0; overflow-x: auto; break-inside: avoid-column; }
+.prose table { width: 100%; border-collapse: collapse; font-size: .82em; line-height: 1.55; }
+.prose :is(th, td) { padding: 9px 11px; border: 1px solid var(--line-strong); text-align: left; vertical-align: top; }
+.prose th { color: var(--accent); background: color-mix(in srgb, var(--surface) 62%, transparent); font-weight: 600; }
+.prose tr:nth-child(even) td { background: color-mix(in srgb, var(--surface) 35%, transparent); }
+.prose img { max-width: 100%; height: auto; margin: 1.7em auto; display: block; border: 1px solid var(--line); }
+.prose del { color: var(--muted); }
 .chapter-footer { margin-top: 76px; padding-top: 25px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line-strong); color: var(--muted); font: italic 12px "Literata", Georgia, serif; }
 .chapter-footer .primary-button { display: inline-flex; align-items: center; gap: 9px; }
 

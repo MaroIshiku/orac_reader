@@ -1,7 +1,9 @@
 FROM node:22-alpine
 ARG VCS_REF=development
 WORKDIR /app
-COPY package.json server.mjs ./
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+COPY server.mjs ./
 COPY public ./public
 COPY data ./data
 ENV NODE_ENV=production PORT=4180 DATA_DIR=/data COOKIE_SECURE=true APP_VERSION=${VCS_REF}

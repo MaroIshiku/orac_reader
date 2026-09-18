@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const publicRoot = join(root, "public");
+const markedModule = join(root, "node_modules", "marked", "lib", "marked.esm.js");
 const bundledData = join(root, "data", "library.json");
 const dataRoot = process.env.DATA_DIR || join(root, "data");
 const dataFile = join(dataRoot, "library.json");
@@ -27,7 +28,7 @@ const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-  "Content-Security-Policy": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'self'; frame-ancestors 'none'"
+  "Content-Security-Policy": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; script-src 'self'; connect-src 'self'; frame-ancestors 'none'"
 };
 const send = (res, status, value, headers = {}) => { res.writeHead(status, { ...securityHeaders, "Cache-Control": "no-store", ...headers }); res.end(value); };
 const json = (res, status, value, headers = {}) => send(res, status, JSON.stringify(value), { "Content-Type": types[".json"], ...headers });
@@ -242,6 +243,7 @@ await migrateLibrary();
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`); if (url.pathname.startsWith("/api/")) return await api(req, res, url);
+    if (url.pathname === "/vendor/marked.esm.js") return send(res, 200, await readFile(markedModule), { "Content-Type": types[".js"], "Cache-Control": "no-cache, must-revalidate" });
     const requested = url.pathname === "/" ? "index.html" : url.pathname.slice(1); const file = normalize(join(publicRoot, requested)); if (file !== publicRoot && !file.startsWith(`${publicRoot}${sep}`)) return send(res, 403, "Nicht erlaubt"); await stat(file);
     const extension = extname(file); const cacheControl = [".html", ".css", ".js", ".json", ".webmanifest"].includes(extension) ? "no-cache, must-revalidate" : "public, max-age=86400"; let payload = await readFile(file);
     if ([".html", ".js"].includes(extension)) payload = payload.toString("utf8").replaceAll("__APP_VERSION__", encodeURIComponent(appVersion));

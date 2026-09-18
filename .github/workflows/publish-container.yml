@@ -20,6 +20,9 @@ jobs:
       - name: Repository auschecken
         uses: actions/checkout@v7
 
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
       - name: Regressionstests ausführen
         run: npm test
 
