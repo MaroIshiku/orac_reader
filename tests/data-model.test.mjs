@@ -32,10 +32,13 @@ test("Bezeichnungen und Nummerierung sind pro Buch konfigurierbar", () => {
   assert.match(source, /api\/admin\/books\/\$\{encodeURIComponent\(bookId\)\}\/display/);
 });
 
-test("Buchkarten zeigen den Titel nur auf dem Cover und keine Kapiteldaten", () => {
+test("eigene Buchcover bleiben unverfälscht und alle Metadaten stehen im Klappentext", () => {
   assert.doesNotMatch(source, /chapterTitle|coverNumber/);
-  assert.match(source, /<div class="book-card-copy"><div class="book-copy-heading">[\s\S]*?<\/div><p>/);
+  assert.match(source, /<div class="book-card-copy"><div class="book-copy-heading">[\s\S]*?<\/div><h3>[\s\S]*?book-copy-meta/);
   assert.match(source, /data-toggle-card-details="show"/);
+  assert.match(styles, /\.generated-cover\.has-image :is\(\.cover-brand, \.cover-copy\) \{ display: none; \}/);
+  assert.match(styles, /object-position: center center/);
+  assert.match(styles, /\.generated-cover\.has-image \.cover-number[\s\S]*?background: rgba/);
   assert.match(styles, /@media \(hover: hover\) and \(pointer: fine\)/);
   assert.match(styles, /@media \(hover: none\), \(pointer: coarse\)/);
   assert.match(source, /migrateConsolidatedBookStorage/);

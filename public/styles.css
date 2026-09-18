@@ -197,10 +197,10 @@ button:disabled { cursor: default; }
   overflow: hidden;
 }
 .generated-cover::after { content: ""; width: 110px; height: 110px; position: absolute; right: -38px; bottom: -42px; border: 1px solid rgba(255,255,255,.11); transform: rotate(45deg); }
-.generated-cover.has-image::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(10,16,13,.38), rgba(10,16,13,.18) 42%, rgba(10,16,13,.86)); }
-.cover-art { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; }
-.generated-cover.has-image :is(.cover-brand, .cover-copy, .cover-number) { z-index: 2; text-shadow: 0 2px 12px rgba(0,0,0,.75); }
-.generated-cover.has-image :is(.cover-brand, .cover-copy) { position: relative; }
+.generated-cover.has-image::before, .generated-cover.has-image::after { display: none; }
+.cover-art { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; object-position: center center; }
+.generated-cover.has-image :is(.cover-brand, .cover-copy) { display: none; }
+.generated-cover.has-image .cover-number { z-index: 2; padding: 7px 10px; color: #fff; background: rgba(10,16,13,.58); text-shadow: 0 1px 5px rgba(0,0,0,.45); backdrop-filter: blur(3px); }
 .cover-brand { display: flex; align-items: center; gap: 9px; color: rgba(255,255,255,.7); font-size: 8px; letter-spacing: .18em; }
 .cover-brand img { width: 28px; height: 28px; object-fit: contain; filter: brightness(1.65) saturate(.55); opacity: .85; }
 .cover-copy { margin: auto 0; display: grid; gap: 9px; }
@@ -212,6 +212,8 @@ button:disabled { cursor: default; }
 .book-card.show-details .book-card-copy { opacity: 1; transform: translateY(0); pointer-events: auto; }
 .book-card-copy :is(button, a) { pointer-events: auto; }
 .book-copy-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.book-card-copy h3 { margin: 22px 0 6px; font: 500 clamp(24px, 2.5vw, 34px)/1.12 "Literata", Georgia, serif; letter-spacing: -.025em; }
+.book-copy-meta { color: var(--muted); font-size: 9px; font-variant-numeric: tabular-nums; letter-spacing: .08em; text-transform: uppercase; }
 .card-details-toggle { min-height: 34px; padding: 6px 9px; border: 1px solid currentColor; position: relative; z-index: 3; display: none; color: var(--accent); background: color-mix(in srgb, var(--surface) 92%, transparent); font-size: 9px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 .card-details-show { position: absolute; left: 16px; bottom: 14px; color: #fff; background: rgba(10,16,13,.72); }
 .book-number { min-width: 0; display: flex; align-items: center; gap: 7px; color: var(--accent); font-size: 9px; font-variant-numeric: tabular-nums; letter-spacing: .15em; overflow-wrap: anywhere; }
@@ -226,6 +228,7 @@ button:disabled { cursor: default; }
 .book-card footer > span { min-width: 0; }
 .book-card footer button { min-height: 34px; padding: 5px 0; border: 0; position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; color: var(--accent); background: transparent; font-weight: 600; }
 .book-card.is-read .generated-cover { filter: saturate(.4); }
+.book-card.is-read .generated-cover.has-image { filter: none; }
 .book-card.is-read .card-progress i { background: var(--muted); }
 .book-card.is-read .book-number, .book-card.is-read footer button { color: var(--muted); }
 .search-result-count { margin: 0 0 12px; color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
