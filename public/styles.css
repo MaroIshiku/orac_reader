@@ -415,7 +415,7 @@ body[data-view="pages"] .reading-page :is(a, button, details) { position: relati
 .admin-chapter { margin-top: 7px; border: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 65%, transparent); transition: border-color .15s, opacity .15s; }
 .admin-chapter.is-dragging { opacity: .42; }
 .admin-chapter.is-drop-target { border-color: var(--accent); box-shadow: inset 0 -2px color-mix(in srgb, var(--accent) 45%, transparent); }
-.admin-chapter-head { min-height: 58px; padding: 11px 10px; display: grid; grid-template-columns: 32px 32px minmax(0, 1fr); align-items: start; gap: 7px; }
+.admin-chapter-head { min-height: 58px; padding: 11px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 9px; }
 .drag-handle { width: 32px; min-height: 38px; display: grid; place-items: center; color: var(--muted); cursor: grab; }
 .admin-chapter-main { min-width: 0; }
 .admin-chapter-title { min-width: 0; padding: 1px 2px; }
@@ -423,11 +423,11 @@ body[data-view="pages"] .reading-page :is(a, button, details) { position: relati
 .admin-chapter-title b { font-size: 11px; letter-spacing: .04em; }
 .admin-chapter-title small { margin-top: 3px; color: var(--muted); font-size: 10px; }
 .admin-chapter-controls { margin-top: 7px; display: flex; flex-wrap: nowrap; align-items: center; gap: 4px; }
-.chapter-visibility-button { width: 32px; min-height: 32px; padding: 5px; display: inline-grid; place-items: center; border: 1px solid var(--line-strong); color: var(--accent); background: var(--surface); }
+.chapter-visibility-button { min-height: 32px; padding: 5px 7px; display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; border: 1px solid var(--line-strong); color: var(--ink); background: var(--surface); font-size: 9px; }
 .chapter-visibility-button > .ui-icon { width: 14px; height: 14px; color: var(--accent); transform: none !important; }
 .reorder-buttons { display: flex; gap: 2px; flex: 0 0 auto; }
-.reorder-buttons button { width: 30px; height: 32px; min-height: 32px; padding: 0; border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); background: transparent; line-height: 0; }
-.reorder-buttons button .ui-icon { width: 14px; height: 14px; margin: 0; display: block; flex: 0 0 auto; }
+.reorder-buttons button { width: 30px; min-height: 32px; padding: 5px; border: 1px solid var(--line); display: inline-grid; place-items: center; color: var(--muted); background: transparent; }
+.reorder-buttons button .ui-icon { width: 13px; height: 13px; }
 .reorder-buttons button:disabled { opacity: .25; }
 .admin-chapter-controls > .admin-row-actions { min-width: 0; margin-left: 0; flex-wrap: nowrap; gap: 2px; }
 .admin-chapter-controls .chapter-target { width: 128px; min-height: 32px; padding: 5px 7px; }
@@ -651,7 +651,7 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
   .admin-editor-empty { min-height: 210px; }
   .admin-book { align-items: stretch; flex-direction: column; }
   .admin-row-actions { flex-wrap: wrap; justify-content: flex-start; }
-  .admin-chapter-head { grid-template-columns: 32px 32px minmax(0, 1fr); }
+  .admin-chapter-head { grid-template-columns: auto minmax(0, 1fr); }
   .admin-chapter-controls { flex-wrap: wrap; }
   .admin-chapter-controls > .admin-row-actions { width: 100%; margin-left: 0; }
   .chapter-target { width: min(190px, 100%); }

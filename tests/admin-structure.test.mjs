@@ -30,7 +30,7 @@ test("Buch, Kapitel und Episode besitzen getrennte Bearbeitungsmasken", () => {
   assert.match(source, /class="admin-book-summary collapse-toggle"/);
   assert.match(source, /class="admin-chapter-title"/);
   assert.match(source, /class="chapter-visibility-button collapse-toggle"/);
-  assert.match(source, /data-collapse-control="parts"/);
+  assert.match(source, /data-collapse-label/);
   assert.match(source, /Teile anzeigen/);
   assert.match(source, /Teile ausblenden/);
   assert.match(source, /title="Nach oben"/);
