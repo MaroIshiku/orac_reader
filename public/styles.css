@@ -415,18 +415,21 @@ body[data-view="pages"] .reading-page :is(a, button, details) { position: relati
 .admin-chapter { margin-top: 7px; border: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 65%, transparent); transition: border-color .15s, opacity .15s; }
 .admin-chapter.is-dragging { opacity: .42; }
 .admin-chapter.is-drop-target { border-color: var(--accent); box-shadow: inset 0 -2px color-mix(in srgb, var(--accent) 45%, transparent); }
-.admin-chapter-head { min-height: 58px; padding: 9px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px; }
+.admin-chapter-head { min-height: 58px; padding: 11px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 9px; }
 .drag-handle { width: 32px; min-height: 38px; display: grid; place-items: center; color: var(--muted); cursor: grab; }
-.admin-chapter-title { min-width: 0; padding: 0; display: flex; align-items: center; gap: 7px; }
-.admin-chapter-title > span { min-width: 0; flex: 1; }
-.admin-chapter-title > .ui-icon { width: 14px; height: 14px; color: var(--muted); }
-.admin-chapter-title:hover > .ui-icon, .admin-chapter-title:hover b { color: var(--accent); }
+.admin-chapter-main { min-width: 0; }
+.admin-chapter-title { min-width: 0; padding: 1px 2px; }
 .admin-chapter-title b, .admin-chapter-title small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-chapter-title b { font-size: 11px; letter-spacing: .04em; }
 .admin-chapter-title small { margin-top: 3px; color: var(--muted); font-size: 10px; }
-.reorder-buttons { display: flex; }
-.reorder-buttons .icon-button { min-width: 32px; width: 32px; padding: 6px; border: 0; color: var(--muted); }
-.reorder-buttons .icon-button:disabled { opacity: .25; }
+.admin-chapter-controls { margin-top: 9px; padding-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 9px; border-top: 1px solid var(--line); }
+.chapter-visibility-button { min-height: 34px; padding: 6px 9px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); color: var(--ink); background: var(--surface); font-size: 10px; }
+.chapter-visibility-button > .ui-icon { width: 14px; height: 14px; color: var(--accent); transform: none !important; }
+.reorder-buttons { display: flex; gap: 3px; }
+.reorder-buttons button { min-height: 34px; padding: 6px 8px; border: 1px solid var(--line); display: inline-flex; align-items: center; gap: 4px; color: var(--muted); background: transparent; font-size: 9px; }
+.reorder-buttons button .ui-icon { width: 13px; height: 13px; }
+.reorder-buttons button:disabled { opacity: .25; }
+.admin-chapter-controls > .admin-row-actions { margin-left: auto; }
 .chapter-target { width: 145px; min-height: 34px; padding: 6px 8px; border-color: var(--line); color: var(--muted); background: var(--paper); font-size: 10px; }
 .admin-parts { display: block; }
 .admin-part { min-height: 46px; margin-left: 42px; padding: 6px 9px 6px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
@@ -645,8 +648,8 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
   .admin-editor-empty { min-height: 210px; }
   .admin-book { align-items: stretch; flex-direction: column; }
   .admin-row-actions { flex-wrap: wrap; justify-content: flex-start; }
-  .admin-chapter-head { grid-template-columns: auto minmax(0, 1fr) auto; }
-  .admin-chapter-head > .admin-row-actions { grid-column: 2 / -1; }
+  .admin-chapter-head { grid-template-columns: auto minmax(0, 1fr); }
+  .admin-chapter-controls > .admin-row-actions { width: 100%; margin-left: 0; }
   .chapter-target { width: min(190px, 100%); }
   .admin-part { margin-left: 22px; align-items: start; }
   .editor-form { padding: 18px 13px; }
