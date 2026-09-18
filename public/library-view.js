@@ -1,12 +1,3 @@
-const normalizedText = (value) => String(value || "")
-  .replace(/```[^\n]*\n|~~~[^\n]*\n|```|~~~/g, " ")
-  .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
-  .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-  .replace(/(^|\s)[#>*+-]+\s+/gm, "$1")
-  .replace(/[`*_~]/g, "")
-  .replace(/\s+/g, " ")
-  .trim();
-
 const directionFactor = (direction) => direction === "desc" ? -1 : 1;
 const releaseTime = (book) => Date.parse(book.releasedAt || book.publishAt || book.updatedAt || "") || 0;
 
@@ -28,6 +19,36 @@ export function sortReaderChapters(chapters, direction = "asc") {
     .map((chapter) => direction === "desc" ? { ...chapter, parts: [...chapter.parts].reverse() } : chapter);
 }
 
+const searchable = (value) => String(value ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("de");
+const defaultNumber = (_book, _kind, value) => String(value ?? "");
+
+export function findStructureResults(books, query, formatNumber = defaultNumber) {
+  const needle = searchable(String(query || "").trim()); if (!needle) return [];
+  const matches = (values) => values.some((value) => searchable(value).includes(needle));
+  return books.flatMap((book) => {
+    const bookNumber = formatNumber(book, "book", book.number); const display = book.display || {};
+    const results = matches([book.title, book.number, bookNumber, `Buch ${bookNumber}`, `${display.bookSingular || "Buch"} ${bookNumber}`]) ? [{ kind: "book", book }] : [];
+    for (const chapter of book.chapters) {
+      const chapterNumber = formatNumber(book, "chapter", chapter.number);
+      if (matches([chapter.title, chapter.number, chapterNumber, `Kapitel ${chapterNumber}`, `${display.chapterSingular || "Kapitel"} ${chapterNumber}`, `${bookNumber}.${chapterNumber}`])) results.push({ kind: "chapter", book, chapter });
+      for (const part of chapter.parts) {
+        const partNumber = formatNumber(book, "part", part.number);
+        if (matches([part.title, part.number, partNumber, `Teil ${partNumber}`, `${display.partSingular || "Teil"} ${partNumber}`, `${chapterNumber}.${partNumber}`, `${bookNumber}.${chapterNumber}.${partNumber}`])) results.push({ kind: "part", book, chapter, part });
+      }
+    }
+    return results;
+  });
+}
+
+const normalizedText = (value) => String(value || "")
+  .replace(/```[^\n]*\n|~~~[^\n]*\n|```|~~~/g, " ")
+  .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+  .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+  .replace(/(^|\s)[#>*+-]+\s+/gm, "$1")
+  .replace(/[`*_~]/g, "")
+  .replace(/\s+/g, " ")
+  .trim();
+
 function excerpts(value, query, radius = 90) {
   const text = normalizedText(value); const lower = text.toLocaleLowerCase("de"); const needle = query.toLocaleLowerCase("de"); const matches = [];
   for (let index = lower.indexOf(needle); index >= 0; index = lower.indexOf(needle, index + Math.max(1, needle.length))) {
@@ -37,7 +58,7 @@ function excerpts(value, query, radius = 90) {
   return matches;
 }
 
-export function findLibraryResults(books, query) {
+export function findTextResults(books, query) {
   const needle = String(query || "").trim(); if (!needle) return [];
   return books.flatMap((book) => {
     const firstBookEntry = book.chapters.flatMap((chapter) => chapter.parts.map((part) => ({ chapter, part })))[0];

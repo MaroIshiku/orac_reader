@@ -31,6 +31,18 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     assert.equal(login.status, 200);
     const cookie = login.headers.get("set-cookie").split(";")[0];
     const headers = { "Content-Type": "application/json", Origin: origin, Cookie: cookie };
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+    const upload = await fetch(`${origin}/api/admin/media`, { method: "POST", headers: { "Content-Type": "image/png", Origin: origin, Cookie: cookie }, body: png });
+    assert.equal(upload.status, 201);
+    const mediaUrl = (await upload.json()).url;
+    assert.match(mediaUrl, /^\/media\/[a-f0-9]{32}\.png$/);
+    const media = await fetch(`${origin}${mediaUrl}`);
+    assert.equal(media.status, 200);
+    assert.equal(media.headers.get("content-type"), "image/png");
+    assert.match(media.headers.get("cache-control"), /immutable/);
+    assert.deepEqual(Buffer.from(await media.arrayBuffer()), png);
+    const invalidUpload = await fetch(`${origin}/api/admin/media`, { method: "POST", headers: { "Content-Type": "image/png", Origin: origin, Cookie: cookie }, body: "kein Bild" });
+    assert.equal(invalidUpload.status, 415);
     const library = await (await fetch(`${origin}/api/library`, { headers })).json();
     const book = library.books.find((item) => item.id === "oracle-0000");
     assert.equal(library.adminBooks.length, library.books.length);
@@ -45,7 +57,7 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     assert.equal((await chapterResponse.json()).number, 0);
 
     const partResponse = await fetch(`${origin}/api/admin/books/${book.id}/parts/${part.id}`, {
-      method: "PUT", headers, body: JSON.stringify({ chapterId: chapter.id, part: part.number, releasedAt: "2026-10-15", partTitle: part.title, tldr: "Teilzusammenfassung", content: part.content }),
+      method: "PUT", headers, body: JSON.stringify({ chapterId: chapter.id, part: part.number, releasedAt: "2026-10-15", partTitle: part.title, image: mediaUrl, tldr: "Teilzusammenfassung", content: part.content }),
     });
     assert.equal(partResponse.status, 200);
 
@@ -55,6 +67,7 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     assert.equal(updatedChapter.tldr, "Kapitelzusammenfassung");
     assert.equal(updatedChapter.parts[0].tldr, "Teilzusammenfassung");
     assert.equal(updatedChapter.parts[0].releasedAt, "2026-10-15");
+    assert.equal(updatedChapter.parts[0].image, mediaUrl);
     assert.equal(updatedChapter.releasedAt, "2026-10-15");
     assert.equal(updated.books.find((item) => item.id === book.id).releasedAt, "2026-10-15");
     assert.equal(Object.hasOwn(updated.books.find((item) => item.id === book.id), "tldr"), false);
@@ -74,10 +87,12 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     assert.equal(hiddenLibrary.books.find((item) => item.id === book.id).chapters.some((item) => item.id === chapter.id), false);
     await fetch(`${origin}/api/admin/books/${book.id}/chapters/${chapter.id}`, { method: "PUT", headers, body: JSON.stringify({ number: chapter.number, title: chapter.title, tldr: chapter.tldr, hidden: false }) });
 
-    await fetch(`${origin}/api/admin/books/${book.id}`, { method: "PUT", headers, body: JSON.stringify({ number: book.number, title: book.title, description: book.description, status: "published", hidden: true }) });
+    await fetch(`${origin}/api/admin/books/${book.id}`, { method: "PUT", headers, body: JSON.stringify({ number: book.number, title: book.title, description: book.description, status: "published", coverImage: mediaUrl, hidden: true }) });
     hiddenLibrary = await (await fetch(`${origin}/api/library`)).json();
     assert.equal(hiddenLibrary.books.some((item) => item.id === book.id), false);
-    await fetch(`${origin}/api/admin/books/${book.id}`, { method: "PUT", headers, body: JSON.stringify({ number: book.number, title: book.title, description: book.description, status: "published", hidden: false }) });
+    await fetch(`${origin}/api/admin/books/${book.id}`, { method: "PUT", headers, body: JSON.stringify({ number: book.number, title: book.title, description: book.description, status: "published", coverImage: mediaUrl, hidden: false }) });
+    const imageLibrary = await (await fetch(`${origin}/api/library`)).json();
+    assert.equal(imageLibrary.books.find((item) => item.id === book.id).coverImage, mediaUrl);
 
     const draftResponse = await fetch(`${origin}/api/admin/books`, { method: "POST", headers, body: JSON.stringify({ number: 999, title: "Testentwurf", description: "Nicht öffentlich", status: "draft" }) });
     assert.equal(draftResponse.status, 201);

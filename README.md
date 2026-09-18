@@ -4,19 +4,21 @@ Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. OracleDB bleibt a
 
 ## Enthalten
 
-- öffentliche Bibliothek mit sortierbaren Büchern und einer Volltextsuche, die jede Fundstelle samt Kontext ausgibt
+- öffentliche Bibliothek mit sortierbaren Büchern und schneller Struktursuche nach Buch-, Kapitel- und Teilenamen sowie Nummern
 - pro Buch frei benennbare Struktur, standardmäßig Buch → Kapitel → Episode; Oracle verwendet Archiv → Akte → Fragment
 - getrennte Nummerierung pro Buch und Ebene als `1`, `01`, `001`, `0001`, römische Groß- oder Kleinzahl
 - automatische Leseposition, Fortschritt und synchronisierter Gelesen-Status im jeweiligen Browser – ohne Leserkonto
 - vier kontrastgeprüfte Lesethemes, verstellbare Schriftgröße, normale oder umgekehrte Inhaltsübersicht sowie echte Scroll- und Seitenansicht
 - geschützter Adminbereich für Entwurf, kryptischen Vorschaulink, geplante Veröffentlichung und Veröffentlichung
 - eigenständige Vollbild-Redaktion unter `/admin` mit getrennten Bereichen für Inhalte, Darstellung und Links
+- Volltextsuche in der geschützten Redaktion, die jede Fundstelle samt Kontext direkt zum passenden Editor führt
 - getrennte Bearbeitungsmasken für Buch, Kapitel und Episode; jede Ebene kann gezielt öffentlich ausgeblendet werden
 - Kapitel lassen sich innerhalb eines Buchs sortieren oder in ein anderes Buch verschieben
 - Releasedaten werden pro Teil gepflegt; Kapitel und Bücher übernehmen automatisch das jeweils jüngste Datum
+- persistente Buchcover und ein optionales Bild pro Teil, direkt in der Redaktion hochladbar
 - buchtypisch gestaltetes Markdown mit Überschriften, Dialogzeilen, Zitaten, Listen, Tabellen, Links, Bildern und abgesetzten Textblöcken sowie Markdown-/Text-Upload
 - getrennte Kapitel- sowie Episoden-TL;DR mit vorgeschalteter Spoilerbestätigung
-- automatisch gesetzte Archivcover mit Buchtitel und offizieller Archivnummer
+- Coveransicht in der Bibliothek mit Klappentext beim Darüberfahren, einer mobilen Detailansicht und automatisch gesetztem Archivcover als Rückfall
 - frei administrierbare Weblinks und `discord://`-App-Links auf Desktop und Mobilgeräten
 - Teilen einzelner Episoden, Touch-Blätterzonen, Tastatursteuerung und abschaltbare Blätteranimationen
 - als PWA auf Mobilgeräten installierbar; App-Updates erneuern automatisch nur die Programmdateien, während Lesestatus, Lesezeichen und Fortschritt erhalten bleiben

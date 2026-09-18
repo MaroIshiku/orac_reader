@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findLibraryResults, sortBooks, sortReaderChapters } from "../public/library-view.js";
+import { findStructureResults, findTextResults, sortBooks, sortReaderChapters } from "../public/library-view.js";
 
 const books = [
   { id: "b-2", number: 2, title: "Zweiter", updatedAt: "2025-01-01T00:00:00Z", chapters: [] },
@@ -32,28 +32,36 @@ test("umgekehrte Leseübersicht dreht Kapitel und ihre Teile ohne Quelldaten zu 
   assert.deepEqual(chapters[0].parts.map(({ id }) => id), ["p-1", "p-2"]);
 });
 
-test("Suche liefert jede einzelne Fundstelle mit Kontext und Zielteil", () => {
+test("Bibliothekssuche findet Bücher, Kapitel und Teile anhand von Namen und Nummern", () => {
   const library = [{
-    id: "book", number: 1, title: "Roman", description: "",
-    chapters: [{ id: "chapter", number: 1, title: "Anfang", tldr: "", parts: [{
-      id: "part", number: 1, title: "Begegnung", tldr: "",
-      content: "Try trat ein. Niemand sah Try. Später rief Try noch einmal."
+    id: "book", number: 1, title: "Äther-Chronik", description: "",
+    display: { bookSingular: "Archiv", chapterSingular: "Akte", partSingular: "Fragment" },
+    chapters: [{ id: "chapter", number: 7, title: "Anfang", tldr: "", parts: [{
+      id: "part", number: 3, title: "Begegnung", tldr: "", content: "Try steht nur im Fließtext."
     }] }]
   }];
-  const results = findLibraryResults(library, "Try");
-  assert.equal(results.length, 3);
-  assert.ok(results.every((result) => result.source === "content"));
-  assert.ok(results.every((result) => result.book.id === "book" && result.chapter.id === "chapter" && result.part.id === "part"));
-  assert.deepEqual(results.map((result) => result.context.match), ["Try", "Try", "Try"]);
-  assert.ok(results.every((result) => `${result.context.before}${result.context.match}${result.context.after}`.includes("Try")));
+  const format = (_book, kind, value) => kind === "book" || kind === "chapter" ? String(value).padStart(4, "0") : String(value);
+  assert.deepEqual(findStructureResults(library, "ather", format).map(({ kind }) => kind), ["book"]);
+  assert.deepEqual(findStructureResults(library, "Akte 0007", format).map(({ kind }) => kind), ["chapter"]);
+  assert.deepEqual(findStructureResults(library, "0007.3", format).map(({ kind }) => kind), ["part"]);
+  assert.deepEqual(findStructureResults(library, "Begegnung", format).map(({ kind }) => kind), ["part"]);
 });
 
-test("Suche berücksichtigt auch Titel, Kurzfassungen und Markdown-Text", () => {
+test("Bibliothekssuche ignoriert Lesetexte, während die Adminsuche alle Textstellen findet", () => {
   const library = [{
-    id: "book", number: 1, title: "Try-Akte", description: "",
-    chapters: [{ id: "chapter", number: 1, title: "Try Kapitel", tldr: "", parts: [{
+    id: "book", number: 1, title: "Roman", description: "Try Beschreibung",
+    chapters: [{ id: "chapter", number: 1, title: "Kapitel", tldr: "Try kurz", parts: [{
       id: "part", number: 1, title: "Teil", tldr: "Try kurz", content: "**Try** im Fließtext"
     }] }]
   }];
-  assert.deepEqual(findLibraryResults(library, "try").map(({ source }) => source), ["book-title", "chapter-title", "part-tldr", "content"]);
+  assert.deepEqual(findStructureResults(library, "try"), []);
+  assert.deepEqual(findTextResults(library, "try").map(({ source }) => source), ["book-description", "chapter-tldr", "part-tldr", "content"]);
+});
+
+test("Admin-Volltextsuche liefert jede einzelne Fundstelle mit Kontext", () => {
+  const library = [{ id: "book", number: 1, title: "Roman", description: "", chapters: [{ id: "chapter", number: 1, title: "Anfang", tldr: "", parts: [{ id: "part", number: 1, title: "Begegnung", tldr: "", content: "Try trat ein. Niemand sah Try. Später rief Try noch einmal." }] }] }];
+  const results = findTextResults(library, "Try");
+  assert.equal(results.length, 3);
+  assert.ok(results.every((result) => result.source === "content"));
+  assert.deepEqual(results.map((result) => result.context.match), ["Try", "Try", "Try"]);
 });

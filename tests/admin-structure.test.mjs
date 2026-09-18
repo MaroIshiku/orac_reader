@@ -32,10 +32,17 @@ test("Buch, Kapitel und Episode besitzen getrennte Bearbeitungsmasken", () => {
   assert.doesNotMatch(markup + source + server, /contentWarning|Inhaltswarnung/i);
   assert.match(source, /activeReaderHash/);
   assert.match(form("archiveForm"), /name="hidden"/);
+  assert.match(form("archiveForm"), /id="bookCoverFile"[^>]+type="file"[^>]+image\/webp/);
   assert.match(form("chapterForm"), /name="hidden"/);
   assert.match(form("partForm"), /name="hidden"/);
+  assert.match(form("partForm"), /id="partImageFile"[^>]+type="file"[^>]+image\/avif/);
+  assert.match(form("partForm"), /id="partCharacterCount"[^>]*>0 Zeichen/);
   assert.match(form("displayAdmin"), /bookSingular/);
   assert.match(source, /roman-upper/);
+  assert.match(source, /uploadImage/);
+  assert.match(source, /updatePartCharacterCount/);
+  assert.match(server, /\/api\/admin\/media/);
+  assert.match(server, /max-age=31536000, immutable/);
 });
 
 test("Administration ist eine eigenständige Vollbildseite mit gegliedertem Arbeitsbereich", () => {

@@ -33,6 +33,9 @@ test("Kapitel und Archivkarten verwenden getrennte, delegierte Navigation", asyn
   assert.match(markup, /id="bookSortDirection"/);
   assert.match(markup, /id="readerOrder"/);
   assert.match(markup, /id="searchResultList"/);
+  assert.match(markup, /id="adminStructureSearch"/);
+  assert.match(source, /findStructureResults/);
+  assert.match(source, /findTextResults/);
   assert.match(source, /behavior: state\.motion \? "smooth" : "auto"/);
   const styles = await readFile(new URL("../public/styles.css", import.meta.url), "utf8");
   assert.match(styles, /height: calc\(100dvh - var\(--header-height\) - var\(--offline-height\) - var\(--toolbar-height\)\)/);

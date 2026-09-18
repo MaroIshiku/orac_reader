@@ -72,7 +72,7 @@
       <div class="section-heading">
         <div><p class="eyebrow">BIBLIOTHEK</p><h2 id="libraryHeading">Veröffentlichte Bücher</h2></div>
         <div class="library-controls">
-          <label class="search-box"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input id="bookSearch" type="search" aria-label="Buchtexte durchsuchen" placeholder="Texte durchsuchen…"></label>
+          <label class="search-box"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input id="bookSearch" type="search" aria-label="Bücher, Kapitel und Teile durchsuchen" placeholder="Bücher, Kapitel, Teile suchen…" autocomplete="off"></label>
           <div class="library-sort" aria-label="Bücher sortieren">
             <label><span>Sortierung</span><select id="bookSortBy"><option value="number">Buchnummer</option><option value="alphabetical">Alphabet</option><option value="release">Veröffentlichung</option></select></label>
             <label><span>Richtung</span><select id="bookSortDirection"><option value="asc">Aufsteigend</option><option value="desc">Absteigend</option></select></label>
@@ -81,7 +81,7 @@
       </div>
       <div class="book-grid" id="bookGrid"></div>
       <section class="search-results" id="searchResults" aria-live="polite" hidden><p class="search-result-count" id="searchResultCount"></p><div id="searchResultList"></div></section>
-      <div class="empty-state" id="emptyLibrary" hidden>Kein Buch entspricht dieser Suche.</div>
+      <div class="empty-state" id="emptyLibrary" hidden>Noch keine Bücher veröffentlicht.</div>
     </section>
   </main>
 
@@ -143,6 +143,7 @@
             </div>
             <div class="story-meta"><span id="storyPart"></span><span id="storyRelease"></span><span id="readingTime"></span></div>
           </header>
+          <figure class="story-image" id="storyImage" hidden><img id="storyImageFile" alt=""></figure>
           <div class="prose" id="storyContent"></div>
           <footer class="chapter-footer">
             <span id="partEndLabel">Episode beendet</span>
@@ -190,7 +191,9 @@
         <section class="admin-workspace">
           <div id="booksAdmin">
             <header class="admin-workspace-heading"><div><p class="eyebrow">INHALTE</p><h1>Bibliothek verwalten</h1><p>Bücher, Kapitel und Leseteile anlegen, ordnen und veröffentlichen.</p></div><button class="primary-button with-icon" id="newBookButton"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Neues Buch</span></button></header>
+        <label class="search-box admin-structure-search"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input id="adminStructureSearch" type="search" aria-label="Inhalte vollständig durchsuchen" placeholder="Wörter in allen Texten suchen…" autocomplete="off"></label>
         <p class="admin-hint admin-sort-hint">Gliederungsebenen lassen sich am Griff sortieren und auch in andere Bücher ziehen. Alternativ stehen Pfeile und das Zielmenü bereit. Die offizielle Nummer bleibt unverändert.</p>
+        <section class="admin-search-results" id="adminSearchResults" aria-live="polite" hidden><p class="search-result-count" id="adminSearchResultCount"></p><div id="adminSearchResultList"></div></section>
         <div class="admin-book-list" id="adminBookList"></div>
         <div class="admin-editor-empty" id="adminEditorEmpty"><span>EDITOR</span><h2>Wähle einen Eintrag</h2><p>Bearbeite ein Buch, Kapitel oder einen Leseteil – oder lege einen neuen Inhalt an.</p></div>
         <form class="editor-form" id="archiveForm" hidden>
@@ -200,6 +203,7 @@
             <label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label>
             <label class="wide">Name *<input name="title" required maxlength="160"></label>
             <label class="wide">Beschreibung *<textarea name="description" rows="3" required></textarea></label>
+            <div class="image-upload wide"><img id="bookCoverPreview" alt="Buchcover-Vorschau" hidden><label>Buchcover<input id="bookCoverFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif"></label><label class="checkbox-label"><input name="removeCover" type="checkbox"><span>Vorhandenes Cover entfernen</span></label></div>
             <label id="archivePublishField">Geplante Veröffentlichung<input name="publishAt" type="datetime-local"></label>
             <label class="checkbox-label wide"><input name="hidden" type="checkbox"><span>Dieses Buch öffentlich ausblenden</span></label>
           </div>
@@ -225,10 +229,11 @@
             <label><span id="partNumberLabel">Episodennummer *</span><input name="part" type="number" min="1" value="1" required></label>
             <label><span id="partReleaseLabel">Releasedatum *</span><input name="releasedAt" type="date" required></label>
             <label class="wide"><span id="partNameLabel">Episodenname *</span><input name="partTitle" required maxlength="160"></label>
+            <div class="image-upload wide"><img id="partImagePreview" alt="Bildvorschau des Teils" hidden><label><span id="partImageLabel">Bild</span><input id="partImageFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif"></label><label class="checkbox-label"><input name="removeImage" type="checkbox"><span>Vorhandenes Bild entfernen</span></label></div>
             <label class="wide"><span id="partTldrFormLabel">Episoden-TL;DR</span><textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label>
             <label class="checkbox-label wide"><input name="hidden" type="checkbox"><span id="partHiddenLabel">Diese Episode öffentlich ausblenden</span></label>
             <label>Datei laden<input id="storyFile" type="file" accept=".md,.txt,text/markdown,text/plain"></label>
-            <label class="wide">Text *<textarea class="content-input" name="content" rows="12" required placeholder="Markdown oder Klartext…"></textarea></label>
+            <label class="wide content-field"><span class="content-field-heading"><span>Text *</span><output id="partCharacterCount" for="partContent">0 Zeichen</output></span><textarea class="content-input" id="partContent" name="content" rows="12" required placeholder="Markdown oder Klartext…"></textarea></label>
           </div>
           <p class="form-error" id="partFormError"></p>
           <button class="primary-button" type="submit" id="partSaveLabel">Episode speichern</button>

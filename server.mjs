@@ -10,6 +10,7 @@ const markedModule = join(root, "node_modules", "marked", "lib", "marked.esm.js"
 const bundledData = join(root, "data", "library.json");
 const dataRoot = process.env.DATA_DIR || join(root, "data");
 const dataFile = join(dataRoot, "library.json");
+const mediaRoot = join(dataRoot, "media");
 const port = Number(process.env.PORT || 4180);
 const appVersion = safeBuildVersion(process.env.APP_VERSION || "development");
 const adminSecret = process.env.ADMIN_PASSWORD;
@@ -24,7 +25,7 @@ if (!adminSecret) {
   process.exit(1);
 }
 
-const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png" };
+const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json; charset=utf-8", ".webmanifest": "application/manifest+json; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".avif": "image/avif" };
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
@@ -43,7 +44,22 @@ const requestBody = async (req) => {
   for await (const chunk of req) { size += chunk.length; if (size > 6_000_000) throw new Error("Datei ist zu groß."); chunks.push(chunk); }
   return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
 };
+const requestBytes = async (req, maximum = 12_000_000) => {
+  const chunks = []; let size = 0;
+  for await (const chunk of req) { size += chunk.length; if (size > maximum) throw new Error("Bilddatei ist größer als 12 MB."); chunks.push(chunk); }
+  return Buffer.concat(chunks);
+};
 const safeText = (value, max = 1000) => String(value ?? "").trim().slice(0, max);
+const mediaPattern = /^\/media\/[a-f0-9]{32}\.(png|jpg|gif|webp|avif)$/;
+function safeMediaPath(value, fallback = "") { const path = safeText(value === undefined ? fallback : value, 100); if (!path) return ""; if (!mediaPattern.test(path)) throw new Error("Ungültiger Bildverweis."); return path; }
+function imageExtension(bytes) {
+  if (bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]))) return "png";
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpg";
+  if (bytes.length >= 6 && ["GIF87a", "GIF89a"].includes(bytes.subarray(0, 6).toString("ascii"))) return "gif";
+  if (bytes.length >= 12 && bytes.subarray(0, 4).toString("ascii") === "RIFF" && bytes.subarray(8, 12).toString("ascii") === "WEBP") return "webp";
+  if (bytes.length >= 12 && bytes.subarray(4, 8).toString("ascii") === "ftyp" && ["avif", "avis"].includes(bytes.subarray(8, 12).toString("ascii"))) return "avif";
+  return "";
+}
 const slug = (value) => safeText(value, 100).toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || randomBytes(4).toString("hex");
 const isPublished = (book) => book.status === "published" || (book.status === "scheduled" && book.publishAt && new Date(book.publishAt).getTime() <= Date.now());
 function publicBook(book, includeHidden = false) {
@@ -68,7 +84,7 @@ function syncReleaseDates(book) {
   return book;
 }
 
-async function ensureData() { await mkdir(dataRoot, { recursive: true }); try { await stat(dataFile); } catch { await copyFile(bundledData, dataFile); } }
+async function ensureData() { await mkdir(mediaRoot, { recursive: true }); try { await stat(dataFile); } catch { await copyFile(bundledData, dataFile); } }
 const loadLibrary = async () => JSON.parse(await readFile(dataFile, "utf8"));
 const saveLibrary = async (library) => { library.books.forEach(syncReleaseDates); const temp = `${dataFile}.${process.pid}.tmp`; await writeFile(temp, `${JSON.stringify(library, null, 2)}\n`, "utf8"); await rename(temp, dataFile); };
 async function migrateLibrary() {
@@ -137,6 +153,10 @@ async function migrateLibrary() {
     library.books.forEach((book) => book.chapters.forEach((chapter) => chapter.parts.forEach((part) => { part.releasedAt = normalizedDate(part.releasedAt, chapter.releasedAt || book.releasedAt || book.updatedAt || migratedAt); })));
     library.schemaVersion = 10; changed = true;
   }
+  if (schemaVersion < 11) {
+    library.books.forEach((book) => { book.coverImage = safeMediaPath(book.coverImage); book.chapters.forEach((chapter) => chapter.parts.forEach((part) => { part.image = safeMediaPath(part.image); })); });
+    library.schemaVersion = 11; changed = true;
+  }
   if (changed) await saveLibrary(library);
 }
 
@@ -149,7 +169,7 @@ function validateBook(input, old = null) {
   if (status === "scheduled") { const timestamp = new Date(input.publishAt).getTime(); if (!Number.isFinite(timestamp)) throw new Error("Für eine geplante Veröffentlichung wird ein Datum benötigt."); publishAt = new Date(timestamp).toISOString(); }
   const needsPreview = status !== "published";
   const previewToken = needsPreview ? (old?.status !== "published" && /^[a-zA-Z0-9_-]{24,80}$/.test(old?.previewToken || "") ? old.previewToken : randomBytes(24).toString("base64url")) : undefined;
-  const book = { id: old?.id || `${slug(title)}-${Date.now().toString(36)}`, number, title, kicker: safeText(input.kicker, 80) || "ORACLE · ARCHIV", description, status, publishAt, updatedAt: new Date().toISOString(), chapters: old?.chapters || [], display: normalizeBookDisplay(old?.display), hidden: input.hidden === undefined ? old?.hidden === true : input.hidden === true };
+  const book = { id: old?.id || `${slug(title)}-${Date.now().toString(36)}`, number, title, kicker: safeText(input.kicker, 80) || "ORACLE · ARCHIV", description, status, publishAt, updatedAt: new Date().toISOString(), chapters: old?.chapters || [], display: normalizeBookDisplay(old?.display), coverImage: safeMediaPath(input.coverImage, old?.coverImage), hidden: input.hidden === undefined ? old?.hidden === true : input.hidden === true };
   if (previewToken) book.previewToken = previewToken;
   return book;
 }
@@ -163,7 +183,7 @@ function validatePart(input, old = null) {
   if (!chapterId || !Number.isInteger(partNumber) || partNumber < 1 || !title || !content) throw new Error("Kapitel, Teilnummer (ab 1), Teilname und Text sind Pflichtfelder.");
   const releasedAt = normalizedDate(input.releasedAt, old?.releasedAt || new Date().toISOString().slice(0, 10));
   if (!releasedAt) throw new Error("Für den Teil wird ein gültiges Releasedatum benötigt.");
-  return { chapterId, part: { id: old?.id || `part-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number: partNumber, title, tldr, content, releasedAt, hidden: input.hidden === undefined ? old?.hidden === true : input.hidden === true } };
+  return { chapterId, part: { id: old?.id || `part-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number: partNumber, title, tldr, content, releasedAt, image: safeMediaPath(input.image, old?.image), hidden: input.hidden === undefined ? old?.hidden === true : input.hidden === true } };
 }
 function findPart(book, partId) { for (const chapter of book.chapters) { const index = chapter.parts.findIndex((part) => part.id === partId); if (index >= 0) return { chapter, index, part: chapter.parts[index] }; } return null; }
 function sortContent(book) { book.chapters.sort((a,b) => (a.order ?? a.number) - (b.order ?? b.number) || a.number - b.number); for (const chapter of book.chapters) chapter.parts.sort((a,b) => a.number - b.number); }
@@ -189,6 +209,13 @@ async function api(req, res, url) {
   const previewMatch = url.pathname.match(/^\/api\/preview\/([a-zA-Z0-9_-]{24,80})$/);
   if (req.method === "GET" && previewMatch) { const book = library.books.find((item) => !isPublished(item) && item.previewToken === previewMatch[1]); return book ? json(res, 200, { book: publicBook(book, true) }) : json(res, 404, { error: "Vorschau nicht gefunden." }); }
   if (url.pathname.startsWith("/api/admin/") && !isAdmin(req)) return json(res, 401, { error: "Admin-Anmeldung erforderlich." });
+
+  if (req.method === "POST" && url.pathname === "/api/admin/media") {
+    const bytes = await requestBytes(req); const extension = imageExtension(bytes);
+    if (!extension) return json(res, 415, { error: "Unterstützt werden PNG, JPEG, GIF, WebP und AVIF." });
+    const filename = `${randomBytes(16).toString("hex")}.${extension}`; await writeFile(join(mediaRoot, filename), bytes);
+    return json(res, 201, { url: `/media/${filename}` });
+  }
 
   if (req.method === "POST" && url.pathname === "/api/admin/books") { const book = validateBook(await requestBody(req)); if (book.status !== "draft") return json(res, 409, { error: "Ein neuer Archiveintrag muss vor dem Veröffentlichen mindestens einen Teil enthalten." }); if (library.books.some((item) => item.number === book.number)) return json(res, 409, { error: "Diese offizielle Nummer ist bereits vergeben." }); library.books.unshift(book); await saveLibrary(library); return json(res, 201, book); }
   const bookMatch = url.pathname.match(/^\/api\/admin\/books\/([^/]+)$/); const book = bookMatch ? library.books.find((item) => item.id === decodeURIComponent(bookMatch[1])) : null;
@@ -258,6 +285,7 @@ await migrateLibrary();
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`); if (url.pathname.startsWith("/api/")) return await api(req, res, url);
+    if (mediaPattern.test(url.pathname)) { const file = join(mediaRoot, url.pathname.slice("/media/".length)); const extension = extname(file); return send(res, 200, await readFile(file), { "Content-Type": types[extension], "Cache-Control": "public, max-age=31536000, immutable" }); }
     if (url.pathname === "/vendor/marked.esm.js") return send(res, 200, await readFile(markedModule), { "Content-Type": types[".js"], "Cache-Control": "no-cache, must-revalidate" });
     const requested = ["/", "/admin", "/admin/"].includes(url.pathname) ? "index.html" : url.pathname.slice(1); const file = normalize(join(publicRoot, requested)); if (file !== publicRoot && !file.startsWith(`${publicRoot}${sep}`)) return send(res, 403, "Nicht erlaubt"); await stat(file);
     const extension = extname(file); const cacheControl = ["index.html", "sw.js"].includes(requested) ? "no-store" : [".html", ".css", ".js", ".json", ".webmanifest"].includes(extension) ? "no-cache, must-revalidate" : "public, max-age=86400"; let payload = await readFile(file);

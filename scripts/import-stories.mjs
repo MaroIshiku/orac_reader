@@ -35,6 +35,7 @@ for (const folder of folders) {
       title: partTitle || firstHeading || `Teil ${index + 1}`,
       tldr: "",
       releasedAt: (await stat(storyPath)).mtime.toISOString().slice(0, 10),
+      image: "",
       content: readingText
     });
   }
@@ -52,12 +53,13 @@ const books = [{
   publishAt: null,
   releasedAt: chapters.map((chapter) => chapter.releasedAt).filter(Boolean).sort().at(-1) || null,
   updatedAt: new Date().toISOString(),
+  coverImage: "",
   display: { bookSingular: "Archiv", bookPlural: "Archive", chapterSingular: "Akte", chapterPlural: "Akten", partSingular: "Fragment", partPlural: "Fragmente", bookNumberFormat: "pad4", chapterNumberFormat: "pad4", partNumberFormat: "decimal" },
   chapters
 }];
 
 const library = {
-  schemaVersion: 10,
+  schemaVersion: 11,
   books,
   settings: { "numberDigits": 4 },
   links: [
