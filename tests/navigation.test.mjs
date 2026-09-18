@@ -39,6 +39,9 @@ test("Kapitel und Archivkarten verwenden getrennte, delegierte Navigation", asyn
   assert.doesNotMatch(styles, /column-gap: calc\(50px \+ env\(safe-area-inset-left\)/);
   assert.match(markup, /<symbol id="i-pages"/);
   assert.match(source, /iconSvg\(progress\.state\)/);
+  assert.match(source, /data-collapse-key=.*aria-expanded=.*aria-controls/);
+  assert.match(source, /collapseStateKey = "oracle-collapse-state"/);
+  assert.match(source, /#chapterList \[data-collapse-key\]/);
   assert.doesNotMatch(markup, />[☰⌕○↗×←→][^<]*</);
   assert.doesNotMatch(markup, />A[+−]</);
 });

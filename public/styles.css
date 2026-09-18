@@ -237,8 +237,14 @@ button:disabled { cursor: default; }
 .chapter-list > li { margin-bottom: 8px; }
 .chapter-group-row { margin: 16px 7px 5px; display: flex; align-items: center; gap: 7px; }
 .chapter-group { min-width: 0; display: block; color: var(--muted); font-size: 8px; font-variant-numeric: tabular-nums; letter-spacing: .1em; overflow-wrap: anywhere; }
-.chapter-group-row > button { min-width: 38px; min-height: 32px; margin-left: auto; padding: 3px 2px 3px 6px; border: 0; display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; flex: 0 0 auto; color: var(--muted); background: transparent; font-size: 9px; font-variant-numeric: tabular-nums; }
-.chapter-group-row > button:hover { color: var(--accent); }
+.collapse-toggle { border: 0; color: inherit; background: transparent; text-align: left; }
+.collapse-toggle > .ui-icon { flex: 0 0 auto; transition: transform .16s ease; }
+.collapse-toggle[aria-expanded="false"] > .ui-icon { transform: rotate(-90deg); }
+.chapter-collapse-toggle { min-width: 0; min-height: 32px; padding: 3px 0; display: flex; align-items: center; gap: 5px; flex: 1; }
+.chapter-collapse-toggle .chapter-group { flex: 1; }
+.chapter-collapse-toggle .ui-icon { width: 13px; height: 13px; color: var(--muted); }
+.chapter-read-toggle { min-width: 38px; min-height: 32px; margin-left: auto; padding: 3px 2px 3px 6px; border: 0; display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; flex: 0 0 auto; color: var(--muted); background: transparent; font-size: 9px; font-variant-numeric: tabular-nums; }
+.chapter-collapse-toggle:hover .chapter-group, .chapter-collapse-toggle:hover .ui-icon, .chapter-read-toggle:hover { color: var(--accent); }
 .chapter-list [data-chapter-part] { width: 100%; min-height: 46px; padding: 10px 9px; display: grid; grid-template-columns: minmax(55px, auto) minmax(0, 1fr); align-items: center; gap: 9px; border: 0; border-left: 2px solid transparent; color: var(--muted); background: transparent; text-align: left; }
 .chapter-list [data-chapter-part]:hover { color: var(--ink); background: color-mix(in srgb, var(--surface) 35%, transparent); }
 .chapter-list [data-chapter-part] small { font-size: 9px; font-variant-numeric: tabular-nums; letter-spacing: .05em; white-space: nowrap; }
@@ -341,8 +347,11 @@ body[data-view="pages"] .reading-page :is(a, button, details) { position: relati
 .admin-entry.is-drop-book { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent); }
 .admin-entry.is-drop-book > .admin-book { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
 .admin-book { min-height: 76px; padding: 13px 14px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 72%, transparent); }
-.admin-book > div:first-child { flex: 1; min-width: 0; }
-.admin-book b, .admin-book small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-book-summary { min-width: 0; padding: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 9px; flex: 1; }
+.admin-book-summary > span { min-width: 0; }
+.admin-book-summary > .ui-icon { color: var(--muted); }
+.admin-book-summary:hover > .ui-icon, .admin-book-summary:hover b { color: var(--accent); }
+.admin-book-summary b, .admin-book-summary small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-book b { margin-top: 5px; font: 500 15px "Literata", Georgia, serif; }
 .admin-book small { margin-top: 3px; color: var(--muted); font-size: 10px; }
 .admin-status { display: inline-block; color: var(--muted); font-size: 8px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
@@ -356,7 +365,10 @@ body[data-view="pages"] .reading-page :is(a, button, details) { position: relati
 .admin-chapter.is-drop-target { border-color: var(--accent); box-shadow: inset 0 -2px color-mix(in srgb, var(--accent) 45%, transparent); }
 .admin-chapter-head { min-height: 58px; padding: 9px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px; }
 .drag-handle { width: 32px; min-height: 38px; display: grid; place-items: center; color: var(--muted); cursor: grab; }
-.admin-chapter-title { min-width: 0; }
+.admin-chapter-title { min-width: 0; padding: 0; display: flex; align-items: center; gap: 7px; }
+.admin-chapter-title > span { min-width: 0; flex: 1; }
+.admin-chapter-title > .ui-icon { width: 14px; height: 14px; color: var(--muted); }
+.admin-chapter-title:hover > .ui-icon, .admin-chapter-title:hover b { color: var(--accent); }
 .admin-chapter-title b, .admin-chapter-title small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-chapter-title b { font-size: 11px; letter-spacing: .04em; }
 .admin-chapter-title small { margin-top: 3px; color: var(--muted); font-size: 10px; }
@@ -364,6 +376,7 @@ body[data-view="pages"] .reading-page :is(a, button, details) { position: relati
 .reorder-buttons .icon-button { min-width: 32px; width: 32px; padding: 6px; border: 0; color: var(--muted); }
 .reorder-buttons .icon-button:disabled { opacity: .25; }
 .chapter-target { width: 145px; min-height: 34px; padding: 6px 8px; border-color: var(--line); color: var(--muted); background: var(--paper); font-size: 10px; }
+.admin-parts { display: block; }
 .admin-part { min-height: 46px; margin-left: 42px; padding: 6px 9px 6px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
 .admin-part > span { min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .admin-empty { margin: 8px; padding: 14px; border: 1px dashed var(--line); color: var(--muted); font-size: 11px; text-align: center; }
