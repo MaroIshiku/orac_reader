@@ -34,6 +34,9 @@ test("Kapitel und Archivkarten verwenden getrennte, delegierte Navigation", asyn
   assert.match(styles, /body\.is-offline \{ --offline-height: 32px; \}/);
   assert.match(styles, /\[data-view="pages"\] \.reader-toolbar \{ position: relative; top: 0; \}/);
   assert.match(styles, /\.reading-page :is\(a, button, details\).*z-index: 4/);
+  assert.match(styles, /--page-padding-inline: clamp\(17px, 5\.7vw, 24px\)/);
+  assert.match(styles, /column-gap: calc\(var\(--page-padding-inline\) \+ var\(--page-padding-inline\)\)/);
+  assert.doesNotMatch(styles, /column-gap: calc\(50px \+ env\(safe-area-inset-left\)/);
   assert.match(markup, /<symbol id="i-pages"/);
   assert.match(source, /iconSvg\(progress\.state\)/);
   assert.doesNotMatch(markup, />[☰⌕○↗×←→][^<]*</);

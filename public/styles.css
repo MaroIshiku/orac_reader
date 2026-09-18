@@ -455,7 +455,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
   body[data-view="pages"].reading .reader-view { height: calc(100vh - var(--header-height) - var(--offline-height)); height: calc(100dvh - var(--header-height) - var(--offline-height)); }
   body[data-view="pages"] .reading-shell { height: calc(100vh - var(--header-height) - var(--offline-height)); height: calc(100dvh - var(--header-height) - var(--offline-height)); overflow: hidden; }
   body[data-view="pages"] .reading-viewport { height: calc(100vh - var(--header-height) - var(--offline-height) - var(--toolbar-height)); height: calc(100dvh - var(--header-height) - var(--offline-height) - var(--toolbar-height)); padding: 9px max(9px, env(safe-area-inset-right)) calc(52px + env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left)); }
-  body[data-view="pages"] .reading-page { padding: clamp(20px, 4.5dvh, 32px) clamp(17px, 5.7vw, 24px); column-width: calc(100vw - 68px - env(safe-area-inset-left) - env(safe-area-inset-right)); column-gap: calc(50px + env(safe-area-inset-left) + env(safe-area-inset-right)); }
+  body[data-view="pages"] .reading-page { --page-padding-inline: clamp(17px, 5.7vw, 24px); padding: clamp(20px, 4.5dvh, 32px) var(--page-padding-inline); column-width: calc(100vw - 68px - env(safe-area-inset-left) - env(safe-area-inset-right)); column-gap: calc(var(--page-padding-inline) + var(--page-padding-inline)); }
   body[data-view="pages"] .page-controls { position: fixed; bottom: max(8px, env(safe-area-inset-bottom)); }
   body[data-view="pages"] .page-edge { top: 9px; bottom: calc(52px + env(safe-area-inset-bottom)); }
   body[data-view="pages"] .page-edge-prev { left: max(9px, env(safe-area-inset-left)); }
