@@ -8,7 +8,7 @@ const normalizedText = (value) => String(value || "")
   .trim();
 
 const directionFactor = (direction) => direction === "desc" ? -1 : 1;
-const releaseTime = (book) => Date.parse(book.publishedAt || book.publishAt || book.updatedAt || "") || 0;
+const releaseTime = (book) => Date.parse(book.releasedAt || book.publishAt || book.updatedAt || "") || 0;
 
 export function sortBooks(books, criterion = "number", direction = "asc") {
   const factor = directionFactor(direction);

@@ -60,9 +60,17 @@ function normalizeBookDisplay(input, fallback = defaultBookDisplay()) {
   return { bookSingular: text("bookSingular"), bookPlural: text("bookPlural"), chapterSingular: text("chapterSingular"), chapterPlural: text("chapterPlural"), partSingular: text("partSingular"), partPlural: text("partPlural"), bookNumberFormat: number("bookNumberFormat"), chapterNumberFormat: number("chapterNumberFormat"), partNumberFormat: number("partNumberFormat") };
 }
 
+function normalizedDate(value, fallback = "") { let timestamp = new Date(value).getTime(); if (!Number.isFinite(timestamp)) timestamp = new Date(fallback).getTime(); return Number.isFinite(timestamp) ? new Date(timestamp).toISOString().slice(0, 10) : null; }
+function latestDate(values) { return values.map((value) => normalizedDate(value)).filter(Boolean).sort().at(-1) || null; }
+function syncReleaseDates(book) {
+  for (const chapter of book.chapters) chapter.releasedAt = latestDate(chapter.parts.map((part) => part.releasedAt));
+  book.releasedAt = latestDate(book.chapters.map((chapter) => chapter.releasedAt));
+  return book;
+}
+
 async function ensureData() { await mkdir(dataRoot, { recursive: true }); try { await stat(dataFile); } catch { await copyFile(bundledData, dataFile); } }
 const loadLibrary = async () => JSON.parse(await readFile(dataFile, "utf8"));
-const saveLibrary = async (library) => { const temp = `${dataFile}.${process.pid}.tmp`; await writeFile(temp, `${JSON.stringify(library, null, 2)}\n`, "utf8"); await rename(temp, dataFile); };
+const saveLibrary = async (library) => { library.books.forEach(syncReleaseDates); const temp = `${dataFile}.${process.pid}.tmp`; await writeFile(temp, `${JSON.stringify(library, null, 2)}\n`, "utf8"); await rename(temp, dataFile); };
 async function migrateLibrary() {
   const library = await loadLibrary(); let changed = false; const schemaVersion = Number(library.schemaVersion) || 1;
   if (!library.settings) { library.settings = { numberDigits: 4 }; changed = true; }
@@ -124,6 +132,11 @@ async function migrateLibrary() {
     library.books.forEach((book) => { book.hidden = Boolean(book.hidden); book.chapters.forEach((chapter) => { chapter.hidden = Boolean(chapter.hidden); chapter.parts.forEach((part) => { part.hidden = Boolean(part.hidden); }); }); });
     library.schemaVersion = 9; changed = true;
   }
+  if (schemaVersion < 10) {
+    const migratedAt = new Date().toISOString().slice(0, 10);
+    library.books.forEach((book) => book.chapters.forEach((chapter) => chapter.parts.forEach((part) => { part.releasedAt = normalizedDate(part.releasedAt, chapter.releasedAt || book.releasedAt || book.updatedAt || migratedAt); })));
+    library.schemaVersion = 10; changed = true;
+  }
   if (changed) await saveLibrary(library);
 }
 
@@ -148,7 +161,9 @@ function validateChapter(input, old = null) {
 function validatePart(input, old = null) {
   const chapterId = safeText(input.chapterId, 200); const partNumber = Number(input.part); const title = safeText(input.partTitle, 160); const tldr = safeText(input.tldr, 3000); const content = String(input.content || "").trim().slice(0, 5_000_000);
   if (!chapterId || !Number.isInteger(partNumber) || partNumber < 1 || !title || !content) throw new Error("Kapitel, Teilnummer (ab 1), Teilname und Text sind Pflichtfelder.");
-  return { chapterId, part: { id: old?.id || `part-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number: partNumber, title, tldr, content, hidden: input.hidden === undefined ? old?.hidden === true : input.hidden === true } };
+  const releasedAt = normalizedDate(input.releasedAt, old?.releasedAt || new Date().toISOString().slice(0, 10));
+  if (!releasedAt) throw new Error("Für den Teil wird ein gültiges Releasedatum benötigt.");
+  return { chapterId, part: { id: old?.id || `part-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number: partNumber, title, tldr, content, releasedAt, hidden: input.hidden === undefined ? old?.hidden === true : input.hidden === true } };
 }
 function findPart(book, partId) { for (const chapter of book.chapters) { const index = chapter.parts.findIndex((part) => part.id === partId); if (index >= 0) return { chapter, index, part: chapter.parts[index] }; } return null; }
 function sortContent(book) { book.chapters.sort((a,b) => (a.order ?? a.number) - (b.order ?? b.number) || a.number - b.number); for (const chapter of book.chapters) chapter.parts.sort((a,b) => a.number - b.number); }

@@ -45,7 +45,7 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     assert.equal((await chapterResponse.json()).number, 0);
 
     const partResponse = await fetch(`${origin}/api/admin/books/${book.id}/parts/${part.id}`, {
-      method: "PUT", headers, body: JSON.stringify({ chapterId: chapter.id, part: part.number, partTitle: part.title, tldr: "Teilzusammenfassung", content: part.content }),
+      method: "PUT", headers, body: JSON.stringify({ chapterId: chapter.id, part: part.number, releasedAt: "2026-10-15", partTitle: part.title, tldr: "Teilzusammenfassung", content: part.content }),
     });
     assert.equal(partResponse.status, 200);
 
@@ -54,6 +54,9 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     assert.equal(updatedChapter.number, 0);
     assert.equal(updatedChapter.tldr, "Kapitelzusammenfassung");
     assert.equal(updatedChapter.parts[0].tldr, "Teilzusammenfassung");
+    assert.equal(updatedChapter.parts[0].releasedAt, "2026-10-15");
+    assert.equal(updatedChapter.releasedAt, "2026-10-15");
+    assert.equal(updated.books.find((item) => item.id === book.id).releasedAt, "2026-10-15");
     assert.equal(Object.hasOwn(updated.books.find((item) => item.id === book.id), "tldr"), false);
 
     const displayResponse = await fetch(`${origin}/api/admin/books/${book.id}/display`, { method: "PUT", headers, body: JSON.stringify({ bookSingular: "Chronik", bookPlural: "Chroniken", chapterSingular: "Band", chapterPlural: "Bände", partSingular: "Szene", partPlural: "Szenen", bookNumberFormat: "roman-upper", chapterNumberFormat: "roman-lower", partNumberFormat: "pad2" }) });

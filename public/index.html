@@ -141,7 +141,7 @@
             <div class="tldr-stack">
               <details class="tldr" id="partTldr"><summary id="partTldrSummary">Episodenkurzfassung · TL;DR</summary><div class="tldr-gate"><p id="partTldrWarning">Dieses Episoden-TL;DR enthält Spoiler. Trotzdem anzeigen?</p><div><button type="button" data-reveal-tldr>Ja</button><button type="button" data-close-tldr>Nein</button></div></div><p class="tldr-content" hidden></p></details>
             </div>
-            <div class="story-meta"><span id="storyPart"></span><span id="readingTime"></span></div>
+            <div class="story-meta"><span id="storyPart"></span><span id="storyRelease"></span><span id="readingTime"></span></div>
           </header>
           <div class="prose" id="storyContent"></div>
           <footer class="chapter-footer">
@@ -223,6 +223,7 @@
           <div class="form-grid">
             <label><span id="partChapterLabel">Kapitel *</span><select name="chapterId" required></select></label>
             <label><span id="partNumberLabel">Episodennummer *</span><input name="part" type="number" min="1" value="1" required></label>
+            <label><span id="partReleaseLabel">Releasedatum *</span><input name="releasedAt" type="date" required></label>
             <label class="wide"><span id="partNameLabel">Episodenname *</span><input name="partTitle" required maxlength="160"></label>
             <label class="wide"><span id="partTldrFormLabel">Episoden-TL;DR</span><textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label>
             <label class="checkbox-label wide"><input name="hidden" type="checkbox"><span id="partHiddenLabel">Diese Episode öffentlich ausblenden</span></label>

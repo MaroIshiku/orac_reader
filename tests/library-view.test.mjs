@@ -16,6 +16,11 @@ test("Bücher lassen sich nach Nummer, Alphabet und Veröffentlichung in beide R
   assert.deepEqual(sortBooks(books, "release", "desc").map(({ id }) => id), ["b-1", "b-2", "b-3"]);
 });
 
+test("Releasedatum hat bei der Buchsortierung Vorrang vor der letzten Bearbeitung", () => {
+  const withReleases = books.map((book, index) => ({ ...book, releasedAt: [`2026-02-01`, `2024-02-01`, `2025-02-01`][index] }));
+  assert.deepEqual(sortBooks(withReleases, "release", "desc").map(({ id }) => id), ["b-2", "b-3", "b-1"]);
+});
+
 test("umgekehrte Leseübersicht dreht Kapitel und ihre Teile ohne Quelldaten zu verändern", () => {
   const chapters = [
     { id: "c-1", number: 1, parts: [{ id: "p-1" }, { id: "p-2" }] },

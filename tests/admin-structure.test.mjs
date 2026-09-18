@@ -13,6 +13,8 @@ test("Buch, Kapitel und Episode besitzen getrennte Bearbeitungsmasken", () => {
   assert.match(form("chapterForm"), /Kapitel-TL;DR/);
   assert.doesNotMatch(form("chapterForm"), /name="part"|name="content"|name="description"/);
   assert.match(form("partForm"), /name="chapterId"/);
+  assert.match(form("partForm"), /name="releasedAt" type="date" required/);
+  assert.match(source, /found\?\.part\.releasedAt \|\| localToday\(\)/);
   assert.match(form("partForm"), /Episoden-TL;DR/);
   assert.doesNotMatch(form("partForm"), /chapterTitle|name="description"|name="status"/);
   assert.match(server, /const chapterMatch = url\.pathname\.match/);

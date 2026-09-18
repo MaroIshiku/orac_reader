@@ -13,6 +13,7 @@ Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. OracleDB bleibt a
 - eigenständige Vollbild-Redaktion unter `/admin` mit getrennten Bereichen für Inhalte, Darstellung und Links
 - getrennte Bearbeitungsmasken für Buch, Kapitel und Episode; jede Ebene kann gezielt öffentlich ausgeblendet werden
 - Kapitel lassen sich innerhalb eines Buchs sortieren oder in ein anderes Buch verschieben
+- Releasedaten werden pro Teil gepflegt; Kapitel und Bücher übernehmen automatisch das jeweils jüngste Datum
 - buchtypisch gestaltetes Markdown mit Überschriften, Dialogzeilen, Zitaten, Listen, Tabellen, Links, Bildern und abgesetzten Textblöcken sowie Markdown-/Text-Upload
 - getrennte Kapitel- sowie Episoden-TL;DR mit vorgeschalteter Spoilerbestätigung
 - automatisch gesetzte Archivcover mit Buchtitel und offizieller Archivnummer

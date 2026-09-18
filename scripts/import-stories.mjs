@@ -1,4 +1,4 @@
-import { readFile, readdir, mkdir, writeFile } from "node:fs/promises";
+import { readFile, readdir, mkdir, writeFile, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -25,7 +25,7 @@ for (const folder of folders) {
   const chapter = { id: chapterId, number: chapterNumber, title: `Kapitel ${chapterNumber}`, tldr: "", order: chapters.length, parts: [] };
 
   for (const [index, file] of files.entries()) {
-    const raw = await readFile(join(folderPath, file.name), "utf8");
+    const storyPath = join(folderPath, file.name); const raw = await readFile(storyPath, "utf8");
     const readingText = raw.replace(/^#\s+.+\r?\n(?:\r?\n)?/, "");
     const firstHeading = raw.match(/^#\s+(.+)$/m)?.[1]?.trim();
     const partTitle = file.name.replace(/\.md$/i, "").replace(/^Teil\s*\d+\s*[-–]?\s*/i, "").trim();
@@ -34,9 +34,11 @@ for (const folder of folders) {
       number: index + 1,
       title: partTitle || firstHeading || `Teil ${index + 1}`,
       tldr: "",
+      releasedAt: (await stat(storyPath)).mtime.toISOString().slice(0, 10),
       content: readingText
     });
   }
+  chapter.releasedAt = chapter.parts.map((part) => part.releasedAt).sort().at(-1) || null;
   chapters.push(chapter);
 }
 
@@ -48,13 +50,14 @@ const books = [{
   description: "ORACLE ist eine geheime Organisation für Fälle, die außerhalb jeder bekannten Ordnung liegen. Ihre Mitglieder besitzen ungewöhnliche Fähigkeiten – und tragen ebenso ungewöhnliche Lasten. Als sich übernatürliche Vorfälle häufen und längst vergessene Wesen zurückkehren, gerät das Team in einen Kampf um Kontrolle, Vertrauen und die Frage, wie viel Menschlichkeit im Angesicht des Unbegreiflichen bestehen bleibt. Eine düstere Mystery-Geschichte über gefundene Familie, uralte Legenden und die Dinge, die besser im Verborgenen geblieben wären.",
   status: "published",
   publishAt: null,
+  releasedAt: chapters.map((chapter) => chapter.releasedAt).filter(Boolean).sort().at(-1) || null,
   updatedAt: new Date().toISOString(),
   display: { bookSingular: "Archiv", bookPlural: "Archive", chapterSingular: "Akte", chapterPlural: "Akten", partSingular: "Fragment", partPlural: "Fragmente", bookNumberFormat: "pad4", chapterNumberFormat: "pad4", partNumberFormat: "decimal" },
   chapters
 }];
 
 const library = {
-  schemaVersion: 9,
+  schemaVersion: 10,
   books,
   settings: { "numberDigits": 4 },
   links: [

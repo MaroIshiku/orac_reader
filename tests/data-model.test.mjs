@@ -8,7 +8,7 @@ const html = await readFile(new URL("../public/index.html", import.meta.url), "u
 const styles = await readFile(new URL("../public/styles.css", import.meta.url), "utf8");
 
 test("Oracle wird als ein Buch mit vier geordneten Kapiteln ausgeliefert", () => {
-  assert.equal(data.schemaVersion, 9);
+  assert.equal(data.schemaVersion, 10);
   assert.equal(data.books.length, 1);
   const book = data.books[0];
   assert.equal(book.id, "oracle-0000");
@@ -19,6 +19,9 @@ test("Oracle wird als ein Buch mit vier geordneten Kapiteln ausgeliefert", () =>
   assert.deepEqual(book.chapters.map((chapter) => chapter.order), [0, 1, 2, 3]);
   assert.equal(book.chapters.reduce((sum, chapter) => sum + chapter.parts.length, 0), 23);
   assert.equal(new Set(book.chapters.flatMap((chapter) => chapter.parts.map((part) => part.id))).size, 23);
+  assert.equal(book.releasedAt, "2026-09-09");
+  assert.ok(book.chapters.every((chapter) => chapter.releasedAt === "2026-09-09"));
+  assert.ok(book.chapters.flatMap((chapter) => chapter.parts).every((part) => part.releasedAt === "2026-09-09"));
 });
 
 test("Bezeichnungen und Nummerierung sind pro Buch konfigurierbar", () => {
