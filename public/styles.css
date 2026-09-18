@@ -503,7 +503,7 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
 .admin-workspace-heading .eyebrow { margin: 0 0 8px; }
 .admin-workspace-heading h1 { margin: 0; font: 500 clamp(30px, 4vw, 44px)/1.08 "Literata", Georgia, serif; letter-spacing: -.03em; }
 .admin-workspace-heading p:not(.eyebrow) { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
-#booksAdmin { display: grid; grid-template-columns: minmax(520px, 1.35fr) minmax(390px, .8fr); grid-template-areas: "heading heading" "search search" "hint hint" "list editor"; gap: 18px 24px; align-items: start; }
+#booksAdmin { display: grid; grid-template-columns: minmax(360px, .72fr) minmax(560px, 1.28fr); grid-template-areas: "heading heading" "search search" "hint hint" "list editor"; gap: 15px 20px; align-items: start; }
 #booksAdmin > .admin-workspace-heading { grid-area: heading; margin-bottom: 12px; }
 #booksAdmin > .admin-structure-search { width: 100%; max-width: none; grid-area: search; margin: 0; padding: 8px 12px; border: 1px solid var(--line-strong); background: var(--surface); }
 #booksAdmin > .admin-sort-hint { grid-area: hint; margin: 0; padding: 12px 14px; border-left: 2px solid var(--accent); background: color-mix(in srgb, var(--surface) 56%, transparent); }
@@ -516,9 +516,18 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
 .admin-editor-empty p { max-width: 300px; margin: 0; font-size: 11px; line-height: 1.6; }
 .admin-entry { box-shadow: 0 7px 24px rgba(28,31,27,.035); }
 .admin-book { padding: 15px 16px; }
-.editor-form { max-height: calc(100dvh - 112px); padding: 24px; overflow: auto; box-shadow: 0 14px 38px rgba(28,31,27,.07); }
-#partForm { max-height: none; position: static; }
-#partForm .content-input { min-height: 46vh; }
+.editor-form { max-height: calc(100dvh - 94px); padding: 18px; overflow: auto; box-shadow: 0 14px 38px rgba(28,31,27,.07); scrollbar-gutter: stable; }
+.editor-form .form-title { margin-bottom: 13px; }
+.editor-form .form-grid { gap: 10px; }
+.editor-form :is(input, textarea, select) { min-height: 36px; padding: 8px 9px; }
+.editor-form .checkbox-label { min-height: 36px; padding: 8px 9px; }
+.editor-form .image-upload { padding: 9px; gap: 9px; }
+.editor-form .image-upload > img { max-height: 135px; }
+#partForm:not([hidden]) { display: flex; flex-direction: column; overflow: hidden; }
+#partForm .form-grid { min-height: 0; padding-right: 4px; flex: 1; overflow-y: auto; }
+#partForm .content-input { min-height: 230px; }
+.editor-form > .primary-button[type="submit"] { width: 100%; margin-top: 8px; position: sticky; bottom: -1px; z-index: 4; box-shadow: 0 -10px 20px var(--surface); }
+#partForm > .primary-button[type="submit"] { position: static; flex: 0 0 auto; }
 .content-field-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .content-field-heading output { color: var(--accent); font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: .03em; text-transform: none; }
 .admin-search-results > div { display: grid; gap: 8px; }
@@ -543,6 +552,8 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
   #booksAdmin { grid-template-columns: 1fr; grid-template-areas: "heading" "search" "hint" "list" "editor"; }
   #booksAdmin > :is(.admin-editor-empty, .editor-form) { position: static; }
   .editor-form, #partForm { max-height: none; }
+  #partForm:not([hidden]) { display: block; overflow: visible; }
+  #partForm .form-grid { padding-right: 0; overflow: visible; }
 }
 .toast { max-width: min(420px, calc(100% - 30px)); padding: 10px 16px; position: fixed; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); z-index: 60; transform: translate(-50%, 18px); border: 1px solid rgba(255,255,255,.16); border-radius: 2px; color: #fff; background: var(--forest); box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: .18s; text-align: center; font-size: 12px; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
@@ -640,6 +651,8 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
   .admin-part { margin-left: 22px; align-items: start; }
   .editor-form { padding: 18px 13px; }
   .editor-form, #partForm { max-height: none; }
+  #partForm:not([hidden]) { display: block; overflow: visible; }
+  #partForm .form-grid { padding-right: 0; overflow: visible; }
   .form-grid { grid-template-columns: 1fr; }
   label.wide { grid-column: auto; }
   .image-upload { grid-template-columns: 1fr; }

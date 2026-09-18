@@ -227,7 +227,7 @@
           <div class="form-grid">
             <label><span id="partChapterLabel">Kapitel *</span><select name="chapterId" required></select></label>
             <label><span id="partNumberLabel">Episodennummer *</span><input name="part" type="number" min="1" value="1" required></label>
-            <label><span id="partReleaseLabel">Releasedatum *</span><input name="releasedAt" type="date" required></label>
+            <label><span id="partReleaseLabel">Releasedatum *</span><input name="releasedAt" type="text" inputmode="numeric" placeholder="TT.MM.JJJJ" pattern="(?:0[1-9]|[12][0-9]|3[01])\.(?:0[1-9]|1[0-2])\.[0-9]{4}" autocomplete="off" required></label>
             <label class="wide"><span id="partNameLabel">Episodenname *</span><input name="partTitle" required maxlength="160"></label>
             <div class="image-upload wide"><img id="partImagePreview" alt="Bildvorschau des Teils" hidden><label><span id="partImageLabel">Bild</span><input id="partImageFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif"></label><label class="checkbox-label"><input name="removeImage" type="checkbox"><span>Vorhandenes Bild entfernen</span></label></div>
             <label class="wide"><span id="partTldrFormLabel">Episoden-TL;DR</span><textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label>
