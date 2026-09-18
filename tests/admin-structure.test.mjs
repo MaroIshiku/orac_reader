@@ -36,6 +36,18 @@ test("Buch, Kapitel und Episode besitzen getrennte Bearbeitungsmasken", () => {
   assert.match(source, /roman-upper/);
 });
 
+test("Administration ist eine eigenständige Vollbildseite mit gegliedertem Arbeitsbereich", () => {
+  assert.match(markup, /id="adminOpen" href="\/admin"/);
+  assert.match(markup, /<main class="admin-page" id="adminPage"/);
+  assert.doesNotMatch(markup, /id="adminDialog"/);
+  assert.match(markup, /class="admin-dashboard"/);
+  assert.match(markup, /class="admin-rail"/);
+  assert.match(markup, /class="admin-workspace"/);
+  assert.match(markup, /id="adminBookCount"/);
+  assert.match(source, /adminRoute = location\.pathname/);
+  assert.match(server, /"\/admin", "\/admin\/"/);
+});
+
 test("TL;DR wird erst nach einer eigenen Spoilerbestätigung eingesetzt", () => {
   assert.match(markup, /Dieses Episoden-TL;DR enthält Spoiler/);
   assert.doesNotMatch(markup, /id="chapterTldr"/);

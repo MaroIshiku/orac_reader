@@ -56,7 +56,7 @@
       <nav id="mobileLinks" aria-label="Externe Links"></nav>
     </details>
     <button class="quiet-button install-button" id="installButton" hidden><svg class="ui-icon" aria-hidden="true"><use href="#i-install"></use></svg><span>App</span></button>
-    <button class="quiet-button" id="adminOpen">Admin</button>
+    <a class="quiet-button" id="adminOpen" href="/admin">Admin</a>
   </header>
   <div class="offline-banner" id="offlineBanner" role="status" hidden><svg class="ui-icon" aria-hidden="true"><use href="#i-offline"></use></svg><span id="offlineLabel">Offline · gespeicherter Archivstand</span></div>
 
@@ -71,9 +71,16 @@
     <section class="library-section" aria-labelledby="libraryHeading">
       <div class="section-heading">
         <div><p class="eyebrow">BIBLIOTHEK</p><h2 id="libraryHeading">Veröffentlichte Bücher</h2></div>
-        <label class="search-box"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input id="bookSearch" type="search" placeholder="Archiv durchsuchen…"></label>
+        <div class="library-controls">
+          <label class="search-box"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input id="bookSearch" type="search" aria-label="Buchtexte durchsuchen" placeholder="Texte durchsuchen…"></label>
+          <div class="library-sort" aria-label="Bücher sortieren">
+            <label><span>Sortierung</span><select id="bookSortBy"><option value="number">Buchnummer</option><option value="alphabetical">Alphabet</option><option value="release">Veröffentlichung</option></select></label>
+            <label><span>Richtung</span><select id="bookSortDirection"><option value="asc">Aufsteigend</option><option value="desc">Absteigend</option></select></label>
+          </div>
+        </div>
       </div>
       <div class="book-grid" id="bookGrid"></div>
+      <section class="search-results" id="searchResults" aria-live="polite" hidden><p class="search-result-count" id="searchResultCount"></p><div id="searchResultList"></div></section>
       <div class="empty-state" id="emptyLibrary" hidden>Kein Buch entspricht dieser Suche.</div>
     </section>
   </main>
@@ -110,6 +117,7 @@
           <button class="drawer-setting-button" id="viewToggle" aria-label="Leseansicht wechseln"><svg class="ui-icon"><use href="#i-scroll"></use></svg><span id="viewLabel">Scrollen</span></button>
           <button class="drawer-setting-button" id="motionToggle" aria-label="Animationen ausschalten" aria-pressed="true"><svg class="ui-icon"><use href="#i-motion"></use></svg><span id="motionLabel">Animationen an</span></button>
         </div>
+        <label class="drawer-setting-row reader-order-setting"><span>Inhaltsreihenfolge</span><select id="readerOrder"><option value="asc">Normal</option><option value="desc">Umgekehrt</option></select></label>
       </section>
     </aside>
     <button class="drawer-backdrop" id="drawerBackdrop" aria-label="Kapitelübersicht schließen" tabindex="-1"></button>
@@ -150,25 +158,41 @@
     </section>
   </main>
 
-  <dialog class="admin-dialog" id="adminDialog">
-    <button class="dialog-close" id="adminClose" aria-label="Schließen"><svg class="ui-icon"><use href="#i-close"></use></svg></button>
+  <main class="admin-page" id="adminPage" hidden>
     <section id="loginPanel" class="login-panel">
-      <p class="eyebrow">REDAKTION</p>
-      <h2>Adminzugang</h2>
-      <p>Verwalte veröffentlichte Archiveinträge und externe Verweise.</p>
-      <form id="loginForm">
-        <label>Passwort<input name="password" type="password" autocomplete="current-password" required></label>
-        <p class="form-error" id="loginError"></p>
-        <button class="primary-button" type="submit">Anmelden</button>
-      </form>
+      <a class="admin-login-brand" href="/"><img src="/oracle-logo.png" alt=""><span><b>ORACLE</b><small>REDAKTION</small></span></a>
+      <div class="login-card">
+        <p class="eyebrow">GESCHÜTZTER BEREICH</p>
+        <h2>Adminzugang</h2>
+        <p>Inhalte, Veröffentlichungen und die Darstellung des Archivs verwalten.</p>
+        <form id="loginForm">
+          <label>Passwort<input name="password" type="password" autocomplete="current-password" required autofocus></label>
+          <p class="form-error" id="loginError"></p>
+          <button class="primary-button" type="submit">Redaktion öffnen</button>
+        </form>
+        <a class="admin-back-link" href="/"><svg class="ui-icon" aria-hidden="true"><use href="#i-arrow-left"></use></svg><span>Zurück zum öffentlichen Archiv</span></a>
+      </div>
     </section>
     <section id="adminPanel" class="admin-panel" hidden>
-      <div class="admin-heading"><div><p class="eyebrow">REDAKTION</p><h2>Archiv verwalten</h2></div><button class="quiet-button" id="logoutButton">Abmelden</button></div>
-      <div class="admin-tabs" role="tablist" aria-label="Administrationsbereiche"><button class="active" role="tab" aria-selected="true" data-admin-tab="books">Inhalte</button><button role="tab" aria-selected="false" data-admin-tab="display">Darstellung</button><button role="tab" aria-selected="false" data-admin-tab="links">Links</button></div>
-      <div id="booksAdmin">
+      <header class="admin-topbar">
+        <a class="admin-brand" href="/"><img src="/oracle-logo.png" alt=""><span><b>ORACLE</b><small>REDAKTION</small></span></a>
+        <div class="admin-topbar-actions"><a class="quiet-button" id="adminClose" href="/">Öffentliches Archiv</a><button class="quiet-button" id="logoutButton">Abmelden</button></div>
+      </header>
+      <div class="admin-dashboard">
+        <aside class="admin-rail">
+          <div><p class="eyebrow">ARBEITSBEREICHE</p><nav class="admin-tabs" aria-label="Administrationsbereiche"><button class="active" aria-current="page" data-admin-tab="books"><span>Inhalte</span><small>Bücher und Kapitel</small></button><button data-admin-tab="display"><span>Darstellung</span><small>Begriffe und Nummern</small></button><button data-admin-tab="links"><span>Links</span><small>Externe Verweise</small></button></nav></div>
+          <section class="admin-summary" aria-label="Archivbestand">
+            <p class="eyebrow">ARCHIVBESTAND</p>
+            <dl><div><dt>Bücher</dt><dd id="adminBookCount">0</dd></div><div><dt>Kapitel</dt><dd id="adminChapterCount">0</dd></div><div><dt>Teile</dt><dd id="adminPartCount">0</dd></div><div><dt>Entwürfe</dt><dd id="adminDraftCount">0</dd></div></dl>
+          </section>
+          <div class="admin-version" id="adminVersion">BUILD // development</div>
+        </aside>
+        <section class="admin-workspace">
+          <div id="booksAdmin">
+            <header class="admin-workspace-heading"><div><p class="eyebrow">INHALTE</p><h1>Bibliothek verwalten</h1><p>Bücher, Kapitel und Leseteile anlegen, ordnen und veröffentlichen.</p></div><button class="primary-button with-icon" id="newBookButton"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Neues Buch</span></button></header>
         <p class="admin-hint admin-sort-hint">Gliederungsebenen lassen sich am Griff sortieren und auch in andere Bücher ziehen. Alternativ stehen Pfeile und das Zielmenü bereit. Die offizielle Nummer bleibt unverändert.</p>
         <div class="admin-book-list" id="adminBookList"></div>
-        <button class="secondary-button full with-icon" id="newBookButton"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Neues Buch</span></button>
+        <div class="admin-editor-empty" id="adminEditorEmpty"><span>EDITOR</span><h2>Wähle einen Eintrag</h2><p>Bearbeite ein Buch, Kapitel oder einen Leseteil – oder lege einen neuen Inhalt an.</p></div>
         <form class="editor-form" id="archiveForm" hidden>
           <div class="form-title"><div><p class="eyebrow">BUCH</p><h3 id="archiveFormTitle">Neues Buch</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
           <div class="form-grid">
@@ -208,8 +232,9 @@
           <p class="form-error" id="partFormError"></p>
           <button class="primary-button" type="submit" id="partSaveLabel">Episode speichern</button>
         </form>
-      </div>
-      <form id="displayAdmin" hidden>
+          </div>
+          <form id="displayAdmin" class="admin-settings-panel" hidden>
+        <header class="admin-workspace-heading"><div><p class="eyebrow">DARSTELLUNG</p><h1>Sprache und Nummerierung</h1><p>Bezeichnungen und Zählweise werden pro Buch festgelegt.</p></div></header>
         <p class="admin-hint">Begriffe und Nummerierung gelten nur für das ausgewählte Buch. Neue Bücher beginnen neutral mit Buch, Kapitel und Episode.</p>
         <label class="wide">Buch auswählen<select name="bookId" id="displayBookSelect"></select></label>
         <div class="display-section">
@@ -234,15 +259,17 @@
         </div>
         <button class="primary-button" type="submit">Darstellung speichern</button>
       </form>
-      <form id="linksAdmin" hidden>
+          <form id="linksAdmin" class="admin-settings-panel" hidden>
+        <header class="admin-workspace-heading"><div><p class="eyebrow">LINKS</p><h1>Externe Verweise</h1><p>Verwalte die Links in der Kopfzeile des öffentlichen Archivs.</p></div></header>
         <p class="admin-hint">Bis zu acht Verweise. Unterstützt werden <code>https://</code>, <code>http://</code> und <code>discord://</code> zum direkten Öffnen der Discord-App.</p>
         <div id="linkRows"></div>
         <button type="button" class="secondary-button with-icon" id="addLink"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Link hinzufügen</span></button>
         <button class="primary-button" type="submit">Links speichern</button>
       </form>
-      <div class="admin-version" id="adminVersion">BUILD // development</div>
+        </section>
+      </div>
     </section>
-  </dialog>
+  </main>
   <dialog class="install-dialog" id="installDialog" aria-labelledby="installTitle">
     <button class="dialog-close" id="installClose" aria-label="Schließen"><svg class="ui-icon"><use href="#i-close"></use></svg></button>
     <p class="eyebrow">MOBILES ARCHIV</p>

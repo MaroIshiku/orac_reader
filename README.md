@@ -4,12 +4,13 @@ Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. OracleDB bleibt a
 
 ## Enthalten
 
-- öffentliche Bibliothek mit Volltextsuche, Weiterlesen, zuletzt gelesenen und neuen Einträgen
+- öffentliche Bibliothek mit sortierbaren Büchern und einer Volltextsuche, die jede Fundstelle samt Kontext ausgibt
 - pro Buch frei benennbare Struktur, standardmäßig Buch → Kapitel → Episode; Oracle verwendet Archiv → Akte → Fragment
 - getrennte Nummerierung pro Buch und Ebene als `1`, `01`, `001`, `0001`, römische Groß- oder Kleinzahl
 - automatische Leseposition, Fortschritt und synchronisierter Gelesen-Status im jeweiligen Browser – ohne Leserkonto
-- vier kontrastgeprüfte Lesethemes, verstellbare Schriftgröße sowie echte Scroll- und Seitenansicht
+- vier kontrastgeprüfte Lesethemes, verstellbare Schriftgröße, normale oder umgekehrte Inhaltsübersicht sowie echte Scroll- und Seitenansicht
 - geschützter Adminbereich für Entwurf, kryptischen Vorschaulink, geplante Veröffentlichung und Veröffentlichung
+- eigenständige Vollbild-Redaktion unter `/admin` mit getrennten Bereichen für Inhalte, Darstellung und Links
 - getrennte Bearbeitungsmasken für Buch, Kapitel und Episode; jede Ebene kann gezielt öffentlich ausgeblendet werden
 - Kapitel lassen sich innerhalb eines Buchs sortieren oder in ein anderes Buch verschieben
 - buchtypisch gestaltetes Markdown mit Überschriften, Dialogzeilen, Zitaten, Listen, Tabellen, Links, Bildern und abgesetzten Textblöcken sowie Markdown-/Text-Upload
@@ -17,7 +18,8 @@ Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. OracleDB bleibt a
 - automatisch gesetzte Archivcover mit Buchtitel und offizieller Archivnummer
 - frei administrierbare Weblinks und `discord://`-App-Links auf Desktop und Mobilgeräten
 - Teilen einzelner Episoden, Touch-Blätterzonen, Tastatursteuerung und abschaltbare Blätteranimationen
-- als PWA auf Mobilgeräten installierbar; die letzte erfolgreich synchronisierte öffentliche Archivfassung bleibt offline vollständig lesbar
+- als PWA auf Mobilgeräten installierbar; App-Updates erneuern automatisch nur die Programmdateien, während Lesestatus, Lesezeichen und Fortschritt erhalten bleiben
+- die letzte erfolgreich synchronisierte öffentliche Archivfassung bleibt offline vollständig lesbar
 - persistente Inhalte unter `/data`
 
 ## Geschichten importieren

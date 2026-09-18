@@ -3,14 +3,30 @@ const SHELL_CACHE = `oracle-shell-${BUILD}`;
 const DATA_CACHE = "oracle-synchronized-archive-v1";
 const MEDIA_CACHE = "oracle-read-media-v1";
 const OFFLINE_LIBRARY = "/api/offline-library";
-const SHELL = ["/", "/styles.css", "/app.js", "/markdown.js", "/markdown-config.js", "/vendor/marked.esm.js", "/navigation.js", "/read-status.js", "/manifest.webmanifest", "/oracle-logo.png", "/pwa-icon-192.png", "/pwa-icon-512.png"];
+const SHELL = ["/", "/styles.css", "/app.js", "/library-view.js", "/markdown.js", "/markdown-config.js", "/vendor/marked.esm.js", "/navigation.js", "/read-status.js", "/manifest.webmanifest", "/oracle-logo.png", "/pwa-icon-192.png", "/pwa-icon-512.png"];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));
+  event.waitUntil((async () => {
+    const cache = await caches.open(SHELL_CACHE);
+    await Promise.all(SHELL.map(async (path) => {
+      const response = await fetch(new Request(path, { cache: "reload" }));
+      if (!response.ok) throw new Error(`App-Datei konnte nicht aktualisiert werden: ${path}`);
+      await cache.put(path, response);
+    }));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith("oracle-shell-") && key !== SHELL_CACHE).map((key) => caches.delete(key)))).then(() => self.clients.claim()));
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    const obsoleteShells = keys.filter((key) => key.startsWith("oracle-shell-") && key !== SHELL_CACHE);
+    await Promise.all(obsoleteShells.map((key) => caches.delete(key)));
+    await self.clients.claim();
+    if (!obsoleteShells.length) return;
+    const clients = await self.clients.matchAll({ type: "window" });
+    await Promise.all(clients.map((client) => client.navigate(client.url).catch(() => undefined)));
+  })());
 });
 
 const jsonResponse = (value) => new Response(JSON.stringify(value), { status: 200, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });

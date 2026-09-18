@@ -1,13 +1,20 @@
 import { cardDestination, readerHash } from "/navigation.js?v=__APP_VERSION__";
 import { aggregateRead, nextGroupRead } from "/read-status.js?v=__APP_VERSION__";
 import { renderMarkdown } from "/markdown.js?v=__APP_VERSION__";
+import { findLibraryResults, sortBooks, sortReaderChapters } from "/library-view.js?v=__APP_VERSION__";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
+const adminRoute = location.pathname.replace(/\/+$/, "") === "/admin";
+document.body.classList.toggle("admin-route", adminRoute);
+$("#adminPage").hidden = !adminRoute;
 const storedMotion = localStorage.getItem("oracle-motion");
 const storedView = localStorage.getItem("oracle-view");
 const storedTheme = localStorage.getItem("oracle-theme");
-const state = { books: [], adminBooks: [], links: [], settings: { numberDigits: 4 }, version: "development", admin: false, offline: false, offlineSyncedAt: "", book: null, part: null, previewBook: null, previewToken: "", fontSize: Math.min(26, Math.max(15, Number(localStorage.getItem("oracle-font-size")) || 19)), view: ["scroll", "pages"].includes(storedView) ? storedView : "scroll", theme: ["paper", "sand", "mist", "night"].includes(storedTheme) ? storedTheme : "paper", motion: storedMotion === null ? !matchMedia("(prefers-reduced-motion: reduce)").matches : storedMotion !== "off" };
+const storedBookSort = localStorage.getItem("oracle-book-sort");
+const storedBookSortDirection = localStorage.getItem("oracle-book-sort-direction");
+const storedReaderOrder = localStorage.getItem("oracle-reader-order");
+const state = { books: [], adminBooks: [], links: [], settings: { numberDigits: 4 }, version: "development", admin: false, offline: false, offlineSyncedAt: "", book: null, part: null, previewBook: null, previewToken: "", fontSize: Math.min(26, Math.max(15, Number(localStorage.getItem("oracle-font-size")) || 19)), view: ["scroll", "pages"].includes(storedView) ? storedView : "scroll", theme: ["paper", "sand", "mist", "night"].includes(storedTheme) ? storedTheme : "paper", motion: storedMotion === null ? !matchMedia("(prefers-reduced-motion: reduce)").matches : storedMotion !== "off", bookSort: ["number", "alphabetical", "release"].includes(storedBookSort) ? storedBookSort : "number", bookSortDirection: ["asc", "desc"].includes(storedBookSortDirection) ? storedBookSortDirection : "asc", readerOrder: ["asc", "desc"].includes(storedReaderOrder) ? storedReaderOrder : "asc" };
 const historyKey = "oracle-reading-history";
 const progressKey = "oracle-reading-progress";
 const readStatusKey = "oracle-reading-status";
@@ -81,18 +88,33 @@ function renderLinks() {
   $("#customLinks").innerHTML = markup; $("#mobileLinks").innerHTML = markup;
   $$("#mobileLinks a").forEach((link) => link.addEventListener("click", () => { $("#mobileLinkMenu").open = false; }));
 }
-function renderLibrary(query = "") {
-  const search = query.toLocaleLowerCase("de");
-  const books = state.books.filter((book) => !search || [book.title, book.description, ...allParts(book).flatMap(({chapter, part}) => [chapter.title, chapter.tldr, part.title, part.tldr, part.content])].join(" ").toLocaleLowerCase("de").includes(search)).sort((a,b) => a.number - b.number);
-  $("#emptyLibrary").hidden = books.length > 0;
+function searchSourceLabel(result) {
+  if (result.source === "content") return "Text";
+  if (result.source === "part-title") return `${term(result.book, "part")}titel`;
+  if (result.source === "part-tldr") return `${term(result.book, "part")}-TL;DR`;
+  if (result.source === "chapter-title") return `${term(result.book, "chapter")}titel`;
+  if (result.source === "chapter-tldr") return `${term(result.book, "chapter")}-TL;DR`;
+  return result.source === "book-title" ? `${term(result.book, "book")}titel` : `${term(result.book, "book")}beschreibung`;
+}
+function searchContextMarkup(context) { return `${context.prefix ? "…" : ""}${escapeHtml(context.before)}<mark>${escapeHtml(context.match)}</mark>${escapeHtml(context.after)}${context.suffix ? "…" : ""}`; }
+function renderLibrary(query = $("#bookSearch")?.value || "") {
+  const search = query.trim(); const books = sortBooks(state.books, state.bookSort, state.bookSortDirection); const searching = Boolean(search);
   $("#archiveStats").textContent = `${state.books.length} BÜCHER // ${state.books.reduce((sum, book) => sum + partCount(book), 0)} EPISODEN`;
-  $("#bookGrid").innerHTML = books.map((book) => {
+  $("#libraryHeading").textContent = searching ? "Suchergebnisse" : "Veröffentlichte Bücher";
+  $("#bookGrid").hidden = searching; $("#searchResults").hidden = !searching;
+  $("#bookGrid").innerHTML = searching ? "" : books.map((book) => {
     const bookNumber = displayNumber(book, "book", book.number); const target = cardDestination(book, getHistory()); const progress = readStats(book); const status = book.status !== "published" ? `<span class="status-badge is-${book.status}">${book.status === "draft" ? "ENTWURF" : "GEPLANT"}</span>` : "";
     const readLabel = progress.state === "read" ? "Gelesen" : progress.state === "partial" ? `${progress.read} von ${progress.total} gelesen` : "Ungelesen";
     const chapterCount = book.chapters.length; const totalParts = partCount(book);
     const destination = target ? readerHash(book.id, target.part.id) : "home";
     return `<article class="book-card is-${progress.state}" data-card-book="${escapeHtml(book.id)}" data-card-part="${escapeHtml(target?.part.id || "")}"><a class="card-main-link" href="#${destination}" data-card-link aria-label="${escapeHtml(book.title)} öffnen"></a><div class="generated-cover"><div class="cover-brand"><img src="/oracle-logo.png" alt=""><span>ORACLE · ARCHIV</span></div><div class="cover-copy"><small>${escapeHtml(term(book, "book").toLocaleUpperCase("de"))} ${bookNumber}</small><strong>${escapeHtml(book.title)}</strong><span>${chapterCount} ${escapeHtml(term(book, "chapter", chapterCount))} · ${totalParts} ${escapeHtml(term(book, "part", totalParts))}</span></div><b class="cover-number">${bookNumber}</b></div><div class="book-card-copy"><div class="book-number">${escapeHtml(term(book, "book").toLocaleUpperCase("de"))} ${bookNumber}${status}</div><p>${escapeHtml(book.description)}</p><div class="card-progress" role="progressbar" aria-label="Lesefortschritt ${progress.percent} Prozent" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.percent}"><div><i style="width:${progress.percent}%"></i></div><span>${progress.percent}%</span></div><footer><span>${totalParts} ${escapeHtml(term(book, "part", totalParts))} · ${formatDate(book.updatedAt)}</span>${target ? `<button data-toggle-book-read="${escapeHtml(book.id)}" aria-label="${escapeHtml(term(book, "book"))} als ${progress.state === "read" ? "ungelesen" : "gelesen"} markieren">${iconSvg(progress.state)}<span>${readLabel}</span></button>` : ""}</footer></div></article>`;
   }).join("");
+  const searchableBooks = books.map((book) => ({ ...book, chapters: sortReaderChapters(book.chapters, state.readerOrder) }));
+  const results = searching ? findLibraryResults(searchableBooks, search) : [];
+  $("#searchResultCount").textContent = `${results.length} ${results.length === 1 ? "ERGEBNIS" : "ERGEBNISSE"} FÜR „${search}“`;
+  $("#searchResultList").innerHTML = results.map((result) => `<a class="search-result" href="#${readerHash(result.book.id, result.part.id)}"><div><span class="search-result-source">${escapeHtml(searchSourceLabel(result))}</span><h3>${escapeHtml(result.part.title)}</h3></div><span class="search-result-meta">${escapeHtml(result.book.title)} · ${escapeHtml(term(result.book, "chapter"))} ${displayNumber(result.book, "chapter", result.chapter.number)} · ${escapeHtml(term(result.book, "part"))} ${displayNumber(result.book, "part", result.part.number)}</span><p class="search-result-context">${searchContextMarkup(result.context)}</p></a>`).join("");
+  $("#emptyLibrary").hidden = searching ? results.length > 0 : books.length > 0;
+  $("#emptyLibrary").textContent = searching ? "Keine Textstelle entspricht dieser Suche." : "Noch keine Bücher veröffentlicht.";
   // Card navigation is delegated once on #bookGrid below. Re-rendering cannot overwrite another book's destination.
   $("#continueButton").innerHTML = `<span>Archiv entdecken</span>${iconSvg("arrow-down")}`; $("#continueButton").onclick = () => $("#libraryHeading").scrollIntoView({ behavior: state.motion ? "smooth" : "auto" });
 }
@@ -110,6 +132,7 @@ function renderHomeShelves() {
 function setDrawer(open) { $("#chapterDrawer").classList.toggle("open", open); $("#drawerBackdrop").classList.toggle("open", open); $("#chapterToggle").setAttribute("aria-expanded", String(open)); if (open) requestAnimationFrame(() => $("#chapterClose").focus()); }
 const activeReaderHash = (bookId, partId) => state.previewBook?.id === bookId && state.previewToken ? `preview/${state.previewToken}/${encodeURIComponent(partId)}` : readerHash(bookId, partId);
 function route() {
+  if (adminRoute) { $("#homeView").hidden = true; $("#readerView").hidden = true; document.body.classList.remove("reading"); document.title = "ORACLE — Redaktion"; return; }
   const preview = location.hash.match(/^#?preview\/([a-zA-Z0-9_-]{24,80})\/([^/]+)/); const match = location.hash.match(/^#?read\/([^/]+)\/([^/]+)/);
   if (preview) { let partId; try { partId = decodeURIComponent(preview[2]); } catch { location.hash = "home"; return; } const entry = state.previewBook && allParts(state.previewBook).find(({part}) => part.id === partId); if (!entry) { location.hash = "home"; return; } openPart(state.previewBook, entry.chapter, entry.part); return; }
   if (!match) { const wasReading = !$("#readerView").hidden; $("#homeView").hidden = false; $("#readerView").hidden = true; setDrawer(false); document.body.classList.remove("reading"); document.title = "ORACLE — Archiv"; if (wasReading) requestAnimationFrame(() => scrollTo(0, 0)); return; }
@@ -120,7 +143,7 @@ function route() {
   openPart(book, entry.chapter, entry.part);
 }
 function renderChapterList(book, activePartId) {
-  $("#chapterList").innerHTML = book.chapters.map((item, index) => {
+  $("#chapterList").innerHTML = sortReaderChapters(book.chapters, state.readerOrder).map((item, index) => {
     const chapterTerm = term(book, "chapter"); const progress = chapterReadStats(book, item); const label = progress.state === "read" ? `${chapterTerm} als ungelesen markieren` : `${chapterTerm} als gelesen markieren`;
     const collapsed = isCollapsed("reader", book.id, item.id); const contentId = `reader-chapter-${index}`; const key = collapseKey("reader", book.id, item.id);
     const parts = item.parts.map((candidate) => `<button class="${candidate.id === activePartId ? "active" : ""} ${isRead(book.id, candidate.id) ? "read" : ""}" data-chapter-part="${escapeHtml(candidate.id)}"><small>${displayNumber(book, "chapter", item.number)}.${displayNumber(book, "part", candidate.number)}</small><span>${escapeHtml(candidate.title)}</span></button>`).join("");
@@ -161,6 +184,9 @@ function applyPreferences() {
   $("#motionLabel").textContent = state.motion ? "Animationen an" : "Animationen aus"; $("#motionToggle use").setAttribute("href", state.motion ? "#i-motion" : "#i-motion-off"); $("#motionToggle").setAttribute("aria-pressed", String(state.motion)); $("#motionToggle").setAttribute("aria-label", state.motion ? "Animationen ausschalten" : "Animationen einschalten");
   document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.body).backgroundColor;
   $$("[data-theme-choice]").forEach((button) => button.classList.toggle("active", button.dataset.themeChoice === state.theme));
+  $("#bookSortBy").value = state.bookSort;
+  $("#bookSortDirection").value = state.bookSortDirection;
+  $("#readerOrder").value = state.readerOrder;
 }
 function updateReadToggle() { if (!state.book || !state.part) return; const read = isRead(state.book.id, state.part.id); $("#readToggle").innerHTML = `${iconSvg(read ? "read" : "unread")}<span>${read ? "Gelesen" : "Ungelesen"}</span>`; $("#readToggle").setAttribute("aria-label", read ? "Als ungelesen markieren" : "Als gelesen markieren"); }
 function pageMetrics() { const page = $("#readingPage"); const width = Math.max(1, page.clientWidth); const count = Math.max(1, Math.ceil(page.scrollWidth / width)); const current = Math.min(count - 1, Math.round(page.scrollLeft / width)); return { page, width, count, current }; }
@@ -178,7 +204,11 @@ async function saveChapterOrder(bookId, chapterIds) { await api(`/api/admin/book
 async function saveChapterMove(sourceBookId, chapterId, targetBookId, targetChapterId = "", placeAfter = true) { const result = await api("/api/admin/chapters/move", { method: "PUT", body: JSON.stringify({ sourceBookId, chapterId, targetBookId, targetChapterId, placeAfter }) }); await load(); toast(result.sourceBecameDraft ? "Inhalt verschoben · leeres Buch ist jetzt Entwurf" : "Inhalt verschoben"); }
 
 function renderAdmin() {
-  $("#loginPanel").hidden = state.admin; $("#adminPanel").hidden = !state.admin; if (!state.admin) return;
+  $("#loginPanel").hidden = state.admin; $("#adminPanel").hidden = !state.admin; if (!state.admin) { if (adminRoute) $("#loginForm input[name=password]").focus(); return; }
+  $("#adminBookCount").textContent = state.adminBooks.length;
+  $("#adminChapterCount").textContent = state.adminBooks.reduce((sum, book) => sum + book.chapters.length, 0);
+  $("#adminPartCount").textContent = state.adminBooks.reduce((sum, book) => sum + partCount(book), 0);
+  $("#adminDraftCount").textContent = state.adminBooks.filter((book) => book.status !== "published").length;
   const list = $("#adminBookList");
   list.innerHTML = [...state.adminBooks].sort((a,b) => a.number - b.number).map((book, bookIndex) => {
     const chapterLabel = term(book, "chapter"); const partLabel = term(book, "part"); const bookLabel = term(book, "book");
@@ -219,8 +249,8 @@ function renderAdmin() {
 }
 function field(form, name) { return form.elements.namedItem(name); }
 const editorForms = () => [$("#archiveForm"), $("#chapterForm"), $("#partForm")];
-function closeEditors() { editorForms().forEach((form) => { form.hidden = true; form.removeAttribute("data-book-id"); form.removeAttribute("data-chapter-id"); form.removeAttribute("data-part-id"); }); }
-function showEditor(form) { editorForms().forEach((item) => { if (item !== form) { item.hidden = true; item.removeAttribute("data-book-id"); item.removeAttribute("data-chapter-id"); item.removeAttribute("data-part-id"); } }); form.hidden = false; form.scrollIntoView({ behavior: state.motion ? "smooth" : "auto", block: "start" }); }
+function closeEditors() { editorForms().forEach((form) => { form.hidden = true; form.removeAttribute("data-book-id"); form.removeAttribute("data-chapter-id"); form.removeAttribute("data-part-id"); }); $("#adminEditorEmpty").hidden = false; }
+function showEditor(form) { editorForms().forEach((item) => { if (item !== form) { item.hidden = true; item.removeAttribute("data-book-id"); item.removeAttribute("data-chapter-id"); item.removeAttribute("data-part-id"); } }); $("#adminEditorEmpty").hidden = true; form.hidden = false; form.scrollIntoView({ behavior: state.motion ? "smooth" : "auto", block: "start" }); }
 function editArchive(bookId = "") {
   const form = $("#archiveForm"); const book = state.adminBooks.find((item) => item.id === bookId); form.reset(); $("#archiveFormError").textContent = ""; form.dataset.bookId = bookId; field(form,"number").value = book?.number ?? Math.max(-1, ...state.adminBooks.map((item) => item.number)) + 1; field(form,"title").value = book?.title || ""; field(form,"description").value = book?.description || ""; field(form,"status").value = book?.status || "draft"; field(form,"status").disabled = !book; field(form,"publishAt").value = book?.publishAt ? new Date(book.publishAt).toISOString().slice(0,16) : ""; field(form,"hidden").checked = book?.hidden === true; $("#archiveFormTitle").textContent = book ? `${term(book, "book")} bearbeiten` : "Neues Buch"; syncPublishField(); showEditor(form);
 }
@@ -257,7 +287,11 @@ document.addEventListener("click", (event) => {
   if (close) { details.open = false; return; }
   details.querySelector(".tldr-gate").hidden = true; const content = details.querySelector(".tldr-content"); content.textContent = details._tldr; content.hidden = false;
 });
-$("#bookSearch").oninput = (event) => renderLibrary(event.target.value); window.addEventListener("hashchange", () => { if (/^#preview\//.test(location.hash) && !state.previewBook) load(); else route(); }); window.addEventListener("resize", realignPages); window.addEventListener("scroll", updateProgress, { passive: true }); $("#readingPage").addEventListener("scroll", updateProgress, { passive: true });
+$("#bookSearch").oninput = (event) => renderLibrary(event.target.value);
+$("#bookSortBy").onchange = (event) => { state.bookSort = event.target.value; localStorage.setItem("oracle-book-sort", state.bookSort); renderLibrary(); };
+$("#bookSortDirection").onchange = (event) => { state.bookSortDirection = event.target.value; localStorage.setItem("oracle-book-sort-direction", state.bookSortDirection); renderLibrary(); };
+$("#readerOrder").onchange = (event) => { state.readerOrder = event.target.value; localStorage.setItem("oracle-reader-order", state.readerOrder); if (state.book && !$("#readerView").hidden) renderChapterList(state.book, state.part?.id); renderLibrary(); };
+window.addEventListener("hashchange", () => { if (/^#preview\//.test(location.hash) && !state.previewBook) load(); else route(); }); window.addEventListener("resize", realignPages); window.addEventListener("scroll", updateProgress, { passive: true }); $("#readingPage").addEventListener("scroll", updateProgress, { passive: true });
 $("#bookGrid").addEventListener("click", (event) => { const readButton = event.target.closest("[data-toggle-book-read]"); if (readButton) { event.preventDefault(); return toggleBookRead(readButton.dataset.toggleBookRead); } if (!event.target.closest("[data-card-link]")) openCard(event.target.closest("[data-card-book]")); });
 $("#fontDown").onclick = () => { state.fontSize = Math.max(15, state.fontSize - 1); localStorage.setItem("oracle-font-size", state.fontSize); applyPreferences(); realignPages(); };
 $("#fontUp").onclick = () => { state.fontSize = Math.min(26, state.fontSize + 1); localStorage.setItem("oracle-font-size", state.fontSize); applyPreferences(); realignPages(); };
@@ -273,8 +307,6 @@ $("#readToggle").onclick = () => { const next = !isRead(state.book.id, state.par
 window.addEventListener("keydown", (event) => { if (event.key === "Escape" && $("#chapterDrawer").classList.contains("open")) { setDrawer(false); $("#chapterToggle").focus(); return; } if (state.view !== "pages" || $("#readerView").hidden || !["ArrowLeft","ArrowRight"].includes(event.key) || ["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName)) return; event.preventDefault(); turnPage(event.key === "ArrowRight" ? 1 : -1); });
 $("#readingPage").addEventListener("wheel", (event) => { if (state.view !== "pages" || Math.abs(event.deltaY) < 12) return; event.preventDefault(); if (Date.now() - (turnPage.lastWheel || 0) < 450) return; turnPage.lastWheel = Date.now(); turnPage(event.deltaY > 0 ? 1 : -1); }, { passive: false });
 let touchStartX = 0; $("#readingViewport").addEventListener("touchstart", (event) => { touchStartX = event.changedTouches[0].clientX; }, { passive: true }); $("#readingViewport").addEventListener("touchend", (event) => { if (state.view !== "pages") return; const distance = touchStartX - event.changedTouches[0].clientX; if (Math.abs(distance) > 45) turnPage(distance > 0 ? 1 : -1); }, { passive: true });
-$("#adminOpen").onclick = () => { $("#mobileLinkMenu").open = false; $("#adminDialog").showModal(); }; $("#adminClose").onclick = () => $("#adminDialog").close();
-
 let deferredInstallPrompt = null;
 const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 function updateInstallButton() { $("#installButton").hidden = standalone(); }
@@ -309,7 +341,7 @@ $("#partForm").onsubmit = async (event) => {
   event.preventDefault(); const form = event.target; const data = Object.fromEntries(new FormData(form)); const payload = { chapterId: data.chapterId, part: Number(data.part), partTitle: data.partTitle, tldr: data.tldr, content: data.content, hidden: data.hidden === "on" }; const isNew = !form.dataset.partId;
   try { const bookId = form.dataset.bookId; const label = term(state.adminBooks.find((book) => book.id === bookId), "part"); await api(`/api/admin/books/${encodeURIComponent(bookId)}/parts${isNew ? "" : `/${encodeURIComponent(form.dataset.partId)}`}`, { method: isNew ? "POST" : "PUT", body: JSON.stringify(payload) }); closeEditors(); await load(); toast(`${label} gespeichert`); } catch (error) { $("#partFormError").textContent = error.message; }
 };
-$$('[data-admin-tab]').forEach((button) => button.onclick = () => { $$('[data-admin-tab]').forEach((item) => { const active = item === button; item.classList.toggle("active", active); item.setAttribute("aria-selected", String(active)); }); $("#booksAdmin").hidden = button.dataset.adminTab !== "books"; $("#displayAdmin").hidden = button.dataset.adminTab !== "display"; $("#linksAdmin").hidden = button.dataset.adminTab !== "links"; closeEditors(); });
+$$('[data-admin-tab]').forEach((button) => button.onclick = () => { $$('[data-admin-tab]').forEach((item) => { const active = item === button; item.classList.toggle("active", active); if (active) item.setAttribute("aria-current", "page"); else item.removeAttribute("aria-current"); }); $("#booksAdmin").hidden = button.dataset.adminTab !== "books"; $("#displayAdmin").hidden = button.dataset.adminTab !== "display"; $("#linksAdmin").hidden = button.dataset.adminTab !== "links"; closeEditors(); });
 $("#displayBookSelect").onchange = (event) => renderDisplayAdmin(event.target.value); $("#displayAdmin").oninput = updateDisplayExample;
 $("#displayAdmin").onsubmit = async (event) => { event.preventDefault(); const data = Object.fromEntries(new FormData(event.target)); const bookId = data.bookId; delete data.bookId; await api(`/api/admin/books/${encodeURIComponent(bookId)}/display`, { method: "PUT", body: JSON.stringify(data) }); await load(); renderDisplayAdmin(bookId); toast("Buchdarstellung gespeichert"); };
 $("#addLink").onclick = () => { $("#linkRows").insertAdjacentHTML("beforeend", linkRow()); const button = $("#linkRows .link-row:last-child [data-remove-link]"); button.onclick = () => button.closest(".link-row").remove(); };
@@ -319,7 +351,7 @@ async function registerPwa() {
   updateInstallButton();
   if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
   try {
-    await navigator.serviceWorker.register("/sw.js?v=__APP_VERSION__", { scope: "/" }); await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }); await registration.update(); await navigator.serviceWorker.ready;
     if (!navigator.serviceWorker.controller) await new Promise((resolve) => navigator.serviceWorker.addEventListener("controllerchange", resolve, { once: true }));
     await fetch("/api/library", { cache: "no-store" });
   } catch (error) { console.warn("Offline-Modus konnte nicht vorbereitet werden.", error); }
