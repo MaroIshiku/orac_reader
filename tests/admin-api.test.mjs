@@ -94,6 +94,22 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     const imageLibrary = await (await fetch(`${origin}/api/library`)).json();
     assert.equal(imageLibrary.books.find((item) => item.id === book.id).coverImage, mediaUrl);
 
+    const nextPartNumber = Math.max(...chapter.parts.map((item) => item.number)) + 1;
+    const draftPart = await (await fetch(`${origin}/api/admin/books/${book.id}/parts`, { method: "POST", headers, body: JSON.stringify({ chapterId: chapter.id, part: nextPartNumber, releasedAt: "2026-09-19", status: "draft", partTitle: "Teil-Entwurf", content: "Dieser Inhalt bleibt zunächst in der Redaktion." }) })).json();
+    const futurePublishAt = new Date(Date.now() + 3_600_000).toISOString();
+    const scheduledPart = await (await fetch(`${origin}/api/admin/books/${book.id}/parts`, { method: "POST", headers, body: JSON.stringify({ chapterId: chapter.id, part: nextPartNumber + 1, releasedAt: "2026-09-19", status: "scheduled", publishAt: futurePublishAt, partTitle: "Geplanter Teil", content: "Dieser Inhalt erscheint später." }) })).json();
+    const pastPublishAt = new Date(Date.now() - 3_600_000).toISOString();
+    const releasedPart = await (await fetch(`${origin}/api/admin/books/${book.id}/parts`, { method: "POST", headers, body: JSON.stringify({ chapterId: chapter.id, part: nextPartNumber + 2, releasedAt: "2026-09-19", status: "scheduled", publishAt: pastPublishAt, partTitle: "Automatisch erschienener Teil", content: "Dieser Inhalt ist bereits freigeschaltet." }) })).json();
+    const scheduledLibrary = await (await fetch(`${origin}/api/library`)).json();
+    const publicPartIds = scheduledLibrary.books.find((item) => item.id === book.id).chapters.flatMap((item) => item.parts).map((item) => item.id);
+    assert.equal(publicPartIds.includes(draftPart.id), false);
+    assert.equal(publicPartIds.includes(scheduledPart.id), false);
+    assert.equal(publicPartIds.includes(releasedPart.id), true);
+    const scheduledAdminLibrary = await (await fetch(`${origin}/api/library`, { headers })).json();
+    const editorialPartIds = scheduledAdminLibrary.adminBooks.find((item) => item.id === book.id).chapters.flatMap((item) => item.parts).map((item) => item.id);
+    assert.equal(editorialPartIds.includes(draftPart.id), true);
+    assert.equal(editorialPartIds.includes(scheduledPart.id), true);
+
     const draftResponse = await fetch(`${origin}/api/admin/books`, { method: "POST", headers, body: JSON.stringify({ number: 999, title: "Testentwurf", description: "Nicht öffentlich", status: "draft" }) });
     assert.equal(draftResponse.status, 201);
     const draft = await draftResponse.json();

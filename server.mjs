@@ -61,11 +61,12 @@ function imageExtension(bytes) {
   return "";
 }
 const slug = (value) => safeText(value, 100).toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || randomBytes(4).toString("hex");
-const isPublished = (book) => book.status === "published" || (book.status === "scheduled" && book.publishAt && new Date(book.publishAt).getTime() <= Date.now());
+const publicationStatus = (entry) => ["draft", "scheduled", "published"].includes(entry?.status) ? entry.status : "published";
+const isPublished = (entry, now = Date.now()) => publicationStatus(entry) === "published" || (publicationStatus(entry) === "scheduled" && entry.publishAt && new Date(entry.publishAt).getTime() <= now);
 function publicBook(book, includeHidden = false) {
   const { previewToken, hidden, ...visible } = book;
-  const chapters = (includeHidden ? book.chapters : book.chapters.filter((chapter) => !chapter.hidden)).map((chapter) => { const { hidden: chapterHidden, ...chapterData } = chapter; const sourceParts = includeHidden ? chapter.parts : chapter.parts.filter((part) => !part.hidden); return { ...chapterData, parts: sourceParts.map((part) => { const { hidden: partHidden, ...partData } = part; return partData; }) }; });
-  return { ...visible, chapters };
+  const chapters = (includeHidden ? book.chapters : book.chapters.filter((chapter) => !chapter.hidden)).map((chapter) => { const { hidden: chapterHidden, ...chapterData } = chapter; const sourceParts = includeHidden ? chapter.parts : chapter.parts.filter((part) => !part.hidden && isPublished(part)); return { ...chapterData, parts: sourceParts.map((part) => { const { hidden: partHidden, ...partData } = part; return partData; }) }; });
+  return syncReleaseDates({ ...visible, chapters });
 }
 const oracleDescription = "ORACLE ist eine geheime Organisation für Fälle, die außerhalb jeder bekannten Ordnung liegen. Ihre Mitglieder besitzen ungewöhnliche Fähigkeiten – und tragen ebenso ungewöhnliche Lasten. Als sich übernatürliche Vorfälle häufen und längst vergessene Wesen zurückkehren, gerät das Team in einen Kampf um Kontrolle, Vertrauen und die Frage, wie viel Menschlichkeit im Angesicht des Unbegreiflichen bestehen bleibt. Eine düstere Mystery-Geschichte über gefundene Familie, uralte Legenden und die Dinge, die besser im Verborgenen geblieben wären.";
 const numberFormats = new Set(["decimal", "pad2", "pad3", "pad4", "roman-upper", "roman-lower"]);
@@ -79,7 +80,7 @@ function normalizeBookDisplay(input, fallback = defaultBookDisplay()) {
 function normalizedDate(value, fallback = "") { let timestamp = new Date(value).getTime(); if (!Number.isFinite(timestamp)) timestamp = new Date(fallback).getTime(); return Number.isFinite(timestamp) ? new Date(timestamp).toISOString().slice(0, 10) : null; }
 function latestDate(values) { return values.map((value) => normalizedDate(value)).filter(Boolean).sort().at(-1) || null; }
 function syncReleaseDates(book) {
-  for (const chapter of book.chapters) chapter.releasedAt = latestDate(chapter.parts.map((part) => part.releasedAt));
+  for (const chapter of book.chapters) chapter.releasedAt = latestDate(chapter.parts.filter((part) => isPublished(part)).map((part) => part.releasedAt));
   book.releasedAt = latestDate(book.chapters.map((chapter) => chapter.releasedAt));
   return book;
 }
@@ -157,6 +158,10 @@ async function migrateLibrary() {
     library.books.forEach((book) => { book.coverImage = safeMediaPath(book.coverImage); book.chapters.forEach((chapter) => chapter.parts.forEach((part) => { part.image = safeMediaPath(part.image); })); });
     library.schemaVersion = 11; changed = true;
   }
+  if (schemaVersion < 12) {
+    library.books.forEach((book) => book.chapters.forEach((chapter) => chapter.parts.forEach((part) => { part.status = "published"; part.publishAt = null; })));
+    library.schemaVersion = 12; changed = true;
+  }
   if (changed) await saveLibrary(library);
 }
 
@@ -183,7 +188,10 @@ function validatePart(input, old = null) {
   if (!chapterId || !Number.isInteger(partNumber) || partNumber < 1 || !title || !content) throw new Error("Kapitel, Teilnummer (ab 1), Teilname und Text sind Pflichtfelder.");
   const releasedAt = normalizedDate(input.releasedAt, old?.releasedAt || new Date().toISOString().slice(0, 10));
   if (!releasedAt) throw new Error("Für den Teil wird ein gültiges Releasedatum benötigt.");
-  return { chapterId, part: { id: old?.id || `part-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number: partNumber, title, tldr, content, releasedAt, image: safeMediaPath(input.image, old?.image), hidden: input.hidden === undefined ? old?.hidden === true : input.hidden === true } };
+  const status = ["draft", "scheduled", "published"].includes(input.status) ? input.status : publicationStatus(old);
+  let publishAt = null;
+  if (status === "scheduled") { const timestamp = new Date(input.publishAt).getTime(); if (!Number.isFinite(timestamp)) throw new Error("Für eine geplante Veröffentlichung wird ein Datum mit Uhrzeit benötigt."); publishAt = new Date(timestamp).toISOString(); }
+  return { chapterId, part: { id: old?.id || `part-${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, number: partNumber, title, tldr, content, releasedAt, status, publishAt, image: safeMediaPath(input.image, old?.image), hidden: input.hidden === undefined ? old?.hidden === true : input.hidden === true } };
 }
 function findPart(book, partId) { for (const chapter of book.chapters) { const index = chapter.parts.findIndex((part) => part.id === partId); if (index >= 0) return { chapter, index, part: chapter.parts[index] }; } return null; }
 function sortContent(book) { book.chapters.sort((a,b) => (a.order ?? a.number) - (b.order ?? b.number) || a.number - b.number); for (const chapter of book.chapters) chapter.parts.sort((a,b) => a.number - b.number); }
@@ -205,7 +213,7 @@ async function api(req, res, url) {
   if (req.method === "POST" && url.pathname === "/api/logout") { sessions.delete(parseCookies(req).oracle_reader_session); return json(res, 200, { ok: true }, { "Set-Cookie": "oracle_reader_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0" }); }
   if (req.method === "GET" && url.pathname === "/api/session") return json(res, 200, { admin: isAdmin(req) });
   const library = await loadLibrary();
-  if (req.method === "GET" && url.pathname === "/api/library") { const admin = isAdmin(req); return json(res, 200, { books: library.books.filter((book) => isPublished(book) && !book.hidden).map((book) => publicBook(book)), ...(admin ? { adminBooks: library.books } : {}), links: library.links || [], settings: library.settings || { numberDigits: 4 }, admin, version: appVersion }); }
+  if (req.method === "GET" && url.pathname === "/api/library") { const admin = isAdmin(req); library.books.forEach(syncReleaseDates); const books = library.books.filter((book) => isPublished(book) && !book.hidden).map((book) => publicBook(book)).filter(hasContent); return json(res, 200, { books, ...(admin ? { adminBooks: library.books } : {}), links: library.links || [], settings: library.settings || { numberDigits: 4 }, admin, version: appVersion }); }
   const previewMatch = url.pathname.match(/^\/api\/preview\/([a-zA-Z0-9_-]{24,80})$/);
   if (req.method === "GET" && previewMatch) { const book = library.books.find((item) => !isPublished(item) && item.previewToken === previewMatch[1]); return book ? json(res, 200, { book: publicBook(book, true) }) : json(res, 404, { error: "Vorschau nicht gefunden." }); }
   if (url.pathname.startsWith("/api/admin/") && !isAdmin(req)) return json(res, 401, { error: "Admin-Anmeldung erforderlich." });

@@ -9,7 +9,7 @@ Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. OracleDB bleibt a
 - getrennte Nummerierung pro Buch und Ebene als `1`, `01`, `001`, `0001`, römische Groß- oder Kleinzahl
 - automatische Leseposition, Fortschritt und synchronisierter Gelesen-Status im jeweiligen Browser – ohne Leserkonto
 - vier kontrastgeprüfte Lesethemes, verstellbare Schriftgröße, normale oder umgekehrte Inhaltsübersicht sowie echte Scroll- und Seitenansicht
-- geschützter Adminbereich für Entwurf, kryptischen Vorschaulink, geplante Veröffentlichung und Veröffentlichung
+- geschützter Adminbereich mit kryptischen Vorschaulinks sowie Entwürfen und geplanten Veröffentlichungen für Bücher und einzelne Leseteile
 - eigenständige Vollbild-Redaktion unter `/admin` mit getrennten Bereichen für Inhalte, Darstellung und Links
 - Volltextsuche in der geschützten Redaktion, die jede Fundstelle samt Kontext direkt zum passenden Editor führt
 - getrennte Bearbeitungsmasken für Buch, Kapitel und Episode; jede Ebene kann gezielt öffentlich ausgeblendet werden

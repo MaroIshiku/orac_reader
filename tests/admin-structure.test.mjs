@@ -13,12 +13,16 @@ test("Buch, Kapitel und Episode besitzen getrennte Bearbeitungsmasken", () => {
   assert.match(form("chapterForm"), /Kapitel-TL;DR/);
   assert.doesNotMatch(form("chapterForm"), /name="part"|name="content"|name="description"/);
   assert.match(form("partForm"), /name="chapterId"/);
+  assert.match(form("partForm"), /name="status"[\s\S]*?value="draft"[\s\S]*?value="scheduled"/);
+  assert.match(form("partForm"), /id="partPublishField"[\s\S]*?name="publishAt" type="datetime-local"/);
   assert.match(form("partForm"), /name="releasedAt" type="text"[\s\S]*?TT\.MM\.JJJJ/);
   assert.match(source, /germanDate\(found\?\.part\.releasedAt \|\| localToday\(\)\)/);
   assert.match(source, /releasedAt = isoDate\(data\.releasedAt\)/);
   assert.match(source, /releasedAt"\)\.oninput/);
   assert.match(form("partForm"), /Episoden-TL;DR/);
-  assert.doesNotMatch(form("partForm"), /chapterTitle|name="description"|name="status"/);
+  assert.doesNotMatch(form("partForm"), /chapterTitle|name="description"/);
+  assert.match(source, /syncPartPublishField/);
+  assert.match(server, /part\.hidden && isPublished\(part\)/);
   assert.match(server, /const chapterMatch = url\.pathname\.match/);
   assert.match(server, /chapters\\\/order/);
   assert.match(server, /api\/admin\/chapters\/move/);

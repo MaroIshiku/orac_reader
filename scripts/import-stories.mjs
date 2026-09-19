@@ -35,6 +35,8 @@ for (const folder of folders) {
       title: partTitle || firstHeading || `Teil ${index + 1}`,
       tldr: "",
       releasedAt: (await stat(storyPath)).mtime.toISOString().slice(0, 10),
+      status: "published",
+      publishAt: null,
       image: "",
       content: readingText
     });
@@ -59,7 +61,7 @@ const books = [{
 }];
 
 const library = {
-  schemaVersion: 11,
+  schemaVersion: 12,
   books,
   settings: { "numberDigits": 4 },
   links: [

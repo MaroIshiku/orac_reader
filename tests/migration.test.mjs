@@ -35,7 +35,7 @@ test("die vier ursprünglichen Oracle-Akten werden verlustfrei zu einem Buch mig
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
     const migrated = JSON.parse(await readFile(join(dataDir, "library.json"), "utf8"));
-    assert.equal(migrated.schemaVersion, 11);
+    assert.equal(migrated.schemaVersion, 12);
     assert.deepEqual(migrated.books.map((book) => book.id), ["oracle-0000", "manual-book"]);
     const oracle = migrated.books[0];
     assert.equal(oracle.title, "Oracle");
@@ -46,6 +46,7 @@ test("die vier ursprünglichen Oracle-Akten werden verlustfrei zu einem Buch mig
     assert.equal(oracle.releasedAt, "2026-09-10");
     assert.ok(oracle.chapters.every((chapter) => chapter.releasedAt === "2026-09-10"));
     assert.ok(oracle.chapters.flatMap((chapter) => chapter.parts).every((part) => part.releasedAt === "2026-09-10"));
+    assert.ok(migrated.books.flatMap((book) => book.chapters).flatMap((chapter) => chapter.parts).every((part) => part.status === "published" && part.publishAt === null));
     assert.ok(oracle.chapters.flatMap((chapter) => chapter.parts).every((part) => part.image === ""));
     assert.equal(migrated.books[1].title, "Eigene Akte");
     assert.deepEqual([migrated.books[1].display.bookSingular, migrated.books[1].display.chapterSingular, migrated.books[1].display.partSingular], ["Buch", "Kapitel", "Episode"]);
