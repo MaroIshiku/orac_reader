@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,6 +10,17 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 
 test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-API erhalten", async () => {
   const dataDir = await mkdtemp(join(tmpdir(), "oracle-reader-api-"));
+  const fixture = {
+    schemaVersion: 13,
+    settings: { numberDigits: 4 },
+    links: [],
+    books: [{
+      id: "test-book", number: 1, title: "Testbuch", kicker: "TEST", description: "Neutrale API-Testdaten.", status: "published", publishAt: null, updatedAt: "2026-09-19T00:00:00.000Z", coverImage: "", hidden: false,
+      display: { bookSingular: "Buch", bookPlural: "Bücher", chapterSingular: "Kapitel", chapterPlural: "Kapitel", partSingular: "Episode", partPlural: "Episoden", bookNumberFormat: "decimal", chapterNumberFormat: "decimal", partNumberFormat: "decimal" },
+      chapters: [{ id: "test-chapter", number: 0, title: "Testkapitel", tldr: "", order: 0, hidden: false, parts: [{ id: "test-part", number: 1, title: "Testepisode", tldr: "", content: "Neutraler Testinhalt.", releasedAt: "2026-09-19", status: "published", publishAt: null, image: "", hidden: false }] }, { id: "control-chapter", number: 1, title: "Kontrollkapitel", tldr: "", order: 1, hidden: false, parts: [{ id: "control-part", number: 1, title: "Kontrollepisode", tldr: "", content: "Weiterer neutraler Testinhalt.", releasedAt: "2026-09-19", status: "published", publishAt: null, image: "", hidden: false }] }]
+    }]
+  };
+  await writeFile(join(dataDir, "library.json"), `${JSON.stringify(fixture, null, 2)}\n`);
   const port = 42919;
   const origin = `http://127.0.0.1:${port}`;
   const server = spawn(process.execPath, ["server.mjs"], {
@@ -44,10 +55,10 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     const invalidUpload = await fetch(`${origin}/api/admin/media`, { method: "POST", headers: { "Content-Type": "image/png", Origin: origin, Cookie: cookie }, body: "kein Bild" });
     assert.equal(invalidUpload.status, 415);
     const library = await (await fetch(`${origin}/api/library`, { headers })).json();
-    const book = library.books.find((item) => item.id === "oracle-0000");
+    const book = library.books.find((item) => item.id === "test-book");
     assert.equal(library.adminBooks.length, library.books.length);
     assert.equal(Object.hasOwn(book, "previewToken"), false);
-    const chapter = book.chapters.find((item) => item.id === "oracle-0000-chapter-0");
+    const chapter = book.chapters.find((item) => item.id === "test-chapter");
     const part = chapter.parts[0];
 
     const chapterResponse = await fetch(`${origin}/api/admin/books/${book.id}/chapters/${chapter.id}`, {

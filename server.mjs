@@ -162,6 +162,10 @@ async function migrateLibrary() {
     library.books.forEach((book) => book.chapters.forEach((chapter) => chapter.parts.forEach((part) => { part.status = "published"; part.publishAt = null; })));
     library.schemaVersion = 12; changed = true;
   }
+  if (schemaVersion < 13) {
+    library.links = (library.links || []).filter((link) => safeText(link.label, 60).toLocaleLowerCase("de") !== "oracledb" && !/^https?:\/\/oracledb\.ishiku\.de(?:\/|$)/i.test(safeText(link.url, 500)));
+    library.schemaVersion = 13; changed = true;
+  }
   if (changed) await saveLibrary(library);
 }
 

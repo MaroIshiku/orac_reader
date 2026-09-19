@@ -1,6 +1,6 @@
 # ORACLE Archiv
 
-Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. OracleDB bleibt als separate Anwendung unter `oracledb.ishiku.de`; beide Seiten sind lediglich über normale Links verbunden.
+Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. Das öffentliche Repository enthält bewusst keine mitgelieferten Geschichten; Inhalte werden ausschließlich im persistenten Datenverzeichnis der jeweiligen Installation gepflegt.
 
 ## Enthalten
 

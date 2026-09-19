@@ -24,7 +24,7 @@ test("die vier ursprünglichen Oracle-Akten werden verlustfrei zu einem Buch mig
   }));
   legacyBooks[0].chapters.push({ id: "manual-test-chapter", number: 1, title: "Test", tldr: "", order: 1, parts: [{ id: "manual-test-part", number: 1, title: "Testteil", tldr: "", content: "Manueller Inhalt" }] });
   const manual = { id: "manual-book", number: 99, title: "Eigene Akte", kicker: "ORACLE · ARCHIV", description: "Bleibt erhalten.", status: "draft", publishAt: null, updatedAt: now, previewToken: "abcdefghijklmnopqrstuvwxyz123456", chapters: [] };
-  await writeFile(join(dataDir, "library.json"), `${JSON.stringify({ schemaVersion: 6, settings: { numberDigits: 4 }, links: [], books: [...legacyBooks, manual] }, null, 2)}\n`);
+  await writeFile(join(dataDir, "library.json"), `${JSON.stringify({ schemaVersion: 6, settings: { numberDigits: 4 }, links: [{ label: "OracleDB", url: "https://oracledb.ishiku.de" }, { label: "Community", url: "https://example.com" }], books: [...legacyBooks, manual] }, null, 2)}\n`);
   const port = 43000 + Math.floor(Math.random() * 1000);
   const origin = `http://127.0.0.1:${port}`;
   const server = spawn(process.execPath, ["server.mjs"], { cwd: root, env: { ...process.env, DATA_DIR: dataDir, PORT: String(port), ADMIN_PASSWORD: "migration-test" }, stdio: "ignore" });
@@ -35,7 +35,8 @@ test("die vier ursprünglichen Oracle-Akten werden verlustfrei zu einem Buch mig
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
     const migrated = JSON.parse(await readFile(join(dataDir, "library.json"), "utf8"));
-    assert.equal(migrated.schemaVersion, 12);
+    assert.equal(migrated.schemaVersion, 13);
+    assert.deepEqual(migrated.links, [{ label: "Community", url: "https://example.com" }]);
     assert.deepEqual(migrated.books.map((book) => book.id), ["oracle-0000", "manual-book"]);
     const oracle = migrated.books[0];
     assert.equal(oracle.title, "Oracle");

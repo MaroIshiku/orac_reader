@@ -61,13 +61,10 @@ const books = [{
 }];
 
 const library = {
-  schemaVersion: 12,
+  schemaVersion: 13,
   books,
   settings: { "numberDigits": 4 },
-  links: [
-    { "label": "OracleDB", "url": "https://oracledb.ishiku.de", "kind": "database" },
-    { "label": "Discord", "url": "https://discord.com", "kind": "community" }
-  ]
+  links: []
 };
 
 await mkdir(dirname(output), { recursive: true });
