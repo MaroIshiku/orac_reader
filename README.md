@@ -8,7 +8,8 @@ Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. Das öffentliche 
 - pro Buch frei benennbare Struktur, standardmäßig Buch → Kapitel → Episode; Oracle verwendet Archiv → Akte → Fragment
 - getrennte Nummerierung pro Buch und Ebene als `1`, `01`, `001`, `0001`, römische Groß- oder Kleinzahl
 - automatische Leseposition, Fortschritt und synchronisierter Gelesen-Status im jeweiligen Browser – ohne Leserkonto
-- vier kontrastgeprüfte Lesethemes, verstellbare Schriftgröße, normale oder umgekehrte Inhaltsübersicht sowie echte Scroll- und Seitenansicht
+- kompakte Leseeinstellungen in der Reader-Leiste mit vier Themes, verstellbarer Schriftgröße, Serif/Serifenlos, normaler oder umgekehrter Inhaltsübersicht sowie Scroll- und Seitenansicht
+- Download veröffentlichter Bücher, Kapitel und Einzelteile als EPUB oder gesetztes PDF
 - geschützter Adminbereich mit kryptischen Vorschaulinks sowie Entwürfen und geplanten Veröffentlichungen für Bücher und einzelne Leseteile
 - eigenständige Vollbild-Redaktion unter `/admin` mit getrennten Bereichen für Inhalte, Darstellung und Links
 - Volltextsuche in der geschützten Redaktion, die jede Fundstelle samt Kontext direkt zum passenden Editor führt

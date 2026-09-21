@@ -61,6 +61,16 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     const chapter = book.chapters.find((item) => item.id === "test-chapter");
     const part = chapter.parts[0];
 
+    const bookEpub = await fetch(`${origin}/api/export/epub/book/${book.id}`);
+    assert.equal(bookEpub.status, 200);
+    assert.equal(bookEpub.headers.get("content-type"), "application/epub+zip");
+    assert.match(bookEpub.headers.get("content-disposition"), /attachment;.*\.epub/);
+    assert.equal(Buffer.from(await bookEpub.arrayBuffer()).subarray(0, 2).toString("ascii"), "PK");
+    const partPdf = await fetch(`${origin}/api/export/pdf/part/${book.id}/${part.id}`);
+    assert.equal(partPdf.status, 200);
+    assert.equal(partPdf.headers.get("content-type"), "application/pdf");
+    assert.equal(Buffer.from(await partPdf.arrayBuffer()).subarray(0, 5).toString("ascii"), "%PDF-");
+
     const chapterResponse = await fetch(`${origin}/api/admin/books/${book.id}/chapters/${chapter.id}`, {
       method: "PUT", headers, body: JSON.stringify({ number: 0, title: chapter.title, tldr: "Kapitelzusammenfassung" }),
     });
@@ -120,6 +130,9 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     const editorialPartIds = scheduledAdminLibrary.adminBooks.find((item) => item.id === book.id).chapters.flatMap((item) => item.parts).map((item) => item.id);
     assert.equal(editorialPartIds.includes(draftPart.id), true);
     assert.equal(editorialPartIds.includes(scheduledPart.id), true);
+    assert.equal((await fetch(`${origin}/api/export/epub/part/${book.id}/${draftPart.id}`)).status, 404);
+    assert.equal((await fetch(`${origin}/api/export/pdf/part/${book.id}/${scheduledPart.id}`)).status, 404);
+    assert.equal((await fetch(`${origin}/api/export/epub/part/${book.id}/${releasedPart.id}`)).status, 200);
 
     const draftResponse = await fetch(`${origin}/api/admin/books`, { method: "POST", headers, body: JSON.stringify({ number: 999, title: "Testentwurf", description: "Nicht öffentlich", status: "draft" }) });
     assert.equal(draftResponse.status, 201);

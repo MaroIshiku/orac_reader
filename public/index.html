@@ -43,6 +43,8 @@
     <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="8" cy="7" r="1" fill="currentColor" stroke="none"></circle><circle cx="16" cy="7" r="1" fill="currentColor" stroke="none"></circle><circle cx="8" cy="12" r="1" fill="currentColor" stroke="none"></circle><circle cx="16" cy="12" r="1" fill="currentColor" stroke="none"></circle><circle cx="8" cy="17" r="1" fill="currentColor" stroke="none"></circle><circle cx="16" cy="17" r="1" fill="currentColor" stroke="none"></circle></symbol>
     <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 14 7-7 7 7"></path></symbol>
     <symbol id="i-install" viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"></path></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"></path></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6"></path></symbol>
     <symbol id="i-offline" viewBox="0 0 24 24"><path d="M4 9.5A12 12 0 0 1 12 6c3.1 0 5.9 1.2 8 3.2M7.5 13a7.2 7.2 0 0 1 4.5-1.6c1.1 0 2.2.3 3.1.7M11.7 17.5h.6M3 3l18 18"></path></symbol>
   </svg>
   <header class="site-header">
@@ -94,31 +96,6 @@
       <p class="eyebrow">INHALT</p>
       <h2 id="drawerBookTitle"></h2>
       <ol id="chapterList" class="chapter-list"></ol>
-      <div class="drawer-progress"><span><b id="progressLabel">0%</b> gelesen</span><div><i id="progressBar"></i></div></div>
-      <section class="drawer-settings" aria-labelledby="readerSettingsTitle">
-        <p class="eyebrow" id="readerSettingsTitle">LESEANSICHT</p>
-        <div class="drawer-setting-row">
-          <span>Schrift</span>
-          <div class="compact-actions">
-            <button class="tool-button" id="fontDown" aria-label="Schrift verkleinern" title="Schrift verkleinern"><svg class="ui-icon"><use href="#i-font-down"></use></svg></button>
-            <button class="tool-button" id="fontUp" aria-label="Schrift vergrößern" title="Schrift vergrößern"><svg class="ui-icon"><use href="#i-font-up"></use></svg></button>
-          </div>
-        </div>
-        <div class="drawer-setting-row">
-          <span>Hintergrund</span>
-          <div class="theme-picker" id="themePicker" aria-label="Hintergrundfarbe">
-            <button data-theme-choice="paper" class="swatch paper active" aria-label="Papier"></button>
-            <button data-theme-choice="sand" class="swatch sand" aria-label="Sand"></button>
-            <button data-theme-choice="mist" class="swatch mist" aria-label="Nebel"></button>
-            <button data-theme-choice="night" class="swatch night" aria-label="Nacht"></button>
-          </div>
-        </div>
-        <div class="drawer-setting-grid">
-          <button class="drawer-setting-button" id="viewToggle" aria-label="Leseansicht wechseln"><svg class="ui-icon"><use href="#i-scroll"></use></svg><span id="viewLabel">Scrollen</span></button>
-          <button class="drawer-setting-button" id="motionToggle" aria-label="Animationen ausschalten" aria-pressed="true"><svg class="ui-icon"><use href="#i-motion"></use></svg><span id="motionLabel">Animationen an</span></button>
-        </div>
-        <label class="drawer-setting-row reader-order-setting"><span>Inhaltsreihenfolge</span><select id="readerOrder"><option value="asc">Normal</option><option value="desc">Umgekehrt</option></select></label>
-      </section>
     </aside>
     <button class="drawer-backdrop" id="drawerBackdrop" aria-label="Kapitelübersicht schließen" tabindex="-1"></button>
 
@@ -127,8 +104,27 @@
         <button class="tool-button mobile-only" id="chapterToggle" aria-label="Inhaltsübersicht öffnen" aria-controls="chapterDrawer" aria-expanded="false"><svg class="ui-icon"><use href="#i-menu"></use></svg><span id="chapterToggleLabel">Kapitel</span></button>
         <span class="reader-status-badge" id="readerStatusBadge" hidden>ENTWURFSVORSCHAU</span>
         <div class="toolbar-spacer"></div>
+        <details class="download-menu" id="downloadMenu">
+          <summary class="tool-button" aria-label="Inhalt herunterladen"><svg class="ui-icon"><use href="#i-download"></use></svg><span>Download</span></summary>
+          <div class="download-panel">
+            <div><strong id="downloadBookLabel">Buch</strong><span><a data-export-scope="book" data-export-format="epub">EPUB</a><a data-export-scope="book" data-export-format="pdf">PDF</a></span></div>
+            <div><strong id="downloadChapterLabel">Kapitel</strong><span><a data-export-scope="chapter" data-export-format="epub">EPUB</a><a data-export-scope="chapter" data-export-format="pdf">PDF</a></span></div>
+            <div><strong id="downloadPartLabel">Teil</strong><span><a data-export-scope="part" data-export-format="epub">EPUB</a><a data-export-scope="part" data-export-format="pdf">PDF</a></span></div>
+          </div>
+        </details>
         <button class="tool-button" id="readToggle" aria-label="Lesestatus ändern" title="Lesestatus ändern"><svg class="ui-icon"><use href="#i-unread"></use></svg><span>Ungelesen</span></button>
         <button class="tool-button" id="shareButton" aria-label="Diesen Teil teilen" title="Diesen Teil teilen"><svg class="ui-icon"><use href="#i-share"></use></svg><span>Teilen</span></button>
+        <details class="reader-settings-menu" id="readerSettingsMenu">
+          <summary class="tool-button" aria-label="Leseeinstellungen öffnen"><svg class="ui-icon"><use href="#i-settings"></use></svg><span>Lesen</span></summary>
+          <section class="reader-settings-panel" aria-labelledby="readerSettingsTitle">
+            <p class="eyebrow" id="readerSettingsTitle">LESEANSICHT</p>
+            <div class="reader-setting-row"><span>Schriftgröße</span><div class="compact-actions"><button class="tool-button" id="fontDown" aria-label="Schrift verkleinern" title="Schrift verkleinern"><svg class="ui-icon"><use href="#i-font-down"></use></svg></button><button class="tool-button" id="fontUp" aria-label="Schrift vergrößern" title="Schrift vergrößern"><svg class="ui-icon"><use href="#i-font-up"></use></svg></button></div></div>
+            <label class="reader-setting-row"><span>Schriftart</span><select id="fontFamily"><option value="serif">Mit Serifen</option><option value="sans">Serifenlos</option></select></label>
+            <div class="reader-setting-row"><span>Hintergrund</span><div class="theme-picker" id="themePicker" aria-label="Hintergrundfarbe"><button data-theme-choice="paper" class="swatch paper active" aria-label="Papier"></button><button data-theme-choice="sand" class="swatch sand" aria-label="Sand"></button><button data-theme-choice="mist" class="swatch mist" aria-label="Nebel"></button><button data-theme-choice="night" class="swatch night" aria-label="Nacht"></button></div></div>
+            <div class="reader-setting-actions"><button id="viewToggle" aria-label="Leseansicht wechseln"><svg class="ui-icon"><use href="#i-scroll"></use></svg><span id="viewLabel">Scrollen</span></button><button id="motionToggle" aria-label="Animationen ausschalten" aria-pressed="true"><svg class="ui-icon"><use href="#i-motion"></use></svg><span id="motionLabel">Animationen an</span></button></div>
+            <label class="reader-setting-row reader-order-setting"><span>Reihenfolge</span><select id="readerOrder"><option value="asc">Normal</option><option value="desc">Umgekehrt</option></select></label>
+          </section>
+        </details>
       </div>
 
       <div class="reading-viewport" id="readingViewport">
@@ -155,6 +151,7 @@
           <span id="pageCounter">1 / 1</span>
           <button id="pageNext" aria-label="Nächste Seite"><svg class="ui-icon"><use href="#i-arrow-right"></use></svg></button>
         </nav>
+        <div class="reader-progress" role="progressbar" aria-label="Lesefortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progressLabel">0%</span><div><i id="progressBar"></i></div></div>
       </div>
     </section>
   </main>

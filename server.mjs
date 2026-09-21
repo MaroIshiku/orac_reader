@@ -218,6 +218,16 @@ async function api(req, res, url) {
   if (req.method === "GET" && url.pathname === "/api/session") return json(res, 200, { admin: isAdmin(req) });
   const library = await loadLibrary();
   if (req.method === "GET" && url.pathname === "/api/library") { const admin = isAdmin(req); library.books.forEach(syncReleaseDates); const books = library.books.filter((book) => isPublished(book) && !book.hidden).map((book) => publicBook(book)).filter(hasContent); return json(res, 200, { books, ...(admin ? { adminBooks: library.books } : {}), links: library.links || [], settings: library.settings || { numberDigits: 4 }, admin, version: appVersion }); }
+  const exportMatch = url.pathname.match(/^\/api\/export\/(epub|pdf)\/(book|chapter|part)\/([^/]+)(?:\/([^/]+))?$/);
+  if (req.method === "GET" && exportMatch) {
+    const { createExport, selectExport } = await import("./exports.mjs");
+    const [, format, scope, encodedBookId, encodedContentId = ""] = exportMatch; const bookId = decodeURIComponent(encodedBookId); const contentId = decodeURIComponent(encodedContentId);
+    const source = library.books.find((item) => item.id === bookId && isPublished(item) && !item.hidden); const book = source && publicBook(source); const selection = book && hasContent(book) ? selectExport(book, scope, contentId) : null;
+    if (!selection) return json(res, 404, { error: "Der gewünschte veröffentlichte Inhalt wurde nicht gefunden." });
+    const sourceSize = selection.chapters.reduce((total, chapter) => total + chapter.parts.reduce((sum, part) => sum + String(part.content || "").length, 0), 0); if (sourceSize > 20_000_000) return json(res, 413, { error: "Dieser Export ist zu groß. Bitte einzelne Kapitel herunterladen." });
+    const exported = await createExport(selection, format, { readMedia: (filename) => readFile(join(mediaRoot, filename)) }); const asciiName = exported.filename.replace(/[^a-zA-Z0-9._-]/g, "-");
+    return send(res, 200, exported.bytes, { "Content-Type": exported.type, "Content-Disposition": `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(exported.filename)}`, "Content-Length": String(exported.bytes.length), "Cache-Control": "private, no-store" });
+  }
   const previewMatch = url.pathname.match(/^\/api\/preview\/([a-zA-Z0-9_-]{24,80})$/);
   if (req.method === "GET" && previewMatch) { const book = library.books.find((item) => !isPublished(item) && item.previewToken === previewMatch[1]); return book ? json(res, 200, { book: publicBook(book, true) }) : json(res, 404, { error: "Vorschau nicht gefunden." }); }
   if (url.pathname.startsWith("/api/admin/") && !isAdmin(req)) return json(res, 401, { error: "Admin-Anmeldung erforderlich." });

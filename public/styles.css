@@ -13,6 +13,7 @@
   --shadow: 0 18px 50px rgba(28, 31, 27, .09);
   --page-width: 760px;
   --reader-size: 19px;
+  --reader-font: "Literata", Georgia, serif;
   --header-height: 52px;
   --toolbar-height: 50px;
   --offline-height: 0px;
@@ -221,6 +222,11 @@ button:disabled { cursor: default; }
 .status-badge.is-draft { color: var(--accent); }
 .book-card p { margin: 25px 0 0; color: var(--muted); font-size: 13px; line-height: 1.62; }
 .card-progress { margin-top: auto; padding-top: 22px; display: grid; grid-template-columns: minmax(50px, 1fr) auto; align-items: center; gap: 10px; color: var(--muted); font-size: 10px; }
+.card-downloads { margin-top: auto; padding-top: 18px; display: flex; align-items: center; gap: 7px; position: relative; z-index: 3; color: var(--muted); font-size: 9px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.card-downloads span { margin-right: auto; display: inline-flex; align-items: center; gap: 5px; }
+.card-downloads a { padding: 6px 8px; border: 1px solid var(--line); color: var(--accent); text-decoration: none; }
+.card-downloads a:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.card-downloads + .card-progress { margin-top: 0; }
 .card-progress > div { height: 3px; background: var(--line); overflow: hidden; }
 .card-progress i { display: block; height: 100%; background: var(--accent); transition: width .2s; }
 .card-progress span { white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -279,20 +285,8 @@ button:disabled { cursor: default; }
 .chapter-list [data-chapter-part] span { min-width: 0; font: 500 13px/1.3 "Literata", Georgia, serif; overflow-wrap: anywhere; }
 .chapter-list [data-chapter-part].active { border-left-color: var(--accent); color: var(--ink); background: color-mix(in srgb, var(--surface) 62%, transparent); }
 .chapter-list [data-chapter-part].read small::after { content: ""; width: 6px; height: 3px; margin-left: 6px; display: inline-block; border-left: 1.5px solid var(--accent); border-bottom: 1.5px solid var(--accent); transform: translateY(-2px) rotate(-45deg); }
-.drawer-progress { margin-top: 26px; padding-top: 17px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
-.drawer-progress b { color: var(--accent); }
-.drawer-progress > div { height: 3px; margin-top: 8px; background: var(--line); }
-.drawer-progress i { display: block; width: 0; height: 100%; background: var(--accent); transition: width .2s; }
-.drawer-settings { margin-top: auto; padding-top: 28px; }
-.drawer-setting-row { min-height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 9px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 .compact-actions { display: flex; }
 .compact-actions .tool-button { min-width: 36px; padding: 7px; justify-content: center; }
-.drawer-settings .theme-picker { margin: 0; padding: 5px 0; border: 0; }
-.drawer-setting-grid { display: grid; grid-template-columns: 1fr; border-top: 1px solid var(--line); }
-.drawer-setting-button { min-height: 42px; padding: 8px 2px; display: flex; align-items: center; gap: 8px; border: 0; border-bottom: 1px solid var(--line); color: var(--muted); background: transparent; text-align: left; font-size: 11px; }
-.drawer-setting-button:hover { color: var(--accent); }
-.reader-order-setting { margin: 0; }
-.reader-order-setting select { width: auto; min-width: 112px; min-height: 34px; padding: 6px 9px; border-color: var(--line); background: transparent; font-size: 10px; }
 .drawer-backdrop { display: none; }
 
 .reading-shell { min-width: 0; }
@@ -301,6 +295,28 @@ button:disabled { cursor: default; }
 .toolbar-spacer { flex: 1; }
 .tool-button { border-color: transparent; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 11px; }
 .tool-button:hover { background: color-mix(in srgb, var(--surface) 56%, transparent); }
+.download-menu { position: relative; }
+.download-menu > summary { list-style: none; cursor: pointer; }
+.download-menu > summary::-webkit-details-marker { display: none; }
+.download-menu[open] > summary { border-color: var(--accent); color: var(--accent); background: var(--surface); }
+.download-panel { width: min(310px, calc(100vw - 20px)); padding: 7px; position: absolute; right: 0; top: calc(100% + 7px); z-index: 20; display: grid; border: 1px solid var(--line-strong); background: var(--surface); box-shadow: var(--shadow); }
+.download-panel > div { min-height: 45px; padding: 7px 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); }
+.download-panel > div:last-child { border-bottom: 0; }
+.download-panel strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+.download-panel span { display: flex; gap: 5px; }
+.download-panel a { min-width: 48px; padding: 7px 8px; border: 1px solid var(--line); color: var(--accent); text-align: center; text-decoration: none; font-size: 9px; font-weight: 600; }
+.reader-settings-menu { position: relative; }
+.reader-settings-menu > summary { list-style: none; }
+.reader-settings-menu > summary::-webkit-details-marker { display: none; }
+.reader-settings-menu[open] > summary { border-color: var(--accent); color: var(--accent); background: var(--surface); }
+.reader-settings-panel { width: min(340px, calc(100vw - 20px)); padding: 13px; position: absolute; right: 0; top: calc(100% + 7px); z-index: 20; border: 1px solid var(--line-strong); background: var(--surface); box-shadow: var(--shadow); }
+.reader-settings-panel > .eyebrow { margin: 2px 3px 10px; }
+.reader-setting-row { min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 9px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.reader-setting-row select { width: auto; min-width: 125px; min-height: 34px; padding: 6px 9px; border-color: var(--line); background: transparent; font-size: 10px; }
+.reader-settings-panel .theme-picker { margin: 0; padding: 5px 0; border: 0; }
+.reader-setting-actions { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); }
+.reader-setting-actions button { min-height: 42px; padding: 8px 3px; border: 0; display: flex; align-items: center; gap: 7px; color: var(--muted); background: transparent; font-size: 10px; }
+.reader-setting-actions button:hover { color: var(--accent); }
 .theme-picker { display: flex; gap: 7px; margin: 0 6px; padding: 5px 9px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
 .swatch { width: 21px; height: 21px; padding: 0; border: 1px solid rgba(0,0,0,.18); border-radius: 50%; }
 .swatch.active { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -309,9 +325,9 @@ button:disabled { cursor: default; }
 .swatch.mist { background: #d9e2de; }
 .swatch.night { background: #18130f; }
 .reading-viewport { min-height: calc(100vh - var(--header-height) - var(--offline-height) - var(--toolbar-height)); position: relative; }
-.reading-page { max-width: var(--page-width); min-height: calc(100vh - var(--header-height) - var(--offline-height) - var(--toolbar-height)); margin: 0 auto; padding: clamp(48px, 7vw, 88px) 34px 80px; }
+.reading-page { max-width: var(--page-width); min-height: calc(100vh - var(--header-height) - var(--offline-height) - var(--toolbar-height)); margin: 0 auto; padding: clamp(48px, 7vw, 88px) 34px 80px; font-family: var(--reader-font); }
 .story-header { margin-bottom: 58px; padding-bottom: 30px; border-bottom: 1px solid var(--line-strong); }
-.story-header h1 { margin: 8px 0 17px; font: 500 clamp(37px, 5vw, 60px)/1.08 "Literata", Georgia, serif; letter-spacing: -.04em; }
+.story-header h1 { margin: 8px 0 17px; font: 500 clamp(37px, 5vw, 60px)/1.08 var(--reader-font); letter-spacing: -.04em; }
 .story-meta { margin-top: 21px; display: flex; flex-wrap: wrap; gap: 8px 19px; color: var(--muted); font-size: 9px; font-variant-numeric: tabular-nums; letter-spacing: .11em; text-transform: uppercase; }
 .story-image { margin: -26px 0 48px; break-inside: avoid; }
 .story-image img { width: 100%; max-height: min(62vh, 680px); display: block; border: 1px solid var(--line-strong); object-fit: contain; background: var(--paper-deep); }
@@ -326,7 +342,7 @@ button:disabled { cursor: default; }
 .sidebar-tldr summary { font-size: 8px; }
 .sidebar-tldr .tldr-gate { font-size: 10px; }
 .sidebar-tldr .tldr-content { font: 400 11px/1.55 "Literata", Georgia, serif; }
-.prose { color: var(--ink); font: 400 var(--reader-size)/1.9 "Literata", Georgia, serif; letter-spacing: -.005em; }
+.prose { color: var(--ink); font: 400 var(--reader-size)/1.9 var(--reader-font); letter-spacing: -.005em; }
 .prose p { margin: 0 0 1.38em; }
 .prose > :first-child { margin-top: 0; }
 .prose h1 { margin: 2.4em 0 .8em; font-size: 1.75em; font-weight: 500; line-height: 1.25; }
@@ -377,6 +393,11 @@ body[data-view="pages"] .story-header, body[data-view="pages"] .chapter-footer {
 body[data-view="pages"] .page-controls { position: absolute; left: 50%; bottom: max(9px, env(safe-area-inset-bottom)); z-index: 8; display: flex; align-items: center; gap: 13px; transform: translateX(-50%); color: var(--muted); font: 10px ui-monospace, monospace; }
 .page-controls button { width: 34px; height: 34px; padding: 0; display: grid; place-items: center; border: 1px solid var(--line-strong); border-radius: 2px; color: var(--ink); background: var(--surface); }
 .page-controls button:disabled { opacity: .28; }
+.reader-progress { height: 4px; position: fixed; left: 300px; right: 0; bottom: 0; z-index: 24; background: var(--line); }
+.reader-progress > span { padding: 3px 6px; position: absolute; right: 8px; bottom: 8px; color: var(--muted); background: color-mix(in srgb, var(--paper) 91%, transparent); font: 9px ui-monospace, monospace; }
+.reader-progress > div, .reader-progress i { height: 100%; }
+.reader-progress i { width: 0; display: block; background: var(--accent); transition: width .2s; }
+body[data-reader-font="sans"] { --reader-font: "DM Sans", system-ui, sans-serif; }
 .page-edge { display: none; }
 body[data-view="pages"] .page-edge { width: 30%; position: absolute; top: 18px; bottom: 54px; z-index: 3; display: block; border: 0; background: transparent; touch-action: manipulation; }
 body[data-view="pages"] .page-edge-prev { left: 26px; cursor: w-resize; }
@@ -579,6 +600,7 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
   .archive-register { margin-left: 24px; margin-right: 24px; }
   .reader-view { grid-template-columns: 270px minmax(0, 1fr); }
   .chapter-drawer { padding-left: 18px; padding-right: 18px; }
+  .reader-progress { left: 270px; }
 }
 
 @media (max-width: 860px) {
@@ -618,6 +640,9 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
   .drawer-backdrop.open { display: block; }
   .reader-toolbar { height: var(--toolbar-height); top: calc(var(--header-height) + var(--offline-height)); padding: 0 5px; gap: 1px; }
   .tool-button { min-height: 42px; padding: 7px 8px; font-size: 11px; }
+  .download-panel { position: fixed; top: calc(var(--header-height) + var(--offline-height) + var(--toolbar-height) + 5px); right: 8px; }
+  .reader-settings-panel { position: fixed; top: calc(var(--header-height) + var(--offline-height) + var(--toolbar-height) + 5px); right: 8px; }
+  .reader-progress { left: 0; }
   .reading-page { padding: 42px 22px 72px; }
   .story-header { margin-bottom: 48px; padding-bottom: 25px; }
   .story-header h1 { font-size: clamp(35px, 11vw, 50px); }
@@ -683,6 +708,8 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
   .library-sort { grid-template-columns: 1fr; }
   .reader-toolbar { padding: 0 2px; }
   .tool-button { padding-left: 6px; padding-right: 6px; font-size: 10px; }
+  .download-menu > summary span { display: none; }
+  .reader-settings-menu > summary span { display: none; }
   .reader-status-badge { padding-left: 5px; padding-right: 5px; font-size: 0; }
   .reader-status-badge::after { content: "VORSCHAU"; font-size: 7px; }
   .admin-part { grid-template-columns: 1fr; }

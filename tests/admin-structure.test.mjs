@@ -77,3 +77,24 @@ test("TL;DR wird erst nach einer eigenen Spoilerbestätigung eingesetzt", () => 
   assert.match(source, /data-chapter-tldr/);
   assert.match(source, /Dieses TL;DR enthält Spoiler/);
 });
+
+test("veröffentlichte Bücher, Kapitel und Teile lassen sich als EPUB oder PDF herunterladen", () => {
+  assert.match(markup, /id="downloadMenu"/);
+  assert.match(markup, /data-export-scope="book" data-export-format="epub"/);
+  assert.match(markup, /data-export-scope="chapter" data-export-format="pdf"/);
+  assert.match(markup, /data-export-scope="part" data-export-format="epub"/);
+  assert.match(source, /exportUrl\("epub", "book", book\.id\)/);
+  assert.match(source, /state\.chapter = chapter/);
+  assert.match(server, /const exportMatch = url\.pathname\.match/);
+  assert.match(server, /createExport\(selection, format/);
+});
+
+test("Leseeinstellungen liegen sichtbar in der Reader-Werkzeugleiste", () => {
+  const drawer = markup.match(/<aside class="chapter-drawer"[\s\S]*?<\/aside>/)?.[0] || "";
+  assert.doesNotMatch(drawer, /readerSettingsMenu|fontFamily|themePicker/);
+  assert.match(markup, /id="shareButton"[\s\S]*?id="readerSettingsMenu"/);
+  assert.match(markup, /id="fontFamily"[\s\S]*?value="serif"[\s\S]*?value="sans"/);
+  assert.match(source, /oracle-reader-font/);
+  assert.match(source, /dataset\.readerFont = state\.fontFamily/);
+  assert.match(markup, /class="reader-progress"[\s\S]*?id="progressBar"/);
+});
