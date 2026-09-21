@@ -29,9 +29,15 @@ test("Offline-Synchronisation speichert ausschließlich die öffentliche Bibliot
 });
 
 test("App-Updates ersetzen nur die Shell und behalten lokale Lesedaten", () => {
-  assert.match(app, /register\("\/sw\.js", \{ scope: "\/", updateViaCache: "none" \}\)/);
+  assert.match(app, /register\(`\/sw\.js\?v=\$\{encodeURIComponent\(buildVersion\)\}`/);
   assert.match(app, /registration\.update\(\)/);
-  assert.match(worker, /new Request\(path, \{ cache: "reload" \}\)/);
+  assert.match(app, /controllerchange[\s\S]*?location\.reload\(\)/);
+  assert.match(worker, /shellPath\(path\)/);
+  assert.match(worker, /new Request\(shellPath\(path\), \{ cache: "reload" \}\)/);
+  assert.match(worker, /navigationResponse/);
+  assert.match(worker, /cache: "no-store"/);
+  assert.match(worker, /cache\.match\(request\)/);
+  assert.doesNotMatch(worker, /ignoreSearch: true/);
   assert.match(worker, /key\.startsWith\("oracle-shell-"\) && key !== SHELL_CACHE/);
   assert.match(worker, /client\.navigate\(client\.url\)/);
   assert.doesNotMatch(worker, /localStorage|indexedDB\.deleteDatabase/);

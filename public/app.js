@@ -5,6 +5,7 @@ import { findStructureResults, findTextResults, sortBooks, sortReaderChapters } 
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
+const buildVersion = "__APP_VERSION__";
 const adminRoute = location.pathname.replace(/\/+$/, "") === "/admin";
 document.body.classList.toggle("admin-route", adminRoute);
 $("#adminPage").hidden = !adminRoute;
@@ -392,7 +393,9 @@ async function registerPwa() {
   updateInstallButton();
   if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
   try {
-    const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }); await registration.update(); await navigator.serviceWorker.ready;
+    const hadController = Boolean(navigator.serviceWorker.controller); let reloading = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController && !reloading) { reloading = true; location.reload(); } });
+    const registration = await navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(buildVersion)}`, { scope: "/", updateViaCache: "none" }); await registration.update(); await navigator.serviceWorker.ready;
     if (!navigator.serviceWorker.controller) await new Promise((resolve) => navigator.serviceWorker.addEventListener("controllerchange", resolve, { once: true }));
     await fetch("/api/library", { cache: "no-store" });
   } catch (error) { console.warn("Offline-Modus konnte nicht vorbereitet werden.", error); }

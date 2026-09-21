@@ -4,14 +4,15 @@ const DATA_CACHE = "oracle-synchronized-archive-v1";
 const MEDIA_CACHE = "oracle-read-media-v1";
 const OFFLINE_LIBRARY = "/api/offline-library";
 const SHELL = ["/", "/styles.css", "/app.js", "/library-view.js", "/markdown.js", "/markdown-config.js", "/vendor/marked.esm.js", "/navigation.js", "/read-status.js", "/manifest.webmanifest", "/oracle-logo.png", "/pwa-icon-192.png", "/pwa-icon-512.png"];
+const shellPath = (path) => /\.(?:css|js)$/.test(path) ? `${path}?v=${encodeURIComponent(BUILD)}` : path;
 
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
     await Promise.all(SHELL.map(async (path) => {
-      const response = await fetch(new Request(path, { cache: "reload" }));
+      const request = new Request(shellPath(path), { cache: "reload" }); const response = await fetch(request);
       if (!response.ok) throw new Error(`App-Datei konnte nicht aktualisiert werden: ${path}`);
-      await cache.put(path, response);
+      await cache.put(request, response);
     }));
     await self.skipWaiting();
   })());
@@ -47,11 +48,17 @@ async function synchronizedLibrary(request) {
   }
 }
 
-async function shellResponse(request) {
+async function navigationResponse(request) {
   const cache = await caches.open(SHELL_CACHE);
-  const cached = await cache.match(request.mode === "navigate" ? "/" : request, { ignoreSearch: true });
+  try { const network = await fetch(new Request(request, { cache: "no-store" })); if (network.ok) await cache.put("/", network.clone()); return network; }
+  catch { return (await cache.match("/")) || Response.error(); }
+}
+
+async function shellResponse(request) {
+  const cache = await caches.open(SHELL_CACHE); const cached = await cache.match(request);
   if (cached) return cached;
-  const network = await fetch(request); if (network.ok) cache.put(request, network.clone()); return network;
+  try { const network = await fetch(request); if (network.ok) await cache.put(request, network.clone()); return network; }
+  catch { const url = new URL(request.url); return (await cache.match(shellPath(url.pathname))) || (await cache.match(url.pathname)) || Response.error(); }
 }
 
 async function mediaResponse(request) {
@@ -65,5 +72,6 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname === "/api/library") return event.respondWith(synchronizedLibrary(event.request));
   if (url.pathname.startsWith("/api/")) return;
   if (["image", "audio", "video"].includes(event.request.destination)) return event.respondWith(mediaResponse(event.request));
+  if (event.request.mode === "navigate") return event.respondWith(navigationResponse(event.request));
   event.respondWith(shellResponse(event.request));
 });
