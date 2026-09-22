@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const markup = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
 const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
+const styles = await readFile(new URL("../public/styles.css", import.meta.url), "utf8");
 const server = await readFile(new URL("../server.mjs", import.meta.url), "utf8");
 const form = (id) => markup.match(new RegExp(`<form[^>]+id="${id}"[\\s\\S]*?<\\/form>`))?.[0] || "";
 
@@ -97,4 +98,13 @@ test("Leseeinstellungen liegen sichtbar in der Reader-Werkzeugleiste", () => {
   assert.match(source, /oracle-reader-font/);
   assert.match(source, /dataset\.readerFont = state\.fontFamily/);
   assert.match(markup, /class="reader-progress"[\s\S]*?id="progressBar"/);
+});
+
+test("mobile Reader-Werkzeugleiste hält nur den Lesestatus beschriftet", () => {
+  const bookmark = markup.match(/<button[^>]*id="bookmarkToggle"[\s\S]*?<\/button>/)?.[0] || "";
+  assert.match(bookmark, /aria-label="Lesezeichen setzen"/);
+  assert.doesNotMatch(bookmark, /<span>/);
+  assert.match(markup, /class="tool-button read-status-control" id="readToggle"[\s\S]*?<span>Ungelesen<\/span>/);
+  assert.match(styles, /#shareButton > span \{ display: none; \}/);
+  assert.match(styles, /\.reader-toolbar \.read-status-control > span \{ display: inline; \}/);
 });

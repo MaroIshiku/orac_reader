@@ -304,6 +304,8 @@ button:disabled { cursor: default; }
 .toolbar-spacer { flex: 1; }
 .tool-button { border-color: transparent; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 11px; }
 .tool-button:hover { background: color-mix(in srgb, var(--surface) 56%, transparent); }
+.tool-button.icon-only { min-width: 42px; padding-left: 8px; padding-right: 8px; }
+.read-status-control { margin: 0 3px; border-left-color: var(--line); border-right-color: var(--line); }
 .download-menu { position: relative; }
 .download-menu > summary { list-style: none; cursor: pointer; }
 .download-menu > summary::-webkit-details-marker { display: none; }
@@ -668,6 +670,12 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
   .drawer-backdrop.open { display: block; }
   .reader-toolbar { height: var(--toolbar-height); top: calc(var(--header-height) + var(--offline-height)); padding: 0 5px; gap: 1px; }
   .tool-button { min-height: 42px; padding: 7px 8px; font-size: 11px; }
+  .reader-toolbar :is(.download-menu, .reader-settings-menu) > summary.tool-button > span,
+  .reader-toolbar #bookmarkToggle > span,
+  .reader-toolbar #shareButton > span { display: none; }
+  .reader-toolbar :is(.download-menu, .reader-settings-menu) > summary.tool-button,
+  .reader-toolbar :is(#bookmarkToggle, #shareButton) { min-width: 42px; padding-left: 7px; padding-right: 7px; }
+  .reader-toolbar .read-status-control { flex: 0 0 auto; }
   .download-panel { max-height: calc(100dvh - var(--header-height) - var(--offline-height) - var(--toolbar-height) - 18px); position: fixed; top: calc(var(--toolbar-height) + 5px); right: 8px; overflow-y: auto; }
   .reader-settings-panel { max-height: calc(100dvh - var(--header-height) - var(--offline-height) - var(--toolbar-height) - 18px); position: fixed; top: calc(var(--toolbar-height) + 5px); right: 8px; bottom: auto; overflow-y: auto; overscroll-behavior: contain; }
   .reader-progress { left: 0; }
@@ -735,6 +743,8 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
 @media (max-width: 420px) {
   .reader-toolbar .tool-button > span { display: none; }
   .reader-toolbar .tool-button { min-width: 42px; padding-left: 7px; padding-right: 7px; }
+  .reader-toolbar .read-status-control > span { display: inline; }
+  .reader-toolbar .read-status-control { min-width: 0; padding-left: 8px; padding-right: 8px; }
 }
 
 @media (hover: none), (pointer: coarse) {
