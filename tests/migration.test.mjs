@@ -35,7 +35,7 @@ test("die vier ursprünglichen Oracle-Akten werden verlustfrei zu einem Buch mig
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
     const migrated = JSON.parse(await readFile(join(dataDir, "library.json"), "utf8"));
-    assert.equal(migrated.schemaVersion, 13);
+    assert.equal(migrated.schemaVersion, 14);
     assert.deepEqual(migrated.links, [{ label: "Community", url: "https://example.com" }]);
     assert.deepEqual(migrated.books.map((book) => book.id), ["oracle-0000", "manual-book"]);
     const oracle = migrated.books[0];

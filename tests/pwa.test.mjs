@@ -18,7 +18,8 @@ test("PWA besitzt Manifest, Installationsoberfläche und passende App-Symbole", 
 
 test("Offline-Synchronisation speichert ausschließlich die öffentliche Bibliothek", () => {
   assert.match(worker, /url\.pathname === "\/api\/library"/);
-  assert.match(worker, /books: data\.books \|\| \[\]/);
+  assert.match(worker, /url\.pathname === "\/api\/offline-library"/);
+  assert.match(worker, /books: full\.books \|\| \[\]/);
   assert.doesNotMatch(worker, /adminBooks: data\.adminBooks/);
   assert.match(worker, /offline: true/);
   assert.match(worker, /\/markdown\.js/);
@@ -39,7 +40,7 @@ test("App-Updates ersetzen nur die Shell und behalten lokale Lesedaten", () => {
   assert.match(worker, /cache\.match\(request\)/);
   assert.doesNotMatch(worker, /ignoreSearch: true/);
   assert.match(worker, /key\.startsWith\("oracle-shell-"\) && key !== SHELL_CACHE/);
-  assert.match(worker, /client\.navigate\(client\.url\)/);
+  assert.doesNotMatch(worker, /client\.navigate\(client\.url\)/);
   assert.doesNotMatch(worker, /localStorage|indexedDB\.deleteDatabase/);
   assert.match(server, /\["index\.html", "sw\.js"\]\.includes\(requested\) \? "no-store"/);
 });

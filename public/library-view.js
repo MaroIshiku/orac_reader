@@ -15,7 +15,7 @@ export function sortBooks(books, criterion = "number", direction = "asc") {
 export function sortReaderChapters(chapters, direction = "asc") {
   const factor = directionFactor(direction);
   return [...chapters]
-    .sort((a, b) => (((Number(a.number) || 0) - (Number(b.number) || 0)) || ((Number(a.order) || 0) - (Number(b.order) || 0))) * factor)
+    .sort((a, b) => (((Number(a.order) || 0) - (Number(b.order) || 0)) || ((Number(a.number) || 0) - (Number(b.number) || 0))) * factor)
     .map((chapter) => direction === "desc" ? { ...chapter, parts: [...chapter.parts].reverse() } : chapter);
 }
 
@@ -62,10 +62,10 @@ export function findTextResults(books, query) {
   const needle = String(query || "").trim(); if (!needle) return [];
   return books.flatMap((book) => {
     const firstBookEntry = book.chapters.flatMap((chapter) => chapter.parts.map((part) => ({ chapter, part })))[0];
-    const bookResults = firstBookEntry ? [["book-title", book.title], ["book-description", book.description]].flatMap(([source, value]) => excerpts(value, needle).map((context) => ({ book, ...firstBookEntry, source, context }))) : [];
+    const bookResults = [["book-title", book.title], ["book-description", book.description]].flatMap(([source, value]) => excerpts(value, needle).map((context) => ({ book, chapter: firstBookEntry?.chapter || null, part: firstBookEntry?.part || null, source, context })));
     const chapterResults = book.chapters.flatMap((chapter) => {
       const firstPart = chapter.parts[0];
-      const metadata = firstPart ? [["chapter-title", chapter.title], ["chapter-tldr", chapter.tldr]].flatMap(([source, value]) => excerpts(value, needle).map((context) => ({ book, chapter, part: firstPart, source, context }))) : [];
+      const metadata = [["chapter-title", chapter.title], ["chapter-tldr", chapter.tldr]].flatMap(([source, value]) => excerpts(value, needle).map((context) => ({ book, chapter, part: firstPart || null, source, context })));
       const parts = chapter.parts.flatMap((part) => [["part-title", part.title], ["part-tldr", part.tldr], ["content", part.content]].flatMap(([source, value]) => excerpts(value, needle).map((context) => ({ book, chapter, part, source, context }))));
       return [...metadata, ...parts];
     });

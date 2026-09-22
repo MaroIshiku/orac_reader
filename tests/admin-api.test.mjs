@@ -5,6 +5,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import JSZip from "jszip";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
@@ -114,6 +115,18 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     await fetch(`${origin}/api/admin/books/${book.id}`, { method: "PUT", headers, body: JSON.stringify({ number: book.number, title: book.title, description: book.description, status: "published", coverImage: mediaUrl, hidden: false }) });
     const imageLibrary = await (await fetch(`${origin}/api/library`)).json();
     assert.equal(imageLibrary.books.find((item) => item.id === book.id).coverImage, mediaUrl);
+    const backupResponse = await fetch(`${origin}/api/admin/backup`, { headers });
+    assert.equal(backupResponse.status, 200);
+    assert.equal(backupResponse.headers.get("content-type"), "application/zip");
+    const backup = await JSZip.loadAsync(await backupResponse.arrayBuffer());
+    assert.ok(backup.file("library.json"));
+    assert.deepEqual(Buffer.from(await backup.file(`media/${mediaUrl.split("/").at(-1)}`).async("nodebuffer")), png);
+    const restoreResponse = await fetch(`${origin}/api/admin/backup`, { method: "PUT", headers: { Origin: origin, Cookie: cookie, "Content-Type": "application/zip" }, body: await backup.generateAsync({ type: "nodebuffer" }) });
+    assert.equal(restoreResponse.status, 200);
+    assert.equal((await restoreResponse.json()).media, 1);
+    const incompleteBackup = await JSZip.loadAsync(await backup.generateAsync({ type: "nodebuffer" })); incompleteBackup.remove(`media/${mediaUrl.split("/").at(-1)}`);
+    const incompleteRestore = await fetch(`${origin}/api/admin/backup`, { method: "PUT", headers: { Origin: origin, Cookie: cookie, "Content-Type": "application/zip" }, body: await incompleteBackup.generateAsync({ type: "nodebuffer" }) });
+    assert.equal(incompleteRestore.status, 400);
 
     const nextPartNumber = Math.max(...chapter.parts.map((item) => item.number)) + 1;
     const draftPart = await (await fetch(`${origin}/api/admin/books/${book.id}/parts`, { method: "POST", headers, body: JSON.stringify({ chapterId: chapter.id, part: nextPartNumber, releasedAt: "2026-09-19", status: "draft", partTitle: "Teil-Entwurf", content: "Dieser Inhalt bleibt zunächst in der Redaktion." }) })).json();
@@ -160,8 +173,8 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     assert.equal(collision.status, 409);
 
     const publishedMover = await (await fetch(`${origin}/api/admin/books`, { method: "POST", headers, body: JSON.stringify({ number: 997, title: "Veröffentlichte Quelle", description: "Wird nach dem Verschieben automatisch Entwurf", status: "draft" }) })).json();
-    const moverChapter = await (await fetch(`${origin}/api/admin/books/${publishedMover.id}/chapters`, { method: "POST", headers, body: JSON.stringify({ number: 7, title: "Wanderkapitel", tldr: "" }) })).json();
-    await fetch(`${origin}/api/admin/books/${publishedMover.id}/parts`, { method: "POST", headers, body: JSON.stringify({ chapterId: moverChapter.id, part: 1, partTitle: "Wanderteil", tldr: "", content: "Dieser Teil wird verschoben." }) });
+    const moverChapter = await (await fetch(`${origin}/api/admin/books/${publishedMover.id}/chapters`, { method: "POST", headers, body: JSON.stringify({ number: 7, title: "Wanderkapitel", tldr: "", status: "published" }) })).json();
+    await fetch(`${origin}/api/admin/books/${publishedMover.id}/parts`, { method: "POST", headers, body: JSON.stringify({ chapterId: moverChapter.id, part: 1, partTitle: "Wanderteil", tldr: "", content: "Dieser Teil wird verschoben.", status: "published" }) });
     await fetch(`${origin}/api/admin/books/${publishedMover.id}`, { method: "PUT", headers, body: JSON.stringify({ number: 997, title: "Veröffentlichte Quelle", description: "Wird nach dem Verschieben automatisch Entwurf", status: "published" }) });
     const moveLast = await fetch(`${origin}/api/admin/chapters/move`, { method: "PUT", headers, body: JSON.stringify({ sourceBookId: publishedMover.id, targetBookId: target.id, chapterId: moverChapter.id }) });
     assert.equal(moveLast.status, 200);
@@ -179,6 +192,7 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     assert.equal(previewBook.id, draft.id);
     assert.equal(Object.hasOwn(previewBook, "previewToken"), false);
 
+    await fetch(`${origin}/api/admin/books/${draft.id}/chapters/${firstChapter.id}`, { method: "PUT", headers, body: JSON.stringify({ number: firstChapter.number, title: firstChapter.title, tldr: firstChapter.tldr, status: "published" }) });
     const publishDraft = await fetch(`${origin}/api/admin/books/${draft.id}`, { method: "PUT", headers, body: JSON.stringify({ number: draft.number, title: draft.title, description: draft.description, status: "published" }) });
     assert.equal(publishDraft.status, 200);
     assert.equal(Object.hasOwn(await publishDraft.json(), "previewToken"), false);

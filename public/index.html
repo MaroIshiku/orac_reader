@@ -12,9 +12,6 @@
   <link rel="icon" type="image/png" href="/oracle-logo.png">
   <link rel="apple-touch-icon" href="/pwa-icon-192.png">
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css?v=__APP_VERSION__">
 </head>
 <body data-theme="paper" data-view="scroll">
@@ -44,6 +41,7 @@
     <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 14 7-7 7 7"></path></symbol>
     <symbol id="i-install" viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"></path></symbol>
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"></path></symbol>
+    <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M7 4h10v17l-5-3-5 3z"></path></symbol>
     <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6"></path></symbol>
     <symbol id="i-offline" viewBox="0 0 24 24"><path d="M4 9.5A12 12 0 0 1 12 6c3.1 0 5.9 1.2 8 3.2M7.5 13a7.2 7.2 0 0 1 4.5-1.6c1.1 0 2.2.3 3.1.7M11.7 17.5h.6M3 3l18 18"></path></symbol>
   </svg>
@@ -68,6 +66,7 @@
     <section class="home-shelves" id="homeShelves">
       <div id="continueShelf" hidden><p class="eyebrow">WEITERLESEN</p><div class="shelf-row" id="continueBook"></div></div>
       <div id="recentShelf" hidden><p class="eyebrow">ZULETZT GELESEN</p><div class="shelf-row" id="recentBooks"></div></div>
+      <div id="bookmarkShelf" hidden><p class="eyebrow">LESEZEICHEN</p><div class="shelf-row" id="bookmarkBooks"></div><button class="shelf-more" id="allBookmarksButton" type="button" hidden>Alle Lesezeichen anzeigen</button></div>
       <div><p class="eyebrow">NEU VERÖFFENTLICHT</p><div class="shelf-row" id="newBooks"></div></div>
     </section>
     <section class="library-section" aria-labelledby="libraryHeading">
@@ -113,6 +112,7 @@
           </div>
         </details>
         <button class="tool-button" id="readToggle" aria-label="Lesestatus ändern" title="Lesestatus ändern"><svg class="ui-icon"><use href="#i-unread"></use></svg><span>Ungelesen</span></button>
+        <button class="tool-button" id="bookmarkToggle" aria-label="Lesezeichen setzen" title="Lesezeichen setzen"><svg class="ui-icon"><use href="#i-bookmark"></use></svg><span>Merken</span></button>
         <button class="tool-button" id="shareButton" aria-label="Diesen Teil teilen" title="Diesen Teil teilen"><svg class="ui-icon"><use href="#i-share"></use></svg><span>Teilen</span></button>
         <details class="reader-settings-menu" id="readerSettingsMenu">
           <summary class="tool-button" aria-label="Leseeinstellungen öffnen"><svg class="ui-icon"><use href="#i-settings"></use></svg><span>Lesen</span></summary>
@@ -123,6 +123,7 @@
             <div class="reader-setting-row"><span>Hintergrund</span><div class="theme-picker" id="themePicker" aria-label="Hintergrundfarbe"><button data-theme-choice="paper" class="swatch paper active" aria-label="Papier"></button><button data-theme-choice="sand" class="swatch sand" aria-label="Sand"></button><button data-theme-choice="mist" class="swatch mist" aria-label="Nebel"></button><button data-theme-choice="night" class="swatch night" aria-label="Nacht"></button></div></div>
             <div class="reader-setting-actions"><button id="viewToggle" aria-label="Leseansicht wechseln"><svg class="ui-icon"><use href="#i-scroll"></use></svg><span id="viewLabel">Scrollen</span></button><button id="motionToggle" aria-label="Animationen ausschalten" aria-pressed="true"><svg class="ui-icon"><use href="#i-motion"></use></svg><span id="motionLabel">Animationen an</span></button></div>
             <label class="reader-setting-row reader-order-setting"><span>Reihenfolge</span><select id="readerOrder"><option value="asc">Normal</option><option value="desc">Umgekehrt</option></select></label>
+            <div class="reader-setting-actions"><button id="exportReaderData">Lesedaten sichern</button><button id="importReaderData" type="button">Lesedaten laden</button><input id="readerDataFile" type="file" accept="application/json,.json" hidden></div>
           </section>
         </details>
       </div>
@@ -148,7 +149,7 @@
         </article>
         <nav class="page-controls" id="pageControls" aria-label="Seitensteuerung">
           <button id="pagePrev" aria-label="Vorherige Seite"><svg class="ui-icon"><use href="#i-arrow-left"></use></svg></button>
-          <span id="pageCounter">1 / 1</span>
+          <label class="page-jump"><span class="visually-hidden">Seite</span><input id="pageNumber" type="number" min="1" value="1" inputmode="numeric" aria-label="Seite aufrufen"><span>/</span><output id="pageTotal" for="pageNumber">1</output></label>
           <button id="pageNext" aria-label="Nächste Seite"><svg class="ui-icon"><use href="#i-arrow-right"></use></svg></button>
         </nav>
         <div class="reader-progress" role="progressbar" aria-label="Lesefortschritt" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progressLabel">0%</span><div><i id="progressBar"></i></div></div>
@@ -178,7 +179,7 @@
       </header>
       <div class="admin-dashboard">
         <aside class="admin-rail">
-          <div><p class="eyebrow">ARBEITSBEREICHE</p><nav class="admin-tabs" aria-label="Administrationsbereiche"><button class="active" aria-current="page" data-admin-tab="books"><span>Inhalte</span><small>Bücher und Kapitel</small></button><button data-admin-tab="display"><span>Darstellung</span><small>Begriffe und Nummern</small></button><button data-admin-tab="links"><span>Links</span><small>Externe Verweise</small></button></nav></div>
+          <div><p class="eyebrow">ARBEITSBEREICHE</p><nav class="admin-tabs" aria-label="Administrationsbereiche"><button class="active" aria-current="page" data-admin-tab="books"><span>Inhalte</span><small>Bücher und Kapitel</small></button><button data-admin-tab="display"><span>Darstellung</span><small>Begriffe und Nummern</small></button><button data-admin-tab="links"><span>Links</span><small>Externe Verweise</small></button><button data-admin-tab="data"><span>Sicherung</span><small>Backup und Verlauf</small></button></nav></div>
           <section class="admin-summary" aria-label="Archivbestand">
             <p class="eyebrow">ARCHIVBESTAND</p>
             <dl><div><dt>Bücher</dt><dd id="adminBookCount">0</dd></div><div><dt>Kapitel</dt><dd id="adminChapterCount">0</dd></div><div><dt>Teile</dt><dd id="adminPartCount">0</dd></div><div><dt>Entwürfe</dt><dd id="adminDraftCount">0</dd></div></dl>
@@ -188,8 +189,9 @@
         <section class="admin-workspace">
           <div id="booksAdmin">
             <header class="admin-workspace-heading"><div><p class="eyebrow">INHALTE</p><h1>Bibliothek verwalten</h1><p>Bücher, Kapitel und Leseteile anlegen, ordnen und veröffentlichen.</p></div><button class="primary-button with-icon" id="newBookButton"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Neues Buch</span></button></header>
-        <label class="search-box admin-structure-search"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input id="adminStructureSearch" type="search" aria-label="Inhalte vollständig durchsuchen" placeholder="Wörter in allen Texten suchen…" autocomplete="off"></label>
+        <div class="admin-content-controls"><label class="search-box admin-structure-search"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input id="adminStructureSearch" type="search" aria-label="Inhalte vollständig durchsuchen" placeholder="Wörter in allen Texten suchen…" autocomplete="off"></label><label class="admin-status-filter"><span>Status</span><select id="adminStatusFilter"><option value="all">Alle Inhalte</option><option value="draft">Mit Entwürfen</option><option value="scheduled">Geplant</option><option value="published">Veröffentlicht</option><option value="hidden">Ausgeblendet</option></select></label></div>
         <p class="admin-hint admin-sort-hint">Gliederungsebenen lassen sich am Griff sortieren und auch in andere Bücher ziehen. Alternativ stehen Pfeile und das Zielmenü bereit. Die offizielle Nummer bleibt unverändert.</p>
+        <section class="admin-schedule" id="adminSchedule" aria-labelledby="adminScheduleTitle" hidden><div><p class="eyebrow">VERÖFFENTLICHUNGSPLAN</p><h2 id="adminScheduleTitle">Als Nächstes geplant</h2></div><div id="adminScheduleList"></div></section>
         <section class="admin-search-results" id="adminSearchResults" aria-live="polite" hidden><p class="search-result-count" id="adminSearchResultCount"></p><div id="adminSearchResultList"></div></section>
         <div class="admin-book-list" id="adminBookList"></div>
         <div class="admin-editor-empty" id="adminEditorEmpty"><span>EDITOR</span><h2>Wähle einen Eintrag</h2><p>Bearbeite ein Buch, Kapitel oder einen Leseteil – oder lege einen neuen Inhalt an.</p></div>
@@ -212,6 +214,8 @@
           <div class="form-title"><div><p class="eyebrow" id="chapterFormEyebrow">KAPITEL</p><h3 id="chapterFormTitle">Kapitel anlegen</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
           <div class="form-grid">
             <label><span id="chapterNumberLabel">Kapitelnummer *</span><input name="number" type="number" min="0" value="0" required></label>
+            <label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label>
+            <label class="wide" id="chapterPublishField">Geplante Veröffentlichung<input name="publishAt" type="datetime-local"></label>
             <label><span id="chapterNameLabel">Kapitelname *</span><input name="title" required maxlength="160"></label>
             <label class="wide"><span id="chapterTldrLabel">Kapitel-TL;DR</span><textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label>
             <label class="checkbox-label wide"><input name="hidden" type="checkbox"><span id="chapterHiddenLabel">Dieses Kapitel öffentlich ausblenden</span></label>
@@ -264,13 +268,20 @@
         </div>
         <button class="primary-button" type="submit">Darstellung speichern</button>
       </form>
-          <form id="linksAdmin" class="admin-settings-panel" hidden>
+      <form id="linksAdmin" class="admin-settings-panel" hidden>
         <header class="admin-workspace-heading"><div><p class="eyebrow">LINKS</p><h1>Externe Verweise</h1><p>Verwalte die Links in der Kopfzeile des öffentlichen Archivs.</p></div></header>
         <p class="admin-hint">Bis zu acht Verweise. Unterstützt werden <code>https://</code>, <code>http://</code> und <code>discord://</code> zum direkten Öffnen der Discord-App.</p>
         <div id="linkRows"></div>
         <button type="button" class="secondary-button with-icon" id="addLink"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Link hinzufügen</span></button>
         <button class="primary-button" type="submit">Links speichern</button>
       </form>
+          <section id="dataAdmin" class="admin-settings-panel" hidden>
+            <header class="admin-workspace-heading"><div><p class="eyebrow">SICHERUNG</p><h1>Backup und Wiederherstellung</h1><p>Gesamte Bibliothek sichern oder einen früheren Stand wiederherstellen.</p></div></header>
+            <p class="admin-hint">Das heruntergeladene ZIP enthält Bibliothek und Bilder. Vor jeder Änderung legt OracReader außerdem automatisch einen Wiederherstellungspunkt an und behält die letzten 50 Stände.</p>
+            <div class="backup-actions"><a class="primary-button" href="/api/admin/backup" download>Vollständiges Backup herunterladen</a><button class="secondary-button" id="importBackup" type="button">Backup einspielen</button><input id="backupFile" type="file" accept="application/zip,.zip,application/json,.json" hidden></div>
+            <p class="form-error" id="backupError"></p>
+            <div id="backupList" class="backup-list"></div>
+          </section>
         </section>
       </div>
     </section>
@@ -282,6 +293,12 @@
     <p id="installInstructions">Installiere das Archiv über das Browsermenü auf deinem Startbildschirm. Danach bleibt der zuletzt synchronisierte Stand auch ohne Verbindung lesbar.</p>
     <button class="primary-button" id="nativeInstallButton" hidden><svg class="ui-icon" aria-hidden="true"><use href="#i-install"></use></svg><span>Jetzt installieren</span></button>
     <button class="secondary-button" id="installDone">Verstanden</button>
+  </dialog>
+  <dialog class="install-dialog bookmark-dialog" id="bookmarkDialog" aria-labelledby="bookmarkDialogTitle">
+    <button class="dialog-close" id="bookmarkDialogClose" aria-label="Schließen"><svg class="ui-icon"><use href="#i-close"></use></svg></button>
+    <p class="eyebrow">LESEZEICHEN</p>
+    <h2 id="bookmarkDialogTitle">Gespeicherte Stellen</h2>
+    <div class="bookmark-dialog-list" id="bookmarkDialogList"></div>
   </dialog>
   <div class="toast" id="toast" role="status"></div>
   <script type="module" src="/app.js?v=__APP_VERSION__"></script>

@@ -32,3 +32,12 @@ test("unbekannte Exportziele werden abgewiesen", () => {
   assert.equal(selectExport(book, "chapter", "missing"), null);
   assert.equal(selectExport(book, "part", "missing"), null);
 });
+
+test("EPUB bündelt Markdownbilder und erzeugt XML-gültige Entities", async () => {
+  const filename = `${"a".repeat(32)}.png`; const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5WQAAAAASUVORK5CYII=", "base64");
+  const withImage = structuredClone(book); withImage.chapters[0].parts[0].content = `Ein&nbsp;Abstand.\n\n![Testbild](/media/${filename})`;
+  const archive = await JSZip.loadAsync(await createEpub(selectExport(withImage, "book"), { readMedia: async (requested) => { assert.equal(requested, filename); return image; } }));
+  assert.deepEqual(await archive.file(`OEBPS/media/${filename}`).async("nodebuffer"), image);
+  const page = await archive.file("OEBPS/text/part-1.xhtml").async("string");
+  assert.match(page, /&#160;/); assert.match(page, new RegExp(`src="../media/${filename}"`));
+});

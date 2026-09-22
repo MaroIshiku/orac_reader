@@ -65,3 +65,10 @@ test("Admin-Volltextsuche liefert jede einzelne Fundstelle mit Kontext", () => {
   assert.ok(results.every((result) => result.source === "content"));
   assert.deepEqual(results.map((result) => result.context.match), ["Try", "Try", "Try"]);
 });
+
+test("Adminsuche findet auch Bücher und Kapitel ohne Leseteile", () => {
+  const library = [{ id: "empty-book", number: 1, title: "Leeres Testbuch", description: "", chapters: [{ id: "empty-chapter", number: 1, title: "Ungefülltes Testkapitel", tldr: "", parts: [] }] }];
+  const bookResult = findTextResults(library, "Testbuch")[0]; const chapterResult = findTextResults(library, "Testkapitel")[0];
+  assert.equal(bookResult.source, "book-title"); assert.equal(bookResult.part, null);
+  assert.equal(chapterResult.source, "chapter-title"); assert.equal(chapterResult.part, null);
+});

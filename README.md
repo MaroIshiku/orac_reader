@@ -1,16 +1,16 @@
 # ORACLE Archiv
 
-Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. Das öffentliche Repository enthält bewusst keine mitgelieferten Geschichten; Inhalte werden ausschließlich im persistenten Datenverzeichnis der jeweiligen Installation gepflegt.
+Eigenständiger, öffentlicher Reader für `oracread.ishiku.de`. Das öffentliche Repository enthält bewusst keine mitgelieferten Geschichten; Inhalte werden ausschließlich im persistenten Datenverzeichnis der jeweiligen Installation gepflegt.
 
 ## Enthalten
 
 - öffentliche Bibliothek mit sortierbaren Büchern und schneller Struktursuche nach Buch-, Kapitel- und Teilenamen sowie Nummern
 - pro Buch frei benennbare Struktur, standardmäßig Buch → Kapitel → Episode; Oracle verwendet Archiv → Akte → Fragment
 - getrennte Nummerierung pro Buch und Ebene als `1`, `01`, `001`, `0001`, römische Groß- oder Kleinzahl
-- automatische Leseposition, Fortschritt und synchronisierter Gelesen-Status im jeweiligen Browser – ohne Leserkonto
+- positionsgenaue Lesestellen, Lesezeichen, Fortschritt und synchronisierter Gelesen-Status im jeweiligen Browser – ohne Leserkonto
 - kompakte Leseeinstellungen in der Reader-Leiste mit vier Themes, verstellbarer Schriftgröße, Serif/Serifenlos, normaler oder umgekehrter Inhaltsübersicht sowie Scroll- und Seitenansicht
 - Download veröffentlichter Bücher, Kapitel und Einzelteile als EPUB oder gesetztes PDF
-- geschützter Adminbereich mit kryptischen Vorschaulinks sowie Entwürfen und geplanten Veröffentlichungen für Bücher und einzelne Leseteile
+- geschützter Adminbereich mit kryptischen Vorschaulinks, verständlicher Sichtbarkeitshierarchie, Statusfiltern und Veröffentlichungsplan für Bücher, Kapitel und einzelne Leseteile
 - eigenständige Vollbild-Redaktion unter `/admin` mit getrennten Bereichen für Inhalte, Darstellung und Links
 - Volltextsuche in der geschützten Redaktion, die jede Fundstelle samt Kontext direkt zum passenden Editor führt
 - getrennte Bearbeitungsmasken für Buch, Kapitel und Episode; jede Ebene kann gezielt öffentlich ausgeblendet werden
@@ -24,6 +24,7 @@ Eigenständiger, öffentlicher Reader für `oracle.ishiku.de`. Das öffentliche 
 - Teilen einzelner Episoden, Touch-Blätterzonen, Tastatursteuerung und abschaltbare Blätteranimationen
 - als PWA auf Mobilgeräten installierbar; App-Updates erneuern automatisch nur die Programmdateien, während Lesestatus, Lesezeichen und Fortschritt erhalten bleiben
 - die letzte erfolgreich synchronisierte öffentliche Archivfassung bleibt offline vollständig lesbar
+- vollständige ZIP-Sicherungen aus Bibliothek und Bildern mit geprüfter Wiederherstellung; ältere JSON-Sicherungen bleiben importierbar
 - persistente Inhalte unter `/data`
 
 ## Geschichten importieren
@@ -46,7 +47,7 @@ Das Secret muss vor dem Start als `ORACLE_READER_ADMIN_PASSWORD` gesetzt werden 
 ORACLE_READER_ADMIN_PASSWORD=ein-sehr-langes-eigenes-passwort
 ```
 
-Danach mit `docker compose pull && docker compose up -d` starten. Verwendet wird `ghcr.io/maroishiku/orac_reader:latest`. Der Reverse Proxy für `oracle.ishiku.de` zeigt auf Port `4180`. SSL/HTTPS muss am Proxy aktiv sein, da der produktive Sitzungscookie nur über HTTPS übertragen wird.
+Danach mit `docker compose pull && docker compose up -d` starten. Verwendet wird `ghcr.io/maroishiku/orac_reader:latest`. Der Reverse Proxy für `oracread.ishiku.de` zeigt wie bisher auf den Host-Port `4180`; ein gemeinsames Docker-Netz ist nicht erforderlich. SSL/HTTPS muss am Proxy aktiv sein und `X-Forwarded-Proto`, `X-Forwarded-Host` sowie `X-Forwarded-For` selbst setzen und eingehende Werte überschreiben. `TRUST_PROXY_HOPS=1` vertraut genau diesem letzten Proxy-Hop. HTTP muss auf HTTPS umgeleitet werden; der Reader leitet zusätzlich selbst um, wenn der Proxy `X-Forwarded-Proto: http` meldet. Für `/sw.js` darf der Proxy keinen eigenen Browsercache hinzufügen, damit installierte Apps neue Versionen zeitnah erkennen.
 
 Der persistente Stand liegt auf dem Host in `./data-runtime` und bleibt bei Containerupdates erhalten.
 
