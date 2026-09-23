@@ -59,6 +59,7 @@
     <a class="quiet-button" id="adminOpen" href="/admin">Admin</a>
   </header>
   <div class="offline-banner" id="offlineBanner" role="status" hidden><svg class="ui-icon" aria-hidden="true"><use href="#i-offline"></use></svg><span id="offlineLabel">Offline · gespeicherter Archivstand</span></div>
+  <div class="storage-warning" id="storageWarning" role="alert" hidden>Lesedaten konnten nicht gespeichert werden. Bitte Browserspeicher freigeben; neue Lesestände gehen sonst beim Schließen verloren.</div>
 
   <main id="homeView" class="home-view">
     <button class="floating-explore" id="continueButton"><span>Archiv entdecken</span><svg class="ui-icon"><use href="#i-arrow-down"></use></svg></button>
@@ -102,7 +103,7 @@
       <div class="reader-toolbar">
         <button class="tool-button mobile-only" id="chapterToggle" aria-label="Inhaltsübersicht öffnen" aria-controls="chapterDrawer" aria-expanded="false"><svg class="ui-icon"><use href="#i-menu"></use></svg><span id="chapterToggleLabel">Kapitel</span></button>
         <div class="toolbar-spacer"></div>
-        <button class="tool-button read-status-control" id="readToggle" aria-label="Lesestatus ändern" title="Lesestatus ändern"><svg class="ui-icon"><use href="#i-unread"></use></svg><span>Ungelesen</span></button>
+        <button class="tool-button read-status-control" id="readToggle" aria-label="Lesestatus: ungelesen" aria-pressed="false" title="Als gelesen markieren"><svg class="ui-icon"><use href="#i-unread"></use></svg><span>Ungelesen</span></button>
         <details class="download-menu" id="downloadMenu">
           <summary class="tool-button icon-only" aria-label="Inhalt herunterladen" title="Inhalt herunterladen"><svg class="ui-icon"><use href="#i-download"></use></svg></summary>
           <div class="download-panel">
@@ -123,7 +124,7 @@
             <div class="reader-setting-row"><span>Ansicht</span><button class="reader-setting-value" id="viewToggle" aria-label="Leseansicht wechseln"><svg class="ui-icon"><use href="#i-scroll"></use></svg><span id="viewLabel">Scrollen</span></button></div>
             <div class="reader-setting-row"><span>Animationen</span><button class="reader-setting-value" id="motionToggle" aria-label="Animationen" aria-pressed="true"><svg class="ui-icon"><use href="#i-motion"></use></svg><span id="motionLabel">An</span></button></div>
             <label class="reader-setting-row reader-order-setting"><span>Reihenfolge</span><select id="readerOrder"><option value="asc">Normal</option><option value="desc">Umgekehrt</option></select></label>
-            <div class="reader-data-heading">Lesedaten</div><div class="reader-setting-actions"><button id="exportReaderData">Sichern</button><button id="importReaderData" type="button">Laden</button><input id="readerDataFile" type="file" accept="application/json,.json" hidden></div><p class="reader-data-error" id="readerDataError" role="alert" hidden></p>
+            <div class="reader-data-heading">Lesedaten</div><p class="reader-data-note">Fortschritt und Lesestatus werden auf diesem Gerät gespeichert. Ab etwa 90 % gilt ein Teil automatisch als gelesen; die Schaltfläche oben ändert den Status manuell. Für andere Geräte Daten sichern und dort laden.</p><div class="reader-setting-actions"><button id="exportReaderData">Sichern</button><button id="importReaderData" type="button">Laden</button><input id="readerDataFile" type="file" accept="application/json,.json" hidden></div><p class="reader-data-error" id="readerDataError" role="alert" hidden></p>
           </section>
         </details>
       </div>
@@ -192,7 +193,7 @@
             <header class="admin-workspace-heading"><div><p class="eyebrow">INHALTE</p><h1>Bibliothek verwalten</h1><p>Bücher, Kapitel und Leseteile anlegen, ordnen und veröffentlichen.</p></div><button class="primary-button with-icon" id="newBookButton"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Neues Buch</span></button></header>
         <div class="admin-content-controls"><label class="search-box admin-structure-search"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input id="adminStructureSearch" type="search" aria-label="Inhalte vollständig durchsuchen" placeholder="Wörter in allen Texten suchen…" autocomplete="off"></label><label class="admin-status-filter"><span>Status</span><select id="adminStatusFilter"><option value="all">Alle Inhalte</option><option value="draft">Mit Entwürfen</option><option value="scheduled">Geplant</option><option value="published">Veröffentlicht</option><option value="hidden">Ausgeblendet</option></select></label></div>
         <p class="admin-hint admin-sort-hint">Gliederungsebenen lassen sich am Griff sortieren und auch in andere Bücher ziehen. Alternativ stehen Pfeile und das Zielmenü bereit. Die offizielle Nummer bleibt unverändert.</p>
-        <section class="admin-schedule" id="adminSchedule" aria-labelledby="adminScheduleTitle" hidden><div><p class="eyebrow">VERÖFFENTLICHUNGSPLAN</p><h2 id="adminScheduleTitle">Als Nächstes geplant</h2></div><div id="adminScheduleList"></div></section>
+        <section class="admin-schedule" id="adminSchedule" aria-labelledby="adminScheduleTitle" hidden><div><p class="eyebrow">VERÖFFENTLICHUNGSPLAN</p><h2 id="adminScheduleTitle">Als Nächstes geplant</h2><button id="adminScheduleToggle" type="button" aria-controls="adminScheduleList" aria-expanded="false" hidden>Termine anzeigen</button></div><div id="adminScheduleList"></div></section>
         <section class="admin-search-results" id="adminSearchResults" aria-live="polite" hidden><p class="search-result-count" id="adminSearchResultCount"></p><div id="adminSearchResultList"></div></section>
         <div class="admin-book-list" id="adminBookList"></div>
         <div class="admin-editor-empty" id="adminEditorEmpty"><span>EDITOR</span><h2>Wähle einen Eintrag</h2><p>Bearbeite ein Buch, Kapitel oder einen Leseteil – oder lege einen neuen Inhalt an.</p></div>
@@ -233,6 +234,7 @@
             <details class="editor-optional wide" open><summary>Veröffentlichung</summary><div class="form-grid"><label><span id="partChapterLabel">Kapitel *</span><select name="chapterId" required></select></label><label><span id="partNumberLabel">Episodennummer *</span><input name="part" type="number" min="1" value="1" required></label><label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label><label><span id="partReleaseLabel">Releasedatum *</span><input name="releasedAt" type="text" inputmode="numeric" placeholder="TT.MM.JJJJ" pattern="(?:0[1-9]|[12][0-9]|3[01])\.(?:0[1-9]|1[0-2])\.[0-9]{4}" autocomplete="off" required></label><label class="wide" id="partPublishField">Geplante Veröffentlichung<input name="publishAt" type="datetime-local"></label></div></details>
             <details class="editor-optional wide" data-optional><summary>Zusatzangaben · Bild, Kurzfassung und Sichtbarkeit</summary><div class="form-grid"><div class="image-upload wide"><img id="partImagePreview" alt="Bildvorschau des Teils" hidden><div class="media-placeholder">Noch kein Bild</div><label class="media-select"><span id="partImageLabel">Bild auswählen</span><input id="partImageFile" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif"></label><small class="media-filename" id="partImageName">PNG, JPG, GIF, WebP oder AVIF · bis 12 MB</small><label class="checkbox-label" id="partRemoveImageLabel"><input name="removeImage" type="checkbox"><span>Vorhandenes Bild entfernen</span></label></div><label class="wide"><span id="partTldrFormLabel">Episoden-TL;DR</span><textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label><label class="checkbox-label wide"><input name="hidden" type="checkbox"><span id="partHiddenLabel">Diese Episode öffentlich ausblenden</span></label></div></details>
           </div>
+          <p class="editor-scroll-note" id="partEditorScrollNote" hidden>Weitere Felder im Formular nach unten scrollen.</p>
           <p class="form-error" id="partFormError"></p>
           <button class="primary-button" type="submit" id="partSaveLabel">Episode speichern</button>
         </form>
@@ -297,7 +299,7 @@
     <h2 id="bookmarkDialogTitle">Gespeicherte Stellen</h2>
     <div class="bookmark-dialog-list" id="bookmarkDialogList"></div>
   </dialog>
-  <dialog class="book-details-dialog" id="bookDetailsDialog" aria-labelledby="bookDetailsTitle"><button class="dialog-close" id="bookDetailsClose" type="button" aria-label="Buchdetails schließen"><svg class="ui-icon"><use href="#i-close"></use></svg></button><div id="bookDetailsContent"></div></dialog>
+  <dialog class="book-details-dialog" id="bookDetailsDialog" aria-labelledby="bookDetailsTitle"><button class="dialog-close" id="bookDetailsClose" type="button" aria-label="Buchdetails schließen"><svg class="ui-icon"><use href="#i-close"></use></svg></button><div id="bookDetailsContent"></div><div id="bookDetailsActions"></div></dialog>
   <div class="toast" id="toast" role="status"></div>
   <script type="module" src="/app.js?v=__APP_VERSION__"></script>
 </body>

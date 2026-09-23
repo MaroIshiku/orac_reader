@@ -6,6 +6,7 @@
   "scripts": {
     "import": "node scripts/import-stories.mjs",
     "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/reader-browser.mjs",
     "start": "node server.mjs",
     "dev": "node server.mjs"
   },
@@ -18,5 +19,8 @@
     "marked": "18.0.13",
     "pdfkit": "^0.20.2",
     "sharp": "^0.35.4"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }
