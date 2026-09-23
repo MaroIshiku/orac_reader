@@ -55,7 +55,7 @@
       <summary aria-label="Externe Links öffnen"><svg class="ui-icon"><use href="#i-link"></use></svg><span>Links</span></summary>
       <nav id="mobileLinks" aria-label="Externe Links"></nav>
     </details>
-    <button class="quiet-button install-button" id="installButton" hidden><svg class="ui-icon" aria-hidden="true"><use href="#i-install"></use></svg><span>App</span></button>
+    <button class="quiet-button install-button" id="installButton" aria-label="App installieren" title="App installieren" hidden><svg class="ui-icon" aria-hidden="true"><use href="#i-install"></use></svg><span>App</span></button>
     <a class="quiet-button" id="adminOpen" href="/admin">Admin</a>
   </header>
   <div class="offline-banner" id="offlineBanner" role="status" hidden><svg class="ui-icon" aria-hidden="true"><use href="#i-offline"></use></svg><span id="offlineLabel">Offline · gespeicherter Archivstand</span></div>
@@ -73,7 +73,7 @@
       <div class="section-heading">
         <div><p class="eyebrow">BIBLIOTHEK</p><h2 id="libraryHeading">Veröffentlichte Bücher</h2></div>
         <div class="library-controls">
-          <label class="search-box"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input id="bookSearch" type="search" aria-label="Bücher, Kapitel und Teile durchsuchen" placeholder="Bücher, Kapitel, Teile suchen…" autocomplete="off"></label>
+          <label class="search-box"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input id="bookSearch" type="search" aria-label="Bücher, Kapitel und Teile durchsuchen" placeholder="Bücher, Kapitel, Teile suchen…" autocomplete="off"></label><output class="library-search-count" id="librarySearchCount" aria-live="polite" hidden></output>
           <div class="library-sort" aria-label="Bücher sortieren">
             <label><span>Sortierung</span><select id="bookSortBy"><option value="number">Buchnummer</option><option value="alphabetical">Alphabet</option><option value="release">Veröffentlichung</option></select></label>
             <label><span>Richtung</span><select id="bookSortDirection"><option value="asc">Aufsteigend</option><option value="desc">Absteigend</option></select></label>
@@ -82,7 +82,7 @@
       </div>
       <div class="book-grid" id="bookGrid"></div>
       <section class="search-results" id="searchResults" aria-live="polite" hidden><p class="search-result-count" id="searchResultCount"></p><div id="searchResultList"></div></section>
-      <div class="empty-state" id="emptyLibrary" hidden>Noch keine Bücher veröffentlicht.</div>
+      <div class="empty-state" id="emptyLibrary" hidden><h3 id="emptyLibraryTitle">Noch keine Bücher veröffentlicht</h3><p id="emptyLibraryMessage">Sobald ein Buch erscheint, findest du es hier.</p><button class="secondary-button" type="button" id="clearLibrarySearch" hidden>Suche zurücksetzen</button></div>
     </section>
   </main>
 
@@ -101,7 +101,6 @@
     <section class="reading-shell">
       <div class="reader-toolbar">
         <button class="tool-button mobile-only" id="chapterToggle" aria-label="Inhaltsübersicht öffnen" aria-controls="chapterDrawer" aria-expanded="false"><svg class="ui-icon"><use href="#i-menu"></use></svg><span id="chapterToggleLabel">Kapitel</span></button>
-        <span class="reader-status-badge" id="readerStatusBadge" hidden>ENTWURFSVORSCHAU</span>
         <div class="toolbar-spacer"></div>
         <button class="tool-button read-status-control" id="readToggle" aria-label="Lesestatus ändern" title="Lesestatus ändern"><svg class="ui-icon"><use href="#i-unread"></use></svg><span>Ungelesen</span></button>
         <details class="download-menu" id="downloadMenu">
@@ -112,21 +111,23 @@
             <div><strong id="downloadPartLabel">Teil</strong><span><a data-export-scope="part" data-export-format="epub">EPUB</a><a data-export-scope="part" data-export-format="pdf">PDF</a></span></div>
           </div>
         </details>
-        <button class="tool-button icon-only" id="bookmarkToggle" aria-label="Lesezeichen setzen" title="Lesezeichen setzen"><svg class="ui-icon"><use href="#i-bookmark"></use></svg></button>
+        <button class="tool-button icon-only" id="bookmarkToggle" aria-label="Lesezeichen setzen" aria-pressed="false" title="Lesezeichen setzen"><svg class="ui-icon"><use href="#i-bookmark"></use></svg></button>
         <button class="tool-button icon-only" id="shareButton" aria-label="Diesen Teil teilen" title="Diesen Teil teilen"><svg class="ui-icon"><use href="#i-share"></use></svg></button>
         <details class="reader-settings-menu" id="readerSettingsMenu">
           <summary class="tool-button icon-only" aria-label="Leseeinstellungen öffnen" title="Leseeinstellungen öffnen"><svg class="ui-icon"><use href="#i-settings"></use></svg></summary>
           <section class="reader-settings-panel" aria-labelledby="readerSettingsTitle">
             <p class="eyebrow" id="readerSettingsTitle">LESEANSICHT</p>
-            <div class="reader-setting-row"><span>Schriftgröße</span><div class="compact-actions"><button class="tool-button" id="fontDown" aria-label="Schrift verkleinern" title="Schrift verkleinern"><svg class="ui-icon"><use href="#i-font-down"></use></svg></button><button class="tool-button" id="fontUp" aria-label="Schrift vergrößern" title="Schrift vergrößern"><svg class="ui-icon"><use href="#i-font-up"></use></svg></button></div></div>
+            <div class="reader-setting-row"><span>Schriftgröße</span><div class="compact-actions"><button class="tool-button" id="fontDown" aria-label="Schrift verkleinern" title="Schrift verkleinern"><svg class="ui-icon"><use href="#i-font-down"></use></svg></button><output id="fontSizeValue" aria-label="Aktuelle Schriftgröße">19</output><button class="tool-button" id="fontUp" aria-label="Schrift vergrößern" title="Schrift vergrößern"><svg class="ui-icon"><use href="#i-font-up"></use></svg></button></div></div>
             <label class="reader-setting-row"><span>Schriftart</span><select id="fontFamily"><option value="serif">Mit Serifen</option><option value="sans">Serifenlos</option></select></label>
-            <div class="reader-setting-row"><span>Hintergrund</span><div class="theme-picker" id="themePicker" aria-label="Hintergrundfarbe"><button data-theme-choice="paper" class="swatch paper active" aria-label="Papier"></button><button data-theme-choice="sand" class="swatch sand" aria-label="Sand"></button><button data-theme-choice="mist" class="swatch mist" aria-label="Nebel"></button><button data-theme-choice="night" class="swatch night" aria-label="Nacht"></button></div></div>
-            <div class="reader-setting-actions"><button id="viewToggle" aria-label="Leseansicht wechseln"><svg class="ui-icon"><use href="#i-scroll"></use></svg><span id="viewLabel">Scrollen</span></button><button id="motionToggle" aria-label="Animationen ausschalten" aria-pressed="true"><svg class="ui-icon"><use href="#i-motion"></use></svg><span id="motionLabel">Animationen an</span></button></div>
+            <div class="reader-setting-row"><span>Hintergrund</span><div class="theme-picker" id="themePicker" role="group" aria-label="Hintergrundfarbe"><button data-theme-choice="paper" class="swatch paper active" aria-label="Papier" aria-pressed="true"></button><button data-theme-choice="sand" class="swatch sand" aria-label="Sand" aria-pressed="false"></button><button data-theme-choice="mist" class="swatch mist" aria-label="Nebel" aria-pressed="false"></button><button data-theme-choice="night" class="swatch night" aria-label="Nacht" aria-pressed="false"></button></div></div>
+            <div class="reader-setting-row"><span>Ansicht</span><button class="reader-setting-value" id="viewToggle" aria-label="Leseansicht wechseln"><svg class="ui-icon"><use href="#i-scroll"></use></svg><span id="viewLabel">Scrollen</span></button></div>
+            <div class="reader-setting-row"><span>Animationen</span><button class="reader-setting-value" id="motionToggle" aria-label="Animationen" aria-pressed="true"><svg class="ui-icon"><use href="#i-motion"></use></svg><span id="motionLabel">An</span></button></div>
             <label class="reader-setting-row reader-order-setting"><span>Reihenfolge</span><select id="readerOrder"><option value="asc">Normal</option><option value="desc">Umgekehrt</option></select></label>
-            <div class="reader-setting-actions"><button id="exportReaderData">Lesedaten sichern</button><button id="importReaderData" type="button">Lesedaten laden</button><input id="readerDataFile" type="file" accept="application/json,.json" hidden></div>
+            <div class="reader-data-heading">Lesedaten</div><div class="reader-setting-actions"><button id="exportReaderData">Sichern</button><button id="importReaderData" type="button">Laden</button><input id="readerDataFile" type="file" accept="application/json,.json" hidden></div><p class="reader-data-error" id="readerDataError" role="alert" hidden></p>
           </section>
         </details>
       </div>
+      <div class="reader-preview-strip" id="readerPreviewStrip" hidden><span class="reader-status-badge" id="readerStatusBadge">ENTWURFSVORSCHAU</span></div>
 
       <div class="reading-viewport" id="readingViewport">
         <button class="page-edge page-edge-prev" id="pageEdgePrev" aria-label="Vorherige Seite" title="Vorherige Seite"></button>
@@ -197,14 +198,13 @@
         <div class="admin-editor-empty" id="adminEditorEmpty"><span>EDITOR</span><h2>Wähle einen Eintrag</h2><p>Bearbeite ein Buch, Kapitel oder einen Leseteil – oder lege einen neuen Inhalt an.</p></div>
         <form class="editor-form" id="archiveForm" hidden>
           <div class="form-title"><div><p class="eyebrow">BUCH</p><h3 id="archiveFormTitle">Neues Buch</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
+          <p class="editor-context" id="archiveEditorContext"></p>
           <div class="form-grid">
-            <label>Offizielle Nummer *<input name="number" type="number" min="0" value="0" required></label>
-            <label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label>
+            <p class="form-section-title wide">Inhalt</p>
             <label class="wide">Name *<input name="title" required maxlength="160"></label>
             <label class="wide">Beschreibung *<textarea name="description" rows="3" required></textarea></label>
-            <div class="image-upload wide"><img id="bookCoverPreview" alt="Buchcover-Vorschau" hidden><label>Buchcover<input id="bookCoverFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif"></label><label class="checkbox-label"><input name="removeCover" type="checkbox"><span>Vorhandenes Cover entfernen</span></label></div>
-            <label id="archivePublishField">Geplante Veröffentlichung<input name="publishAt" type="datetime-local"></label>
-            <label class="checkbox-label wide"><input name="hidden" type="checkbox"><span>Dieses Buch öffentlich ausblenden</span></label>
+            <details class="editor-optional wide" open><summary>Veröffentlichung</summary><div class="form-grid"><label>Offizielle Nummer *<input name="number" type="number" min="0" value="0" required></label><label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label><label class="wide" id="archivePublishField">Geplante Veröffentlichung<input name="publishAt" type="datetime-local"></label></div></details>
+            <details class="editor-optional wide" data-optional><summary>Zusatzangaben · Cover und Sichtbarkeit</summary><div class="form-grid"><div class="image-upload wide"><img id="bookCoverPreview" alt="Buchcover-Vorschau" hidden><div class="media-placeholder">Noch kein Cover</div><label class="media-select"><span>Cover auswählen</span><input id="bookCoverFile" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif"></label><small class="media-filename" id="bookCoverName">PNG, JPG, GIF, WebP oder AVIF · bis 12 MB</small><label class="checkbox-label" id="bookRemoveCoverLabel"><input name="removeCover" type="checkbox"><span>Vorhandenes Cover entfernen</span></label></div><label class="checkbox-label wide"><input name="hidden" type="checkbox"><span>Dieses Buch öffentlich ausblenden</span></label></div></details>
           </div>
           <p class="admin-hint">Ein neues Buch beginnt als Entwurf. Kapitel und Episoden werden anschließend separat angelegt.</p>
           <p class="form-error" id="archiveFormError"></p>
@@ -212,31 +212,26 @@
         </form>
         <form class="editor-form" id="chapterForm" hidden>
           <div class="form-title"><div><p class="eyebrow" id="chapterFormEyebrow">KAPITEL</p><h3 id="chapterFormTitle">Kapitel anlegen</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
+          <p class="editor-context" id="chapterEditorContext"></p>
           <div class="form-grid">
-            <label><span id="chapterNumberLabel">Kapitelnummer *</span><input name="number" type="number" min="0" value="0" required></label>
-            <label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label>
-            <label class="wide" id="chapterPublishField">Geplante Veröffentlichung<input name="publishAt" type="datetime-local"></label>
-            <label><span id="chapterNameLabel">Kapitelname *</span><input name="title" required maxlength="160"></label>
-            <label class="wide"><span id="chapterTldrLabel">Kapitel-TL;DR</span><textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label>
-            <label class="checkbox-label wide"><input name="hidden" type="checkbox"><span id="chapterHiddenLabel">Dieses Kapitel öffentlich ausblenden</span></label>
+            <p class="form-section-title wide">Inhalt</p>
+            <label class="wide"><span id="chapterNameLabel">Kapitelname *</span><input name="title" required maxlength="160"></label>
+            <details class="editor-optional wide" open><summary>Veröffentlichung</summary><div class="form-grid"><label><span id="chapterNumberLabel">Kapitelnummer *</span><input name="number" type="number" min="0" value="0" required></label><label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label><label class="wide" id="chapterPublishField">Geplante Veröffentlichung<input name="publishAt" type="datetime-local"></label></div></details>
+            <details class="editor-optional wide" data-optional><summary>Zusatzangaben · Kurzfassung und Sichtbarkeit</summary><div class="form-grid"><label class="wide"><span id="chapterTldrLabel">Kapitel-TL;DR</span><textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label><label class="checkbox-label wide"><input name="hidden" type="checkbox"><span id="chapterHiddenLabel">Dieses Kapitel öffentlich ausblenden</span></label></div></details>
           </div>
           <p class="form-error" id="chapterFormError"></p>
           <button class="primary-button" type="submit" id="chapterSaveLabel">Kapitel speichern</button>
         </form>
         <form class="editor-form" id="partForm" hidden>
           <div class="form-title"><div><p class="eyebrow" id="partFormEyebrow">EPISODE</p><h3 id="partFormTitle">Episode anlegen</h3></div><button type="button" class="text-button" data-cancel-editor>Abbrechen</button></div>
+          <p class="editor-context" id="partEditorContext"></p>
           <div class="form-grid">
-            <label><span id="partChapterLabel">Kapitel *</span><select name="chapterId" required></select></label>
-            <label><span id="partNumberLabel">Episodennummer *</span><input name="part" type="number" min="1" value="1" required></label>
-            <label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label>
-            <label><span id="partReleaseLabel">Releasedatum *</span><input name="releasedAt" type="text" inputmode="numeric" placeholder="TT.MM.JJJJ" pattern="(?:0[1-9]|[12][0-9]|3[01])\.(?:0[1-9]|1[0-2])\.[0-9]{4}" autocomplete="off" required></label>
-            <label class="wide" id="partPublishField">Geplante Veröffentlichung<input name="publishAt" type="datetime-local"></label>
+            <p class="form-section-title wide">Inhalt</p>
             <label class="wide"><span id="partNameLabel">Episodenname *</span><input name="partTitle" required maxlength="160"></label>
-            <div class="image-upload wide"><img id="partImagePreview" alt="Bildvorschau des Teils" hidden><label><span id="partImageLabel">Bild</span><input id="partImageFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif"></label><label class="checkbox-label"><input name="removeImage" type="checkbox"><span>Vorhandenes Bild entfernen</span></label></div>
-            <label class="wide"><span id="partTldrFormLabel">Episoden-TL;DR</span><textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label>
-            <label class="checkbox-label wide"><input name="hidden" type="checkbox"><span id="partHiddenLabel">Diese Episode öffentlich ausblenden</span></label>
-            <label>Datei laden<input id="storyFile" type="file" accept=".md,.txt,text/markdown,text/plain"></label>
+            <div class="wide story-import"><label class="media-select"><span>Markdown/TXT laden</span><input id="storyFile" class="visually-hidden" type="file" accept=".md,.txt,text/markdown,text/plain"></label><small class="media-filename" id="storyFileName">Keine Datei ausgewählt</small></div>
             <label class="wide content-field"><span class="content-field-heading"><span>Text *</span><output id="partCharacterCount" for="partContent">0 Zeichen</output></span><textarea class="content-input" id="partContent" name="content" rows="12" required placeholder="Markdown oder Klartext…"></textarea></label>
+            <details class="editor-optional wide" open><summary>Veröffentlichung</summary><div class="form-grid"><label><span id="partChapterLabel">Kapitel *</span><select name="chapterId" required></select></label><label><span id="partNumberLabel">Episodennummer *</span><input name="part" type="number" min="1" value="1" required></label><label>Status<select name="status"><option value="draft">Entwurf</option><option value="published">Veröffentlicht</option><option value="scheduled">Geplant</option></select></label><label><span id="partReleaseLabel">Releasedatum *</span><input name="releasedAt" type="text" inputmode="numeric" placeholder="TT.MM.JJJJ" pattern="(?:0[1-9]|[12][0-9]|3[01])\.(?:0[1-9]|1[0-2])\.[0-9]{4}" autocomplete="off" required></label><label class="wide" id="partPublishField">Geplante Veröffentlichung<input name="publishAt" type="datetime-local"></label></div></details>
+            <details class="editor-optional wide" data-optional><summary>Zusatzangaben · Bild, Kurzfassung und Sichtbarkeit</summary><div class="form-grid"><div class="image-upload wide"><img id="partImagePreview" alt="Bildvorschau des Teils" hidden><div class="media-placeholder">Noch kein Bild</div><label class="media-select"><span id="partImageLabel">Bild auswählen</span><input id="partImageFile" class="visually-hidden" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif"></label><small class="media-filename" id="partImageName">PNG, JPG, GIF, WebP oder AVIF · bis 12 MB</small><label class="checkbox-label" id="partRemoveImageLabel"><input name="removeImage" type="checkbox"><span>Vorhandenes Bild entfernen</span></label></div><label class="wide"><span id="partTldrFormLabel">Episoden-TL;DR</span><textarea name="tldr" rows="4" placeholder="Optionale Kurzfassung mit Spoilerwarnung…"></textarea></label><label class="checkbox-label wide"><input name="hidden" type="checkbox"><span id="partHiddenLabel">Diese Episode öffentlich ausblenden</span></label></div></details>
           </div>
           <p class="form-error" id="partFormError"></p>
           <button class="primary-button" type="submit" id="partSaveLabel">Episode speichern</button>
@@ -266,6 +261,7 @@
           </div>
           <p class="display-example" id="displayExample"></p>
         </div>
+        <p class="form-error" id="displayAdminError" role="alert"></p>
         <button class="primary-button" type="submit">Darstellung speichern</button>
       </form>
       <form id="linksAdmin" class="admin-settings-panel" hidden>
@@ -273,6 +269,7 @@
         <p class="admin-hint">Bis zu acht Verweise. Unterstützt werden <code>https://</code>, <code>http://</code> und <code>discord://</code> zum direkten Öffnen der Discord-App.</p>
         <div id="linkRows"></div>
         <button type="button" class="secondary-button with-icon" id="addLink"><svg class="ui-icon"><use href="#i-add"></use></svg><span>Link hinzufügen</span></button>
+        <p class="form-error" id="linksAdminError" role="alert"></p>
         <button class="primary-button" type="submit">Links speichern</button>
       </form>
           <section id="dataAdmin" class="admin-settings-panel" hidden>
@@ -300,6 +297,7 @@
     <h2 id="bookmarkDialogTitle">Gespeicherte Stellen</h2>
     <div class="bookmark-dialog-list" id="bookmarkDialogList"></div>
   </dialog>
+  <dialog class="book-details-dialog" id="bookDetailsDialog" aria-labelledby="bookDetailsTitle"><button class="dialog-close" id="bookDetailsClose" type="button" aria-label="Buchdetails schließen"><svg class="ui-icon"><use href="#i-close"></use></svg></button><div id="bookDetailsContent"></div></dialog>
   <div class="toast" id="toast" role="status"></div>
   <script type="module" src="/app.js?v=__APP_VERSION__"></script>
 </body>
