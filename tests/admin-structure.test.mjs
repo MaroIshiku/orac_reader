@@ -93,18 +93,24 @@ test("veröffentlichte Bücher, Kapitel und Teile lassen sich als EPUB oder PDF 
 test("Leseeinstellungen liegen sichtbar in der Reader-Werkzeugleiste", () => {
   const drawer = markup.match(/<aside class="chapter-drawer"[\s\S]*?<\/aside>/)?.[0] || "";
   assert.doesNotMatch(drawer, /readerSettingsMenu|fontFamily|themePicker/);
-  assert.match(markup, /id="shareButton"[\s\S]*?id="readerSettingsMenu"/);
+  assert.match(markup, /id="readToggle"[\s\S]*?id="downloadMenu"[\s\S]*?id="bookmarkToggle"[\s\S]*?id="shareButton"[\s\S]*?id="readerSettingsMenu"/);
   assert.match(markup, /id="fontFamily"[\s\S]*?value="serif"[\s\S]*?value="sans"/);
   assert.match(source, /oracle-reader-font/);
   assert.match(source, /dataset\.readerFont = state\.fontFamily/);
   assert.match(markup, /class="reader-progress"[\s\S]*?id="progressBar"/);
 });
 
-test("mobile Reader-Werkzeugleiste hält nur den Lesestatus beschriftet", () => {
-  const bookmark = markup.match(/<button[^>]*id="bookmarkToggle"[\s\S]*?<\/button>/)?.[0] || "";
-  assert.match(bookmark, /aria-label="Lesezeichen setzen"/);
-  assert.doesNotMatch(bookmark, /<span>/);
+test("Reader-Werkzeugleiste hält in jedem Format nur den Lesestatus beschriftet", () => {
+  for (const id of ["bookmarkToggle", "shareButton"]) {
+    const button = markup.match(new RegExp(`<button[^>]*id="${id}"[\\s\\S]*?<\\/button>`))?.[0] || "";
+    assert.match(button, /aria-label=/);
+    assert.doesNotMatch(button, /<span>/);
+  }
+  for (const id of ["downloadMenu", "readerSettingsMenu"]) {
+    const summary = markup.match(new RegExp(`<details[^>]*id="${id}"[\\s\\S]*?<summary[\\s\\S]*?<\\/summary>`))?.[0] || "";
+    assert.match(summary, /class="tool-button icon-only"/);
+    assert.doesNotMatch(summary, /<span>/);
+  }
   assert.match(markup, /class="tool-button read-status-control" id="readToggle"[\s\S]*?<span>Ungelesen<\/span>/);
-  assert.match(styles, /#shareButton > span \{ display: none; \}/);
   assert.match(styles, /\.reader-toolbar \.read-status-control > span \{ display: inline; \}/);
 });

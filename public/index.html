@@ -103,19 +103,19 @@
         <button class="tool-button mobile-only" id="chapterToggle" aria-label="Inhaltsübersicht öffnen" aria-controls="chapterDrawer" aria-expanded="false"><svg class="ui-icon"><use href="#i-menu"></use></svg><span id="chapterToggleLabel">Kapitel</span></button>
         <span class="reader-status-badge" id="readerStatusBadge" hidden>ENTWURFSVORSCHAU</span>
         <div class="toolbar-spacer"></div>
+        <button class="tool-button read-status-control" id="readToggle" aria-label="Lesestatus ändern" title="Lesestatus ändern"><svg class="ui-icon"><use href="#i-unread"></use></svg><span>Ungelesen</span></button>
         <details class="download-menu" id="downloadMenu">
-          <summary class="tool-button" aria-label="Inhalt herunterladen"><svg class="ui-icon"><use href="#i-download"></use></svg><span>Download</span></summary>
+          <summary class="tool-button icon-only" aria-label="Inhalt herunterladen" title="Inhalt herunterladen"><svg class="ui-icon"><use href="#i-download"></use></svg></summary>
           <div class="download-panel">
             <div><strong id="downloadBookLabel">Buch</strong><span><a data-export-scope="book" data-export-format="epub">EPUB</a><a data-export-scope="book" data-export-format="pdf">PDF</a></span></div>
             <div><strong id="downloadChapterLabel">Kapitel</strong><span><a data-export-scope="chapter" data-export-format="epub">EPUB</a><a data-export-scope="chapter" data-export-format="pdf">PDF</a></span></div>
             <div><strong id="downloadPartLabel">Teil</strong><span><a data-export-scope="part" data-export-format="epub">EPUB</a><a data-export-scope="part" data-export-format="pdf">PDF</a></span></div>
           </div>
         </details>
-        <button class="tool-button read-status-control" id="readToggle" aria-label="Lesestatus ändern" title="Lesestatus ändern"><svg class="ui-icon"><use href="#i-unread"></use></svg><span>Ungelesen</span></button>
         <button class="tool-button icon-only" id="bookmarkToggle" aria-label="Lesezeichen setzen" title="Lesezeichen setzen"><svg class="ui-icon"><use href="#i-bookmark"></use></svg></button>
-        <button class="tool-button" id="shareButton" aria-label="Diesen Teil teilen" title="Diesen Teil teilen"><svg class="ui-icon"><use href="#i-share"></use></svg><span>Teilen</span></button>
+        <button class="tool-button icon-only" id="shareButton" aria-label="Diesen Teil teilen" title="Diesen Teil teilen"><svg class="ui-icon"><use href="#i-share"></use></svg></button>
         <details class="reader-settings-menu" id="readerSettingsMenu">
-          <summary class="tool-button" aria-label="Leseeinstellungen öffnen"><svg class="ui-icon"><use href="#i-settings"></use></svg><span>Lesen</span></summary>
+          <summary class="tool-button icon-only" aria-label="Leseeinstellungen öffnen" title="Leseeinstellungen öffnen"><svg class="ui-icon"><use href="#i-settings"></use></svg></summary>
           <section class="reader-settings-panel" aria-labelledby="readerSettingsTitle">
             <p class="eyebrow" id="readerSettingsTitle">LESEANSICHT</p>
             <div class="reader-setting-row"><span>Schriftgröße</span><div class="compact-actions"><button class="tool-button" id="fontDown" aria-label="Schrift verkleinern" title="Schrift verkleinern"><svg class="ui-icon"><use href="#i-font-down"></use></svg></button><button class="tool-button" id="fontUp" aria-label="Schrift vergrößern" title="Schrift vergrößern"><svg class="ui-icon"><use href="#i-font-up"></use></svg></button></div></div>
