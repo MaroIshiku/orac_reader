@@ -15,7 +15,8 @@ test("Buch, Kapitel und Episode besitzen getrennte Bearbeitungsmasken", () => {
   assert.doesNotMatch(form("chapterForm"), /name="part"|name="content"|name="description"/);
   assert.match(form("partForm"), /name="chapterId"/);
   assert.match(form("partForm"), /name="status"[\s\S]*?value="draft"[\s\S]*?value="scheduled"/);
-  assert.match(form("partForm"), /id="partPublishField"[\s\S]*?name="publishAt" type="datetime-local"/);
+  assert.match(form("partForm"), /id="partPublishField"[\s\S]*?name="publishDate" type="text"[\s\S]*?TT\.MM\.JJJJ[\s\S]*?name="publishTime" type="time"/);
+  assert.match(source, /scheduledInstantFromFields/);
   assert.match(form("partForm"), /name="releasedAt" type="text"[\s\S]*?TT\.MM\.JJJJ/);
   assert.match(source, /germanDate\(found\?\.part\.releasedAt \|\| localToday\(\)\)/);
   assert.match(source, /releasedAt = isoDate\(data\.releasedAt\)/);
