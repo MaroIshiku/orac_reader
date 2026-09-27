@@ -39,8 +39,8 @@ test("Buch, Kapitel und Episode besitzen getrennte Bearbeitungsmasken", () => {
   assert.match(source, /data-collapse-label/);
   assert.match(source, /Teile anzeigen/);
   assert.match(source, /Teile ausblenden/);
-  assert.match(source, /title="Nach oben"/);
-  assert.match(source, /title="Nach unten"/);
+  assert.doesNotMatch(source, /data-move-chapter/);
+  assert.match(source, /An den Anfang dieses Buchs/);
   assert.match(source, /saveChapterMove/);
   assert.match(server, /discord:\\\/\\\//);
   assert.doesNotMatch(markup + source + server, /contentWarning|Inhaltswarnung/i);

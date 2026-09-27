@@ -17,9 +17,10 @@ const book = {
   chapters: [{ id: "browser-chapter", number: 1, order: 0, title: "Ein langes Testkapitel", tldr: "", status: "published", publishAt: null, releasedAt: "2026-09-20", hidden: false, parts: [
     { id: "browser-part", number: 1, title: "Die erste Episode", tldr: "", content: story, releasedAt: "2026-09-20", status: "published", publishAt: null, image: "", hidden: false },
     { id: "browser-part-2", number: 2, title: "Eine zweite Episode", tldr: "", content: "Kurzer Testtext.", releasedAt: "2026-09-20", status: "published", publishAt: null, image: "", hidden: false }
-  ] }]
+  ] }, { id: "browser-chapter-2", number: 2, order: 1, title: "Zweites Testkapitel", tldr: "", status: "draft", publishAt: null, releasedAt: "2026-09-20", hidden: false, parts: [] }]
 };
-await writeFile(join(dataDir, "library.json"), `${JSON.stringify({ schemaVersion: 14, settings: { numberDigits: 4 }, links: [{ label: "Projekt", url: "https://example.com" }, { label: "Community", url: "https://example.org" }], books: [book] })}\n`);
+const destinationBook = { ...book, id: "destination-book", number: 2, title: "Zweites Testbuch", releasedAt: "2020-01-01", updatedAt: "2020-01-01T00:00:00.000Z", chapters: [] };
+await writeFile(join(dataDir, "library.json"), `${JSON.stringify({ schemaVersion: 14, settings: { numberDigits: 4 }, links: [{ label: "Projekt", url: "https://example.com" }, { label: "Community", url: "https://example.org" }], books: [book, destinationBook] })}\n`);
 const server = spawn(process.execPath, ["server.mjs"], { cwd: root, env: { ...process.env, DATA_DIR: dataDir, PORT: String(port), ADMIN_PASSWORD: "browser-test", COOKIE_SECURE: "false", APP_VERSION: "browser-test" }, stdio: "ignore" });
 let browser;
 try {
@@ -100,12 +101,12 @@ try {
       assert.equal(await page.locator("#readToggle").getAttribute("aria-pressed"), "false", `${width}px: manuell ungelesen muss Neuladen überstehen`);
       await page.goto(`${origin}/#home`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(".card-details-show");
-      await page.locator(".card-details-show").click();
+      await page.locator(".card-details-show").first().click();
       await page.locator("#bookDetailsActions [data-toggle-book-read]").click();
       assert.ok((await page.locator("#bookDetailsActions [data-toggle-book-read]").textContent()).includes("Gelesen"), `${width}px: Buchstatus muss im Dialog aktualisiert werden`);
       await page.reload({ waitUntil: "domcontentloaded" });
       await page.waitForSelector(".book-card");
-      assert.ok((await page.locator(".book-card").getAttribute("class")).includes("is-read"), `${width}px: Buchstatus muss Neuladen überstehen`);
+      assert.ok((await page.locator(".book-card").first().getAttribute("class")).includes("is-read"), `${width}px: Buchstatus muss Neuladen überstehen`);
       await page.locator("#bookSearch").fill("Testkapitel");
       assert.equal(await page.locator("#homeShelves").isHidden(), true, `${width}px: Regale dürfen Suchtreffer nicht verdrängen`);
       assert.equal(await page.locator("#searchResultCount").isHidden(), true, `${width}px: keine doppelte Ergebniszahl`);
@@ -120,7 +121,7 @@ try {
   const freshReader = await browser.newPage({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
   try {
     await freshReader.goto(`${origin}/#home`, { waitUntil: "domcontentloaded" });
-    await freshReader.locator(".card-details-show").click();
+    await freshReader.locator(".card-details-show").first().click();
     await freshReader.locator("#bookDetailsActions [data-toggle-book-read]").click();
     assert.equal((await freshReader.locator("#bookDetailsActions .book-details-read").textContent()).trim(), "Lesen", "Manuell gelesenes, nie geöffnetes Buch darf nicht Weiterlesen versprechen");
     assert.ok((await freshReader.locator("#bookDetailsActions [data-toggle-book-read]").textContent()).includes("Ganzes Buch"), "Sammelaktion muss sichtbar als solche beschriftet sein");
@@ -131,8 +132,47 @@ try {
     await admin.locator('#loginForm input[name="password"]').fill("browser-test");
     await admin.locator('#loginForm button[type="submit"]').click();
     await admin.waitForSelector("#adminPanel:not([hidden])");
-    const titleWidth = await admin.locator(".admin-book-summary b").evaluate((node) => node.getBoundingClientRect().width);
+    assert.equal(await admin.locator(".admin-book-summary").first().getAttribute("aria-expanded"), "false", "Redaktion: Bücher müssen standardmäßig eingeklappt sein");
+    await admin.locator(".admin-book-summary").first().click();
+    assert.equal(await admin.locator(".chapter-visibility-button").first().getAttribute("aria-expanded"), "false", "Redaktion: Kapitel müssen standardmäßig eingeklappt sein");
+    await admin.locator(".chapter-visibility-button").first().click();
+    await admin.reload({ waitUntil: "domcontentloaded" });
+    await admin.waitForSelector("#adminPanel:not([hidden])");
+    assert.equal(await admin.locator(".admin-book-summary").first().getAttribute("aria-expanded"), "true", "Aufgeklappte Bücher müssen nach Neuladen offen bleiben");
+    assert.equal(await admin.locator(".chapter-visibility-button").first().getAttribute("aria-expanded"), "true", "Aufgeklappte Kapitel müssen nach Neuladen offen bleiben");
+    assert.equal(await admin.locator(".chapter-visibility-button use").first().getAttribute("href"), "#i-arrow-down", "Einklappen muss als Pfeil erkennbar sein");
+    const titleWidth = await admin.locator(".admin-book-summary b").first().evaluate((node) => node.getBoundingClientRect().width);
     assert.ok(titleWidth > 100, "Desktop-Buchtitel muss neben den Aktionen sichtbar bleiben");
+    await admin.setViewportSize({ width: 1920, height: 844 });
+    const chapterLayout = await admin.locator(".admin-chapter").first().evaluate((node) => {
+      const box = (selector) => node.querySelector(selector).getBoundingClientRect();
+      const collapse = box(".chapter-visibility-button"); const title = box(".admin-chapter-title b"); const partText = box(".admin-part > span"); const transfer = box(".chapter-target"); const add = box("[data-add-part]"); const remove = box("[data-delete-chapter]");
+      return { collapseRight: collapse.right, titleLeft: title.left, partTextLeft: partText.left, collapseCenter: (collapse.top + collapse.bottom) / 2, titleCenter: (title.top + title.bottom) / 2, transferTop: transfer.top, addTop: add.top, removeTop: remove.top, actionGap: remove.left - add.right, overflow: node.scrollWidth > node.clientWidth };
+    });
+    assert.ok(chapterLayout.collapseRight < chapterLayout.titleLeft && Math.abs(chapterLayout.collapseCenter - chapterLayout.titleCenter) < 25, "Desktop: Einklappen gehört vor den Kapiteltitel");
+    assert.ok(Math.abs(chapterLayout.partTextLeft - chapterLayout.titleLeft) < 5, "Desktop: Teiletexte müssen mit dem Kapiteltitel linksbündig sein");
+    assert.ok(Math.abs(chapterLayout.transferTop - chapterLayout.addTop) < 8, "Desktop: Zielmenü und Aktionen gehören in eine Werkzeugzeile");
+    assert.equal(await admin.locator(".reorder-buttons").count(), 0, "Die doppelten Auf-/Ab-Pfeile dürfen nicht mehr erscheinen");
+    const moveOptions = await admin.locator(".admin-chapter .chapter-target").first().locator("option").allTextContents();
+    assert.ok(moveOptions.some((label) => label.includes("Nach Kapitel 2")) && moveOptions.some((label) => label.includes("Zweites Testbuch")), "Zielmenü muss Reihenfolge im Buch und Buchwechsel ermöglichen");
+    assert.ok(Math.abs(chapterLayout.addTop - chapterLayout.removeTop) < 8 && chapterLayout.actionGap < 18, "Desktop: Löschen darf nicht isoliert am rechten Rand stehen");
+    assert.equal(chapterLayout.overflow, false, "Desktop: Kapitelwerkzeuge dürfen nicht überlaufen");
+    await admin.locator(".admin-chapter .chapter-visibility-button").first().click();
+    assert.equal(await admin.locator(".admin-chapter .admin-parts").first().isVisible(), false, "Verschobener Einklappknopf muss die Teile weiter ausblenden");
+    await admin.locator(".admin-chapter .chapter-visibility-button").first().click();
+    assert.equal(await admin.locator(".admin-chapter .admin-parts").first().isVisible(), true, "Verschobener Einklappknopf muss die Teile wieder anzeigen");
+    await admin.setViewportSize({ width: 1440, height: 844 });
+    assert.equal(await admin.locator("#adminEditorEmpty").isVisible(), false, "1440px: zu schmale Zweispaltenansicht muss in einen breiten Inhaltsbereich wechseln");
+    const mediumLayout = await admin.locator(".admin-chapter").first().evaluate((node) => ({ title: node.querySelector(".admin-chapter-title b").getBoundingClientRect(), add: node.querySelector("[data-add-part]").getBoundingClientRect(), remove: node.querySelector("[data-delete-chapter]").getBoundingClientRect(), overflow: node.scrollWidth > node.clientWidth }));
+    assert.ok(mediumLayout.title.width > 220 && Math.abs(mediumLayout.add.top - mediumLayout.remove.top) < 8, "1440px: Titel und Werkzeugzeile müssen ohne unschönen Umbruch Platz haben");
+    assert.equal(mediumLayout.overflow, false, "1440px: Kapitelwerkzeuge dürfen nicht überlaufen");
+    const firstChapterTarget = admin.locator('[data-admin-chapter="browser-chapter"] .chapter-target');
+    const moveAfter = await firstChapterTarget.locator("option").filter({ hasText: "Nach Kapitel 2" }).getAttribute("value");
+    await firstChapterTarget.selectOption(moveAfter);
+    await admin.waitForFunction(() => document.querySelector(".admin-chapter")?.dataset.adminChapter === "browser-chapter-2");
+    const moveToStart = await admin.locator('[data-admin-chapter="browser-chapter"] .chapter-target option').filter({ hasText: "An den Anfang" }).getAttribute("value");
+    await admin.locator('[data-admin-chapter="browser-chapter"] .chapter-target').selectOption(moveToStart);
+    await admin.waitForFunction(() => document.querySelector(".admin-chapter")?.dataset.adminChapter === "browser-chapter");
     await admin.locator("[data-edit-book]").first().click();
     await admin.waitForFunction(() => document.activeElement?.id === "archiveFormTitle");
     assert.equal(await admin.evaluate(() => document.activeElement?.id), "archiveFormTitle", "Editorüberschrift muss Fokus erhalten");
@@ -167,6 +207,10 @@ try {
     await mobileAdmin.locator("#adminSummaryToggle").click();
     const firstBookTop = await mobileAdmin.locator(".admin-entry").first().evaluate((node) => node.getBoundingClientRect().top);
     assert.ok(firstBookTop < 630, `280px: Inhaltsliste muss früh genug beginnen (${Math.round(firstBookTop)}px)`);
+    await mobileAdmin.locator(".admin-book-summary").first().click();
+    await mobileAdmin.locator(".chapter-visibility-button").first().click();
+    const mobileAlignment = await mobileAdmin.locator(".admin-chapter").first().evaluate((node) => ({ title: node.querySelector(".admin-chapter-title b").getBoundingClientRect().left, part: node.querySelector(".admin-part > span").getBoundingClientRect().left }));
+    assert.ok(Math.abs(mobileAlignment.title - mobileAlignment.part) < 5, "Mobil: Teiletexte müssen mit dem Kapiteltitel linksbündig sein");
     const editPart = mobileAdmin.locator("[data-edit-part]").first();
     await editPart.scrollIntoViewIfNeeded();
     const previousY = await mobileAdmin.evaluate(() => scrollY);
@@ -187,6 +231,8 @@ try {
     await scheduleAdmin.locator('#loginForm input[name="password"]').fill("browser-test");
     await scheduleAdmin.locator('#loginForm button[type="submit"]').click();
     await scheduleAdmin.waitForSelector("#adminPanel:not([hidden])");
+    await scheduleAdmin.locator(".admin-book-summary").first().click();
+    await scheduleAdmin.locator(".chapter-visibility-button").first().click();
     await scheduleAdmin.locator('[data-edit-part="browser-book:browser-part-2"]').click();
     await scheduleAdmin.locator('#partForm [name="status"]').selectOption("scheduled");
     assert.equal(await scheduleAdmin.locator("#partPublishField").isVisible(), true, "Geplante Veröffentlichung muss deutsche Datums- und Uhrzeitfelder zeigen");

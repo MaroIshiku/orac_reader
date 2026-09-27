@@ -507,24 +507,24 @@ body[data-view="pages"] .reading-page :is(a, button, details) { position: relati
 .admin-chapter-head { min-height: 58px; padding: 11px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 9px; }
 .drag-handle { width: 32px; min-height: 38px; display: grid; place-items: center; color: var(--muted); cursor: grab; }
 .admin-chapter-main { min-width: 0; }
-.admin-chapter-title { min-width: 0; padding: 1px 2px; }
+.admin-chapter-title { min-width: 0; padding: 1px 2px; display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 2px 8px; }
+.admin-chapter-title > .chapter-visibility-button { grid-column: 1; grid-row: 1 / span 3; align-self: center; }
+.admin-chapter-title > :not(.chapter-visibility-button) { grid-column: 2; }
 .admin-chapter-title b, .admin-chapter-title small { display: block; overflow-wrap: anywhere; }
 .admin-chapter-title b { font-size: 13px; letter-spacing: 0; line-height: 1.4; }
 .admin-chapter-title small { margin-top: 3px; color: var(--muted); font-size: 12px; }
-.admin-chapter-controls { margin-top: 10px; padding-top: 7px; display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 6px; border-top: 1px solid var(--line); }
-.chapter-visibility-button { min-height: 40px; padding: 6px 9px; display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; border: 1px solid var(--line); color: var(--ink); background: var(--surface); font-size: 11px; }
-.chapter-visibility-button > .ui-icon { width: 14px; height: 14px; color: var(--accent); transform: none !important; }
-.reorder-buttons { display: flex; gap: 2px; flex: 0 0 auto; }
-.reorder-buttons button { width: 44px; min-height: 44px; padding: 6px; border: 1px solid var(--line); display: inline-grid; place-items: center; color: var(--muted); background: transparent; }
-.reorder-buttons button .ui-icon { width: 13px; height: 13px; }
-.reorder-buttons button:disabled { opacity: .25; }
-.admin-chapter-controls > .admin-row-actions { grid-column: 1 / -1; width: 100%; min-width: 0; margin-left: 0; justify-content: flex-start; }
-.admin-chapter-controls .chapter-target { width: min(170px, 100%); min-height: 40px; padding: 6px 8px; }
+.admin-chapter-controls { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.chapter-visibility-button { width: 44px; min-height: 44px; padding: 0; display: grid; place-items: center; border: 0; color: var(--ink); background: transparent; }
+.chapter-visibility-button:hover { color: var(--accent); }
+.chapter-visibility-button > .ui-icon { width: 17px; height: 17px; }
+.admin-chapter-controls > .admin-row-actions { min-width: 0; justify-content: flex-start; gap: 4px 6px; }
+.admin-chapter-controls .chapter-target { width: min(145px, 100%); min-height: 40px; padding: 6px 8px; }
 .admin-chapter-controls > .admin-row-actions button { min-height: 40px; padding: 6px 8px; font-size: 11px; white-space: nowrap; }
 .admin-chapter-controls > .admin-row-actions .icon-button { width: 40px; min-width: 40px; padding: 6px; }
+.admin-chapter-controls > .admin-row-actions .danger-action { margin-left: 0; }
 .chapter-target { width: 145px; min-height: 34px; padding: 6px 8px; border-color: var(--line); color: var(--muted); background: var(--paper); font-size: 10px; }
 .admin-parts { display: block; }
-.admin-part { min-height: 46px; margin-left: 42px; padding: 6px 9px 6px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.admin-part { min-height: 46px; margin-left: 92px; padding: 6px 9px 6px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 .admin-entry.is-editing > .admin-book, .admin-chapter.is-editing > .admin-chapter-head, .admin-part.is-editing { box-shadow: inset 3px 0 var(--forest-soft); background: color-mix(in srgb, var(--forest) 7%, var(--surface)); }
 .editor-context { margin: -4px 0 15px; color: var(--muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .editor-context:empty { display: none; }
@@ -684,7 +684,7 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
 .backup-list small { min-width: 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 .backup-list button { flex: 0 0 auto; }
 
-@media (max-width: 1360px) and (min-width: 861px) {
+@media (max-width: 1720px) and (min-width: 861px) {
   #booksAdmin { grid-template-columns: 1fr; grid-template-areas: "heading" "controls" "hint" "schedule" "list" "editor"; }
   #booksAdmin > :is(.admin-editor-empty, .editor-form) { position: static; }
   .editor-form { max-height: none; }
@@ -811,10 +811,11 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
   .admin-book { align-items: stretch; }
   .admin-row-actions { flex-wrap: wrap; justify-content: flex-start; }
   .admin-chapter-head { grid-template-columns: auto minmax(0, 1fr); }
-  .admin-chapter-controls { grid-template-columns: auto auto minmax(0, 1fr); }
-  .admin-chapter-controls > .admin-row-actions { width: 100%; margin-left: 0; }
+  .admin-chapter-title { display: flex; flex-direction: column; align-items: flex-start; }
+  .admin-chapter-title > .chapter-visibility-button { order: 3; margin-top: 8px; }
+  .admin-chapter-controls > .admin-row-actions { width: 100%; }
   .chapter-target { width: min(190px, 100%); }
-  .admin-part { margin-left: 22px; align-items: start; }
+  .admin-part { margin-left: 42px; align-items: start; }
   .editor-form { padding: 18px 13px; }
   body.admin-editor-open #booksAdmin { grid-template-areas: "editor"; }
   body.admin-editor-open #booksAdmin > :is(.admin-workspace-heading, .admin-content-controls, .admin-sort-hint, .admin-schedule, .admin-search-results, .admin-book-list, .admin-editor-empty) { display: none !important; }
