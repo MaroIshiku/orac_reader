@@ -443,6 +443,7 @@ body[data-theme="night"] { color-scheme: dark; --paper: #18140f; --surface: #211
 body[data-theme="night"] .wordmark-mark img, body[data-theme="night"] .cover-brand img { filter: brightness(1.35) saturate(.75); }
 body[data-theme="night"] .generated-cover { background: #261b15; }
 body[data-theme="night"] .admin-status.is-scheduled { color: #e5bb6c; }
+body[data-theme="night"] .admin-part-status.is-scheduled { color: #e5bb6c; }
 body[data-theme="night"] .prose { color: #eadfc9; font-weight: 400; line-height: clamp(1.65em, calc(1em + 18px), 1.98em); letter-spacing: .007em; font-variation-settings: "opsz" 17; }
 
 body[data-view="pages"].reading { height: 100vh; height: 100dvh; overflow: hidden; }
@@ -524,11 +525,28 @@ body[data-view="pages"] .reading-page :is(a, button, details) { position: relati
 .admin-chapter-controls > .admin-row-actions .danger-action { margin-left: 0; }
 .chapter-target { width: 145px; min-height: 34px; padding: 6px 8px; border-color: var(--line); color: var(--muted); background: var(--paper); font-size: 10px; }
 .admin-parts { display: block; }
-.admin-part { min-height: 46px; margin-left: 92px; padding: 6px 9px 6px 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.admin-part { min-height: 56px; margin-left: 92px; padding: 6px 9px 6px 12px; display: grid; grid-template-columns: minmax(0, 1fr) 22px auto; align-items: center; gap: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 .admin-entry.is-editing > .admin-book, .admin-chapter.is-editing > .admin-chapter-head, .admin-part.is-editing { box-shadow: inset 3px 0 var(--forest-soft); background: color-mix(in srgb, var(--forest) 7%, var(--surface)); }
 .editor-context { margin: -4px 0 15px; color: var(--muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .editor-context:empty { display: none; }
-.admin-part > span { min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.admin-part-copy { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.admin-part-copy:focus-visible { outline-offset: 2px; }
+.admin-part-text { display: inline-block; white-space: nowrap; }
+.admin-part:hover .admin-part-copy.has-overflow, .admin-part:focus-within .admin-part-copy.has-overflow { text-overflow: clip; }
+.admin-part:hover .admin-part-copy.has-overflow .admin-part-text, .admin-part:focus-within .admin-part-copy.has-overflow .admin-part-text { animation: admin-part-pan var(--part-scroll-duration, 5s) ease-in-out infinite alternate; }
+@keyframes admin-part-pan { 0%, 12% { transform: translateX(0); } 88%, 100% { transform: translateX(calc(-1 * var(--part-scroll-distance, 0px))); } }
+.admin-part-status { width: 22px; height: 22px; display: inline-grid; place-items: center; color: var(--muted); }
+.admin-part-status .ui-icon { width: 16px; height: 16px; }
+.admin-part-status.is-published { color: var(--ui-active); }
+.admin-part-status.is-scheduled { color: #8d6a1c; }
+.admin-part-status.is-blocked { color: var(--danger); }
+.admin-part .admin-row-actions { flex-wrap: nowrap; gap: 6px; }
+.admin-part .admin-row-actions .icon-button { width: 44px; min-width: 44px; min-height: 44px; padding: 0; border: 1px solid var(--line); background: transparent; }
+.admin-part .admin-row-actions .danger-action { margin-left: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .admin-part:hover .admin-part-copy.has-overflow .admin-part-text, .admin-part:focus-within .admin-part-copy.has-overflow .admin-part-text { animation: none; }
+  .admin-part-copy.has-overflow:focus-visible { overflow-x: auto; scrollbar-width: thin; }
+}
 .admin-empty { margin: 8px; padding: 14px; border: 1px dashed var(--line); color: var(--muted); font-size: 11px; text-align: center; }
 .full { width: 100%; }
 .editor-form { margin-top: 20px; padding: 22px; border: 1px solid var(--line-strong); background: var(--surface); }
@@ -881,7 +899,8 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
   .tool-button { padding-left: 6px; padding-right: 6px; font-size: 10px; }
   .download-menu > summary span { display: none; }
   .reader-settings-menu > summary span { display: none; }
-  .admin-part { grid-template-columns: 1fr; }
+  .admin-part { grid-template-columns: minmax(0, 1fr) 22px; }
+  .admin-part .admin-row-actions { grid-column: 1 / -1; justify-content: flex-end; }
   .admin-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .schedule-fields { grid-template-columns: 1fr; }
 }
