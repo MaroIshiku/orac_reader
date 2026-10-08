@@ -81,6 +81,31 @@ function imageExtension(bytes) {
   return "";
 }
 const slug = (value) => safeText(value, 100).toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || randomBytes(4).toString("hex");
+const htmlEscape = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+function sharePath(value) {
+  const path = String(value ?? "").trim().replace(/^\/+/, "");
+  if (path.length > 180 || !/^[a-z0-9][a-z0-9_-]*(?:\/[a-z0-9][a-z0-9_-]*)*$/.test(path)) throw new HttpError(400, "Der Pfad darf nur Kleinbuchstaben, Zahlen, Bindestriche, Unterstriche und / enthalten.");
+  if (/^(?:api|admin|media|fonts|vendor|readme|index\.html|sw\.js|manifest\.webmanifest)(?:\/|$)/.test(path) && !path.startsWith("read/")) throw new HttpError(400, "Dieser Pfad ist für die Anwendung reserviert.");
+  if (!path.includes("/") && (path.includes(".") || ["read", "favicon", "robots"].includes(path))) throw new HttpError(400, "Dieser Pfad ist für die Anwendung reserviert.");
+  return `/${path}`;
+}
+function shareTarget(library, link) { for (const book of library.books) { const found = findPart(book, link.partId); if (found) return { book, chapter: found.chapter, part: found.part }; } return null; }
+function shareAvailability(target) {
+  if (!target || [target.book, target.chapter, target.part].some((entry) => entry.hidden || publicationStatus(entry) === "draft")) return { state: "unavailable" };
+  const entries = [target.book, target.chapter, target.part];
+  const dates = entries.filter((entry) => !isPublished(entry)).map((entry) => new Date(entry.publishAt).getTime());
+  return dates.some((date) => !Number.isFinite(date)) ? { state: "unavailable" } : dates.length ? { state: "scheduled", publishAt: new Date(Math.max(...dates)).toISOString() } : { state: "published" };
+}
+function sharePage(req, link, target) {
+  const availability = shareAvailability(target); const title = htmlEscape(availability.state === "unavailable" ? "Teil derzeit nicht verfügbar" : link.title); const description = htmlEscape(availability.state === "unavailable" ? "Dieser Leseteil ist derzeit nicht verfügbar." : link.description);
+  const host = String(req.headers.host || ""); const safeHost = /^[a-z0-9.:-]+$/i.test(host) ? host : "localhost";
+  const protocol = secureCookie || String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim() === "https" ? "https" : "http";
+  const canonical = `${protocol}://${safeHost}${link.path}`;
+  const destination = target ? `/#read/${encodeURIComponent(target.book.id)}/${encodeURIComponent(target.part.id)}` : "/";
+  const image = availability.state !== "unavailable" && target && (target.part.image || target.book.coverImage); const imageMeta = image ? `<meta property="og:image" content="${htmlEscape(`${protocol}://${safeHost}${image}`)}">` : "";
+  const message = availability.state === "scheduled" ? `<p>Dieser Teil erscheint am <time id="shareRelease" datetime="${htmlEscape(availability.publishAt)}">${htmlEscape(new Intl.DateTimeFormat("de-DE", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Berlin" }).format(new Date(availability.publishAt)))}</time>.</p><p id="shareCountdown" role="timer">Countdown wird geladen…</p>` : availability.state === "published" ? `<p>Der Teil ist jetzt verfügbar. Du wirst zur Leseansicht weitergeleitet.</p><a href="${htmlEscape(destination)}">Jetzt lesen</a>` : "<p>Dieser Teil ist derzeit nicht verfügbar.</p>";
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><meta name="description" content="${description}"><meta property="og:type" content="article"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:url" content="${htmlEscape(canonical)}">${imageMeta}<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}"><meta name="robots" content="noarchive"><link rel="stylesheet" href="/styles.css?v=${encodeURIComponent(appVersion)}"></head><body class="share-page"><main class="share-card" data-state="${availability.state}" data-release="${htmlEscape(availability.publishAt || "")}" data-destination="${htmlEscape(destination)}"><p class="eyebrow">LESETEIL</p><h1>${title}</h1><p>${description}</p>${message}</main><script src="/share-page.js?v=${encodeURIComponent(appVersion)}" defer></script></body></html>`;
+}
 const publicationStatus = (entry) => ["draft", "scheduled", "published"].includes(entry?.status) ? entry.status : "published";
 const isPublished = (entry, now = Date.now()) => publicationStatus(entry) === "published" || (publicationStatus(entry) === "scheduled" && entry.publishAt && new Date(entry.publishAt).getTime() <= now);
 function normalizeDueStatuses(books) { const normalized = structuredClone(books); for (const book of normalized) { if (book.status === "scheduled" && isPublished(book)) book.status = "published"; for (const chapter of book.chapters) { if (chapter.status === "scheduled" && isPublished(chapter)) chapter.status = "published"; for (const part of chapter.parts) if (part.status === "scheduled" && isPublished(part)) part.status = "published"; } } return normalized; }
@@ -125,7 +150,9 @@ function validateBackup(value) {
       for (const part of chapter.parts) { if (!part || typeof part !== "object" || !validText(part.title, 160) || !validText(part.tldr ?? "", 3000) || !validText(part.content, 5_000_000)) invalid(); uniqueId(part.id); safeMediaPath(part.image, ""); contentSize += part.content.length; if (contentSize > 100_000_000) throw new HttpError(413, "Das Backup enthält zu viel Text."); }
     }
   }
-  if ((value.links || []).length > 8 || (value.links || []).some((link) => !link || !validText(link.label ?? "", 60) || !validText(link.url ?? "", 500))) invalid(); return value;
+  if ((value.links || []).length > 8 || (value.links || []).some((link) => !link || !validText(link.label ?? "", 60) || !validText(link.url ?? "", 500))) invalid();
+  if (value.shareLinks !== undefined) { if (!Array.isArray(value.shareLinks) || value.shareLinks.length > 50_000) invalid(); const paths = new Set(); for (const link of value.shareLinks) { if (!link || !validText(link.title, 400) || !validText(link.description, 500) || !validId(link.bookId) || !validId(link.partId)) invalid(); let path; try { path = sharePath(link.path); } catch { invalid(); } if (path !== link.path || paths.has(path)) invalid(); paths.add(path); } }
+  return value;
 }
 function backupMediaNames(library) { const names = new Set(); for (const match of JSON.stringify(library).matchAll(/\/media\/([a-f0-9]{32}\.(?:png|jpg|gif|webp|avif))/g)) names.add(match[1]); return names; }
 async function createBackupArchive(library) {
@@ -315,6 +342,25 @@ async function api(req, res, url) {
   if (req.method === "GET" && previewMatch) { const book = library.books.find((item) => !isPublished(item) && item.previewToken === previewMatch[1]); return book ? json(res, 200, { book: publicBook(book, true) }) : json(res, 404, { error: "Vorschau nicht gefunden." }); }
   if (url.pathname.startsWith("/api/admin/") && !isAdmin(req)) return json(res, 401, { error: "Admin-Anmeldung erforderlich." });
 
+  if (req.method === "GET" && url.pathname === "/api/admin/share-links") {
+    const bookId = safeText(url.searchParams.get("bookId"), 200); const partId = safeText(url.searchParams.get("partId"), 200);
+    return json(res, 200, { links: (library.shareLinks || []).filter((link) => link.partId === partId && shareTarget(library, link)?.book.id === bookId) });
+  }
+  if (req.method === "GET" && url.pathname === "/api/admin/share-links/check") {
+    const path = sharePath(url.searchParams.get("path")); const existing = (library.shareLinks || []).find((link) => link.path === path);
+    return json(res, 200, { path, available: !existing, samePart: Boolean(existing && existing.partId === url.searchParams.get("partId")) });
+  }
+  if (req.method === "POST" && url.pathname === "/api/admin/share-links") {
+    const input = await requestBody(req); const bookId = safeText(input.bookId, 200); const partId = safeText(input.partId, 200); const path = sharePath(input.path); const title = safeText(input.title, 400); const description = safeText(input.description, 500);
+    if (!title || !description) return json(res, 400, { error: "Titel und Beschreibung sind erforderlich." });
+    const target = shareTarget(library, { bookId, partId }); if (!target || target.book.id !== bookId) return json(res, 404, { error: "Teil nicht gefunden." });
+    if (shareAvailability(target).state === "unavailable") return json(res, 409, { error: "Buch, Kapitel und Teil müssen veröffentlicht oder geplant und sichtbar sein." });
+    const links = library.shareLinks ||= []; const existing = links.find((link) => link.path === path);
+    if (existing && existing.partId !== partId) return json(res, 409, { error: "Dieser Pfad wurde bereits für einen anderen Teil vergeben." });
+    if (existing) { existing.bookId = bookId; existing.title = title; existing.description = description; } else links.push({ path, bookId, partId, title, description, createdAt: new Date().toISOString() });
+    await saveLibrary(library); return json(res, existing ? 200 : 201, { link: existing || links.at(-1) });
+  }
+
   if (req.method === "GET" && url.pathname === "/api/admin/backup") return send(res, 200, await createBackupArchive(library), { "Content-Type": "application/zip", "Content-Disposition": `attachment; filename="oracreader-backup-${new Date().toISOString().slice(0, 10)}.zip"` });
   if (req.method === "PUT" && url.pathname === "/api/admin/backup") { const restored = await parseBackup(await requestBytes(req, 120_000_000)); await restoreBackup(restored); return json(res, 200, { ok: true, media: restored.media.length }); }
   if (req.method === "GET" && url.pathname === "/api/admin/backups") { const files = (await readdir(backupRoot)).filter((file) => /^library-[a-zA-Z0-9-]+\.json$/.test(file)).sort().reverse(); return json(res, 200, files.slice(0, 50)); }
@@ -400,6 +446,10 @@ createServer(async (req, res) => {
     res._acceptEncoding = String(req.headers["accept-encoding"] || "");
     if (secureCookie && String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim() === "http") { const host = req.headers["x-forwarded-host"] || req.headers.host; return send(res, 308, "HTTPS erforderlich", { Location: `https://${host}${req.url}`, "Content-Type": "text/plain; charset=utf-8" }); }
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`); if (url.pathname.startsWith("/api/")) return await (["POST", "PUT", "DELETE"].includes(req.method) ? serializeMutation(() => api(req, res, url)) : api(req, res, url));
+    if (req.method === "GET" && !url.pathname.includes(".") && url.pathname !== "/" && url.pathname !== "/admin" && url.pathname !== "/admin/") {
+      const library = await loadLibrary(); const link = (library.shareLinks || []).find((item) => item.path === url.pathname);
+      if (link) return send(res, 200, sharePage(req, link, shareTarget(library, link)), { "Content-Type": types[".html"], "Cache-Control": "no-store" });
+    }
     if (mediaPattern.test(url.pathname)) { const file = join(mediaRoot, url.pathname.slice("/media/".length)); const extension = extname(file); return send(res, 200, await readFile(file), { "Content-Type": types[extension], "Cache-Control": "public, max-age=31536000, immutable" }); }
     const fontMatch = url.pathname.match(/^\/fonts\/literata-(400|500|600)\.woff2$/); if (fontMatch) return send(res, 200, await readFile(join(fontRoot, `literata-latin-${fontMatch[1]}-normal.woff2`)), { "Content-Type": "font/woff2", "Cache-Control": "public, max-age=31536000, immutable" });
     if (url.pathname === "/vendor/marked.esm.js") return send(res, 200, await readFile(markedModule), { "Content-Type": types[".js"], "Cache-Control": "no-cache, must-revalidate" });

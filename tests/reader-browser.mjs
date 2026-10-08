@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -163,6 +163,15 @@ try {
     const partLayout = await firstPart.evaluate((node) => { const box = (selector) => node.querySelector(selector).getBoundingClientRect(); return { textRight: box(".admin-part-copy").right, statusLeft: box(".admin-part-status").left, statusRight: box(".admin-part-status").right, editLeft: box("[data-edit-part]").left, editWidth: box("[data-edit-part]").width, deleteWidth: box("[data-delete-part]").width, rowHeight: node.getBoundingClientRect().height }; });
     assert.ok(partLayout.textRight < partLayout.statusLeft && partLayout.statusRight < partLayout.editLeft, "Teile: Beschreibung, Status und Aktionen müssen in dieser Reihenfolge stehen");
     assert.equal(partLayout.editWidth, partLayout.deleteWidth, "Bearbeiten und Löschen brauchen gleich große Icon-Kästen");
+    await firstPart.locator("[data-share-part]").click();
+    await admin.locator("#adminShareDialog[open]").waitFor();
+    assert.match(await admin.locator("#adminSharePath").inputValue(), /^\/read\/buch-1\/1-1-die-erste-episode$/);
+    assert.equal(await admin.locator('#adminShareForm [name="title"]').inputValue(), "1 Ein Testbuch mit langem Titel - 1.1 Die erste Episode");
+    const suggestedDescription = await admin.locator('#adminShareForm [name="description"]').inputValue();
+    assert.ok(suggestedDescription.length <= 320 && suggestedDescription.endsWith("…") && book.description.startsWith(suggestedDescription.slice(0, 60)), "Langer Buchklappentext wird als kurzer Auszug vorgeschlagen");
+    await admin.waitForFunction(() => document.querySelector("#adminShareAvailability")?.dataset.available === "true");
+    if (process.env.SCREENSHOT_SHARE_DIALOG) await admin.locator("#adminShareDialog").screenshot({ path: process.env.SCREENSHOT_SHARE_DIALOG });
+    await admin.locator("#adminShareClose").click();
     await admin.locator(".admin-part-text").nth(1).evaluate((node) => { node.textContent += " Ein bewusst sehr langer Titel mit zusätzlichem Kontext.".repeat(30); });
     const longPart = admin.locator(".admin-part").nth(1);
     const clippedText = await longPart.locator(".admin-part-copy").evaluate((node) => ({ overflow: getComputedStyle(node).textOverflow, whiteSpace: getComputedStyle(node).whiteSpace, fontSize: getComputedStyle(node).fontSize }));
@@ -272,6 +281,28 @@ try {
     await scheduleAdmin.setViewportSize({ width: 390, height: 844 });
     assert.ok(await scheduleAdmin.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "390px: Planungsfelder dürfen mobilen Editor nicht verbreitern");
   } finally { await scheduleAdmin.close(); }
+  const fallbackData = JSON.parse(await readFile(join(dataDir, "library.json"), "utf8"));
+  const fallbackBook = fallbackData.books.find((item) => item.id === "browser-book");
+  fallbackBook.number = 4; fallbackBook.title = "Buch der Bücher"; fallbackBook.description = "";
+  fallbackBook.display = { bookNumberFormat: "pad4", chapterNumberFormat: "pad4", partNumberFormat: "pad2" };
+  const fallbackChapter = fallbackBook.chapters.find((item) => item.id === "browser-chapter");
+  fallbackChapter.number = 3; fallbackChapter.title = "Die Kindheit";
+  const fallbackPart = fallbackChapter.parts.find((item) => item.id === "browser-part");
+  fallbackPart.number = 7; fallbackPart.title = "Ein sehr langer Titel";
+  await writeFile(join(dataDir, "library.json"), `${JSON.stringify(fallbackData)}\n`);
+  const fallbackAdmin = await browser.newPage({ viewport: { width: 1440, height: 844 }, serviceWorkers: "block" });
+  try {
+    await fallbackAdmin.goto(`${origin}/admin`, { waitUntil: "domcontentloaded" });
+    await fallbackAdmin.locator('#loginForm input[name="password"]').fill("browser-test");
+    await fallbackAdmin.locator('#loginForm button[type="submit"]').click();
+    await fallbackAdmin.waitForSelector("#adminPanel:not([hidden])");
+    await fallbackAdmin.locator('[data-admin-book="browser-book"] .admin-book-summary').click();
+    await fallbackAdmin.locator('[data-admin-chapter="browser-chapter"] .chapter-visibility-button').click();
+    await fallbackAdmin.locator('[data-share-part="browser-book:browser-part"]').click();
+    await fallbackAdmin.locator("#adminShareDialog[open]").waitFor();
+    assert.equal(await fallbackAdmin.locator('#adminShareForm [name="title"]').inputValue(), "0004 Buch der Bücher - 0003.07 Ein sehr langer Titel");
+    assert.equal(await fallbackAdmin.locator('#adminShareForm [name="description"]').inputValue(), "0004 Buch der Bücher | 0003 Die Kindheit | 07 Ein sehr langer Titel");
+  } finally { await fallbackAdmin.close(); }
   console.log("Browser-Regressionsprüfung: Leser bei 280/320/390/768 px, Admin-Editor und Planungs-Roundtrip bestanden.");
 } finally {
   await browser?.close();

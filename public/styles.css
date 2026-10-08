@@ -718,6 +718,21 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
 .offline-banner { min-height: 32px; padding: 7px 16px; position: sticky; top: var(--header-height); z-index: 29; display: flex; align-items: center; justify-content: center; gap: 8px; border-bottom: 1px solid rgba(177, 114, 67, .45); color: #f4e5c9; background: #49382b; font-size: 11px; letter-spacing: .03em; }
 .offline-banner .ui-icon { width: 15px; height: 15px; }
 .install-dialog { width: min(440px, calc(100% - 28px)); padding: 34px; border: 1px solid var(--line-strong); border-radius: 2px; color: var(--ink); background: var(--surface); box-shadow: 0 24px 80px rgba(10,15,12,.3); }
+.share-admin-dialog { width: min(570px, calc(100% - 28px)); max-height: calc(100% - 28px); overflow: auto; padding: 30px; border: 1px solid var(--line-strong); color: var(--ink); background: var(--surface); box-shadow: 0 24px 80px rgba(10,15,12,.3); }
+.share-admin-dialog::backdrop { background: rgba(10,14,12,.58); }
+.share-admin-dialog h2 { margin: 4px 44px 8px 0; font: 500 28px/1.2 "Literata", Georgia, serif; }
+.share-admin-dialog label { display: grid; gap: 6px; margin: 14px 0; font-size: 13px; }
+.share-admin-dialog :is(input, textarea) { width: 100%; min-width: 0; box-sizing: border-box; }
+.share-admin-context { margin: 0 0 14px; color: var(--muted); }
+.share-admin-availability { min-height: 1.4em; margin: -5px 0 8px; font-size: 12px; color: var(--muted); }
+.share-admin-availability[data-available="true"] { color: var(--ui-active); }
+.share-admin-availability[data-available="false"] { color: var(--danger); }
+.share-admin-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.share-page { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: var(--paper); }
+.share-card { width: min(560px, 100%); padding: clamp(24px, 5vw, 54px); border: 1px solid var(--line); background: var(--surface); box-shadow: 0 18px 55px rgba(10,15,12,.12); }
+.share-card h1 { margin: 0 0 18px; font: 500 clamp(27px, 5vw, 40px)/1.2 "Literata", Georgia, serif; overflow-wrap: anywhere; }
+.share-card p { line-height: 1.6; }
+#shareCountdown { font-variant-numeric: tabular-nums; font-size: 18px; color: var(--ui-active); }
 .install-dialog::backdrop { background: rgba(10,14,12,.58); backdrop-filter: blur(2px); }
 .install-dialog h2 { margin: 4px 32px 13px 0; font: 500 28px/1.18 "Literata", Georgia, serif; }
 .install-dialog p:not(.eyebrow) { margin: 0 0 22px; color: var(--muted); line-height: 1.65; }

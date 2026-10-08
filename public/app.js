@@ -294,6 +294,56 @@ async function shareCurrent() {
   if (navigator.share) { try { await navigator.share(data); return; } catch (error) { if (error.name === "AbortError") return; } }
   await copyText(location.href); toast("Link kopiert");
 }
+const shareSlug = (value) => String(value).toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "teil";
+const shareExcerpt = (value) => { const text = String(value || "").replace(/\s+/g, " ").trim(); if (text.length <= 320) return text; const excerpt = text.slice(0, 319); return `${excerpt.slice(0, excerpt.lastIndexOf(" ") > 240 ? excerpt.lastIndexOf(" ") : 319).trimEnd()}…`; };
+let adminShareTarget = null;
+let adminShareCheckId = 0;
+let savedAdminSharePath = "";
+async function checkAdminSharePath() {
+  const form = $("#adminShareForm"); const path = form.elements.path.value.trim(); const status = $("#adminShareAvailability"); const checkId = ++adminShareCheckId;
+  if (!path) { status.textContent = "Pfad eingeben."; return; }
+  status.textContent = "Prüfe Verfügbarkeit…";
+  try {
+    const params = new URLSearchParams({ path, bookId: adminShareTarget.book.id, partId: adminShareTarget.part.id });
+    const result = await api(`/api/admin/share-links/check?${params}`);
+    if (checkId !== adminShareCheckId) return;
+    status.textContent = result.available ? "Pfad ist verfügbar." : result.samePart ? "Dieser Pfad gehört bereits zu diesem Teil und kann aktualisiert werden." : "Pfad ist bereits für einen anderen Teil vergeben.";
+    status.dataset.available = String(result.available || result.samePart);
+  } catch (error) { if (checkId === adminShareCheckId) { status.textContent = error.message; status.dataset.available = "false"; } }
+}
+async function openAdminShare(bookId, partId) {
+  const book = state.adminBooks.find((item) => item.id === bookId); const found = book && allParts(book).find(({ part }) => part.id === partId);
+  if (!found) return toast("Teil nicht gefunden.");
+  adminShareTarget = { book, ...found }; const form = $("#adminShareForm"); form.reset(); $("#adminShareError").textContent = "";
+  $("#adminShareTitle").textContent = `${term(book, "part")} teilen`;
+  $("#adminShareContext").textContent = `${book.title} · ${found.chapter.title} · ${found.part.title}`;
+  const links = (await api(`/api/admin/share-links?${new URLSearchParams({ bookId, partId })}`)).links;
+  const latest = links.at(-1);
+  form.elements.path.value = latest?.path || `/read/buch-${book.number}/${found.chapter.number}-${found.part.number}-${shareSlug(found.part.title)}`;
+  form.elements.title.value = latest?.title || `${displayNumber(book, "book", book.number)} ${book.title} - ${displayNumber(book, "chapter", found.chapter.number)}.${displayNumber(book, "part", found.part.number)} ${found.part.title}`;
+  form.elements.description.value = latest?.description || (shareExcerpt(book.description) || `${displayNumber(book, "book", book.number)} ${book.title} | ${displayNumber(book, "chapter", found.chapter.number)} ${found.chapter.title} | ${displayNumber(book, "part", found.part.number)} ${found.part.title}`);
+  savedAdminSharePath = latest?.path || ""; $("#adminShareCopy").hidden = !latest; $("#adminShareSend").hidden = !latest;
+  const allowed = [book, found.chapter, found.part].every((entry) => !entry.hidden && effectiveStatus(entry) !== "draft");
+  form.querySelector('[type="submit"]').disabled = !allowed;
+  if (!allowed) $("#adminShareError").textContent = "Buch, Kapitel und Teil müssen sichtbar und mindestens geplant sein. Du kannst den Link nach dem Planen erstellen.";
+  $("#adminShareDialog").showModal(); await checkAdminSharePath();
+}
+$("#adminShareClose").onclick = () => $("#adminShareDialog").close();
+$("#adminSharePath").addEventListener("input", () => { $("#adminShareAvailability").dataset.available = "false"; $("#adminShareCopy").hidden = true; $("#adminShareSend").hidden = true; checkAdminSharePath(); });
+$("#adminShareForm").addEventListener("input", (event) => { if (event.target.name === "title" || event.target.name === "description") { $("#adminShareCopy").hidden = true; $("#adminShareSend").hidden = true; } });
+$("#adminShareForm").onsubmit = async (event) => {
+  event.preventDefault(); const form = event.currentTarget; const error = $("#adminShareError"); error.textContent = "";
+  if (!adminShareTarget || !form.reportValidity()) return;
+  if ($("#adminShareAvailability").dataset.available !== "true") { await checkAdminSharePath(); if ($("#adminShareAvailability").dataset.available !== "true") return; }
+  setFormBusy(form, true);
+  try {
+    const body = { bookId: adminShareTarget.book.id, partId: adminShareTarget.part.id, path: form.elements.path.value.trim(), title: form.elements.title.value.trim(), description: form.elements.description.value.trim() };
+    const result = await api("/api/admin/share-links", { method: "POST", body: JSON.stringify(body) });
+    savedAdminSharePath = result.link.path; form.elements.path.value = savedAdminSharePath; $("#adminShareCopy").hidden = false; $("#adminShareSend").hidden = false; toast("Teilen-Link gespeichert");
+  } catch (failure) { error.textContent = failure.message; } finally { setFormBusy(form, false); }
+};
+$("#adminShareCopy").onclick = async () => { await copyText(new URL(savedAdminSharePath, location.origin).href); toast("Link kopiert"); };
+$("#adminShareSend").onclick = async () => { const form = $("#adminShareForm"); const data = { title: form.elements.title.value.trim(), text: form.elements.description.value.trim(), url: new URL(savedAdminSharePath, location.origin).href }; if (navigator.share) { try { await navigator.share(data); return; } catch (error) { if (error.name === "AbortError") return; } } await copyText(data.url); toast("Link kopiert"); };
 async function copyText(value) { try { await navigator.clipboard.writeText(value); } catch { const input = document.createElement("textarea"); input.value = value; document.body.append(input); input.select(); document.execCommand("copy"); input.remove(); } }
 async function copyPreviewLink(bookId) { const book = state.adminBooks.find((item) => item.id === bookId); const first = book && allParts(book)[0]; if (!book?.previewToken || !first) return toast("Für die Vorschau fehlt noch Inhalt."); const url = new URL("/", location.origin); url.hash = `preview/${book.previewToken}/${encodeURIComponent(first.part.id)}`; await copyText(url.href); toast("Kryptischen Vorschau-Link kopiert"); }
 async function saveChapterMove(sourceBookId, chapterId, targetBookId, targetChapterId = "", placeAfter = true) { const result = await api("/api/admin/chapters/move", { method: "PUT", body: JSON.stringify({ sourceBookId, chapterId, targetBookId, targetChapterId, placeAfter }) }); await load(); toast(result.sourceBecameDraft ? "Inhalt verschoben · leeres Buch ist jetzt Entwurf" : "Inhalt verschoben"); }
@@ -346,7 +396,7 @@ function renderAdmin() {
         const number = `${displayNumber(book, "chapter", chapter.number)}.${displayNumber(book, "part", part.number)}`;
         const description = `${number} · ${part.title}${release ? ` · ${release}` : ""}${part.tldr ? " · TL;DR" : ""}`;
         const actionName = `${partLabel} ${number} · ${part.title}`;
-        return `<div class="admin-part"><span class="admin-part-copy" tabindex="0" title="${escapeHtml(description)}" aria-label="${escapeHtml(description)}"><span class="admin-part-text">${escapeHtml(description)}</span></span>${adminPartStatusIcon(book, chapter, part)}<div class="admin-row-actions"><button class="icon-button edit-action" data-edit-part="${escapeHtml(book.id)}:${escapeHtml(part.id)}" aria-label="${escapeHtml(actionName)} bearbeiten" title="Bearbeiten">${iconSvg("edit")}</button><button class="icon-button danger-action" data-delete-part="${escapeHtml(book.id)}:${escapeHtml(part.id)}" aria-label="${escapeHtml(actionName)} löschen" title="Löschen">${iconSvg("trash")}</button></div></div>`;
+        return `<div class="admin-part"><span class="admin-part-copy" tabindex="0" title="${escapeHtml(description)}" aria-label="${escapeHtml(description)}"><span class="admin-part-text">${escapeHtml(description)}</span></span>${adminPartStatusIcon(book, chapter, part)}<div class="admin-row-actions"><button class="icon-button" data-share-part="${escapeHtml(book.id)}:${escapeHtml(part.id)}" aria-label="${escapeHtml(actionName)} teilen" title="Teilen-Link erstellen">${iconSvg("share")}</button><button class="icon-button edit-action" data-edit-part="${escapeHtml(book.id)}:${escapeHtml(part.id)}" aria-label="${escapeHtml(actionName)} bearbeiten" title="Bearbeiten">${iconSvg("edit")}</button><button class="icon-button danger-action" data-delete-part="${escapeHtml(book.id)}:${escapeHtml(part.id)}" aria-label="${escapeHtml(actionName)} löschen" title="Löschen">${iconSvg("trash")}</button></div></div>`;
       }).join("");
       return `<section class="admin-chapter" draggable="true" data-admin-chapter="${escapeHtml(chapter.id)}" data-admin-chapter-book="${escapeHtml(book.id)}"><div class="admin-chapter-head"><span class="drag-handle" title="${escapeHtml(chapterLabel)} ziehen" aria-hidden="true">${iconSvg("grip")}</span><div class="admin-chapter-main"><div class="admin-chapter-title"><b>${escapeHtml(chapterLabel.toLocaleUpperCase("de"))} ${displayNumber(book, "chapter", chapter.number)} · ${escapeHtml(chapter.title)}</b><small>${chapter.parts.length} ${escapeHtml(term(book, "part", chapter.parts.length))}${chapter.releasedAt ? ` · Release ${formatDate(chapter.releasedAt)}` : ""}${chapter.tldr ? " · TL;DR" : ""}</small></div><div class="admin-chapter-controls"><button class="chapter-visibility-button collapse-toggle" data-collapse-key="${escapeHtml(key)}" aria-expanded="${String(!collapsed)}" aria-controls="${contentId}">${iconSvg("arrow-down")}<span class="visually-hidden" data-collapse-label>${collapsed ? "Teile anzeigen" : "Teile ausblenden"}</span></button><div class="admin-row-actions">${transfer}<button data-edit-chapter="${escapeHtml(book.id)}:${escapeHtml(chapter.id)}">Bearbeiten</button><button data-add-part="${escapeHtml(book.id)}:${escapeHtml(chapter.id)}">${iconSvg("add")}<span>${escapeHtml(partLabel)}</span></button><button class="icon-button danger-action" data-delete-chapter="${escapeHtml(book.id)}:${escapeHtml(chapter.id)}" aria-label="${escapeHtml(chapterLabel)} löschen">${iconSvg("trash")}</button></div></div></div></div><div class="admin-parts" id="${contentId}"${collapsed ? " hidden" : ""}>${partsMarkup}</div></section>`;
     }).join("");
@@ -370,6 +420,7 @@ function renderAdmin() {
       if (button.dataset.addChapter) return editChapter(button.dataset.addChapter);
       if (button.dataset.editChapter) { const [bookId, chapterId] = button.dataset.editChapter.split(":"); return editChapter(bookId, chapterId); }
       if (button.dataset.addPart) { const [bookId, chapterId] = button.dataset.addPart.split(":"); return editPart(bookId, "", chapterId); }
+      if (button.dataset.sharePart) { const [bookId, partId] = button.dataset.sharePart.split(":"); return openAdminShare(bookId, partId); }
       if (button.dataset.editPart) { const [bookId, partId] = button.dataset.editPart.split(":"); return editPart(bookId, partId); }
       if (button.dataset.deleteBook) { const book = state.adminBooks.find((item) => item.id === button.dataset.deleteBook); if (book && confirm(`„${book.title}“ samt sämtlichen Inhalten endgültig löschen?`)) { await api(`/api/admin/books/${encodeURIComponent(book.id)}`, { method: "DELETE" }); closeEditors(); await load(); toast(`${term(book, "book")} gelöscht`); } }
       if (button.dataset.deleteChapter) { const [bookId, chapterId] = button.dataset.deleteChapter.split(":"); const book = state.adminBooks.find((item) => item.id === bookId); const chapter = book?.chapters.find((item) => item.id === chapterId); const label = term(book, "chapter"); if (chapter && confirm(`„${label} ${displayNumber(book, "chapter", chapter.number)} · ${chapter.title}“ samt sämtlichen Inhalten endgültig löschen?`)) { await api(`/api/admin/books/${encodeURIComponent(bookId)}/chapters/${encodeURIComponent(chapterId)}`, { method: "DELETE" }); closeEditors(); await load(); toast(`${label} gelöscht`); } }

@@ -64,7 +64,7 @@ async function synchronizedBook(request) {
 
 async function navigationResponse(request) {
   const cache = await caches.open(SHELL_CACHE);
-  try { const network = await fetch(new Request(request, { cache: "no-store" })); if (network.ok) await cache.put("/", network.clone()); return network; }
+  try { const network = await fetch(new Request(request, { cache: "no-store" })); if (network.ok && new URL(request.url).pathname === "/") await cache.put("/", network.clone()); return network; }
   catch { return (await cache.match("/")) || Response.error(); }
 }
 
