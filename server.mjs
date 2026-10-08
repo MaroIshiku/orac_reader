@@ -151,7 +151,7 @@ function validateBackup(value) {
     }
   }
   if ((value.links || []).length > 8 || (value.links || []).some((link) => !link || !validText(link.label ?? "", 60) || !validText(link.url ?? "", 500))) invalid();
-  if (value.shareLinks !== undefined) { if (!Array.isArray(value.shareLinks) || value.shareLinks.length > 50_000) invalid(); const paths = new Set(); for (const link of value.shareLinks) { if (!link || !validText(link.title, 400) || !validText(link.description, 500) || !validId(link.bookId) || !validId(link.partId)) invalid(); let path; try { path = sharePath(link.path); } catch { invalid(); } if (path !== link.path || paths.has(path)) invalid(); paths.add(path); } }
+  if (value.shareLinks !== undefined) { if (!Array.isArray(value.shareLinks) || value.shareLinks.length > 50_000) invalid(); const paths = new Set(); for (const link of value.shareLinks) { if (!link || !validText(link.title, 400) || typeof link.description !== "string" || !validId(link.bookId) || !validId(link.partId)) invalid(); let path; try { path = sharePath(link.path); } catch { invalid(); } if (path !== link.path || paths.has(path)) invalid(); paths.add(path); } }
   return value;
 }
 function backupMediaNames(library) { const names = new Set(); for (const match of JSON.stringify(library).matchAll(/\/media\/([a-f0-9]{32}\.(?:png|jpg|gif|webp|avif))/g)) names.add(match[1]); return names; }
@@ -351,7 +351,7 @@ async function api(req, res, url) {
     return json(res, 200, { path, available: !existing, samePart: Boolean(existing && existing.partId === url.searchParams.get("partId")) });
   }
   if (req.method === "POST" && url.pathname === "/api/admin/share-links") {
-    const input = await requestBody(req); const bookId = safeText(input.bookId, 200); const partId = safeText(input.partId, 200); const path = sharePath(input.path); const title = safeText(input.title, 400); const description = safeText(input.description, 500);
+    const input = await requestBody(req); const bookId = safeText(input.bookId, 200); const partId = safeText(input.partId, 200); const path = sharePath(input.path); const title = safeText(input.title, 400); const description = String(input.description ?? "").trim();
     if (!title || !description) return json(res, 400, { error: "Titel und Beschreibung sind erforderlich." });
     const target = shareTarget(library, { bookId, partId }); if (!target || target.book.id !== bookId) return json(res, 404, { error: "Teil nicht gefunden." });
     if (shareAvailability(target).state === "unavailable") return json(res, 409, { error: "Buch, Kapitel und Teil müssen veröffentlicht oder geplant und sichtbar sein." });

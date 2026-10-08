@@ -167,8 +167,7 @@ try {
     await admin.locator("#adminShareDialog[open]").waitFor();
     assert.match(await admin.locator("#adminSharePath").inputValue(), /^\/read\/buch-1\/1-1-die-erste-episode$/);
     assert.equal(await admin.locator('#adminShareForm [name="title"]').inputValue(), "1 Ein Testbuch mit langem Titel - 1.1 Die erste Episode");
-    const suggestedDescription = await admin.locator('#adminShareForm [name="description"]').inputValue();
-    assert.ok(suggestedDescription.length <= 320 && suggestedDescription.endsWith("…") && book.description.startsWith(suggestedDescription.slice(0, 60)), "Langer Buchklappentext wird als kurzer Auszug vorgeschlagen");
+    assert.equal(await admin.locator('#adminShareForm [name="description"]').inputValue(), book.description.trim(), "Der vollständige Buchklappentext wird vorgeschlagen");
     await admin.waitForFunction(() => document.querySelector("#adminShareAvailability")?.dataset.available === "true");
     if (process.env.SCREENSHOT_SHARE_DIALOG) await admin.locator("#adminShareDialog").screenshot({ path: process.env.SCREENSHOT_SHARE_DIALOG });
     await admin.locator("#adminShareClose").click();

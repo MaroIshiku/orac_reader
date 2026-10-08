@@ -295,7 +295,6 @@ async function shareCurrent() {
   await copyText(location.href); toast("Link kopiert");
 }
 const shareSlug = (value) => String(value).toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "teil";
-const shareExcerpt = (value) => { const text = String(value || "").replace(/\s+/g, " ").trim(); if (text.length <= 320) return text; const excerpt = text.slice(0, 319); return `${excerpt.slice(0, excerpt.lastIndexOf(" ") > 240 ? excerpt.lastIndexOf(" ") : 319).trimEnd()}…`; };
 let adminShareTarget = null;
 let adminShareCheckId = 0;
 let savedAdminSharePath = "";
@@ -321,7 +320,7 @@ async function openAdminShare(bookId, partId) {
   const latest = links.at(-1);
   form.elements.path.value = latest?.path || `/read/buch-${book.number}/${found.chapter.number}-${found.part.number}-${shareSlug(found.part.title)}`;
   form.elements.title.value = latest?.title || `${displayNumber(book, "book", book.number)} ${book.title} - ${displayNumber(book, "chapter", found.chapter.number)}.${displayNumber(book, "part", found.part.number)} ${found.part.title}`;
-  form.elements.description.value = latest?.description || (shareExcerpt(book.description) || `${displayNumber(book, "book", book.number)} ${book.title} | ${displayNumber(book, "chapter", found.chapter.number)} ${found.chapter.title} | ${displayNumber(book, "part", found.part.number)} ${found.part.title}`);
+  form.elements.description.value = latest?.description || (book.description?.trim() || `${displayNumber(book, "book", book.number)} ${book.title} | ${displayNumber(book, "chapter", found.chapter.number)} ${found.chapter.title} | ${displayNumber(book, "part", found.part.number)} ${found.part.title}`);
   savedAdminSharePath = latest?.path || ""; $("#adminShareCopy").hidden = !latest; $("#adminShareSend").hidden = !latest;
   const allowed = [book, found.chapter, found.part].every((entry) => !entry.hidden && effectiveStatus(entry) !== "draft");
   form.querySelector('[type="submit"]').disabled = !allowed;
