@@ -3,7 +3,7 @@ const SHELL_CACHE = `oracle-shell-${BUILD}`;
 const DATA_CACHE = "oracle-synchronized-archive-v1";
 const MEDIA_CACHE = "oracle-read-media-v1";
 const OFFLINE_LIBRARY = "/api/offline-library";
-const SHELL = ["/", "/styles.css", "/app.js", "/library-view.js", "/markdown.js", "/markdown-config.js", "/vendor/marked.esm.js", "/navigation.js", "/read-status.js", "/manifest.webmanifest", "/oracle-logo.png", "/pwa-icon-192.png", "/pwa-icon-512.png", "/fonts/literata-400.woff2", "/fonts/literata-500.woff2", "/fonts/literata-600.woff2"];
+const SHELL = ["/", "/styles.css", "/app.js", "/push-client.js", "/library-view.js", "/markdown.js", "/markdown-config.js", "/vendor/marked.esm.js", "/navigation.js", "/read-status.js", "/manifest.webmanifest", "/oracle-logo.png", "/pwa-icon-192.png", "/pwa-icon-512.png", "/fonts/literata-400.woff2", "/fonts/literata-500.woff2", "/fonts/literata-600.woff2"];
 const shellPath = (path) => /\.(?:css|js)$/.test(path) ? `${path}?v=${encodeURIComponent(BUILD)}` : path;
 
 self.addEventListener("install", (event) => {
@@ -24,6 +24,25 @@ self.addEventListener("activate", (event) => {
     const obsoleteShells = keys.filter((key) => key.startsWith("oracle-shell-") && key !== SHELL_CACHE);
     await Promise.all(obsoleteShells.map((key) => caches.delete(key)));
     await self.clients.claim();
+  })());
+});
+
+self.addEventListener("push", (event) => {
+  let message = {};
+  try { message = event.data?.json() || {}; } catch {}
+  const destination = new URL(message.url || "/", self.location.origin);
+  if (destination.origin !== self.location.origin) destination.href = self.location.origin;
+  event.waitUntil(self.registration.showNotification(message.title || "Neuer Leseteil verfügbar", { body: message.body || "Ein neuer Teil ist erschienen.", icon: "/pwa-icon-192.png", badge: "/pwa-icon-192.png", tag: message.tag || "release", data: { url: destination.href } }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const destination = event.notification.data?.url || self.location.origin;
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const open = windows.find((client) => { const url = new URL(client.url); return url.origin === self.location.origin && url.pathname === "/"; });
+    if (open) { await open.navigate(destination); return open.focus(); }
+    return self.clients.openWindow(destination);
   })());
 });
 

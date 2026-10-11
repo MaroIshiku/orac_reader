@@ -51,6 +51,12 @@ Danach mit `docker compose pull && docker compose up -d` starten. Verwendet wird
 
 Der persistente Stand liegt auf dem Host in `./data-runtime` und bleibt bei Containerupdates erhalten.
 
+### Freiwillige Release-Benachrichtigungen
+
+Leser können im Header alle Bücher oder einzelne Bücher abonnieren. Auf einem redaktionell erzeugten Countdown-Link lässt sich zusätzlich eine einmalige Erinnerung für genau diesen Teil einschalten. Eine Berechtigungsabfrage erscheint erst nach einem Klick auf eine Abo-Option. Auf iPhone und iPad muss die Website dafür als App zum Home-Bildschirm hinzugefügt sein.
+
+Der Server prüft neue öffentliche Teile alle 30 Sekunden. Push-Schlüssel und Geräte-Abos liegen getrennt von den Buchdaten als `push-keys.json` und `push-subscriptions.json` im persistenten Datenverzeichnis. Diese Dateien nicht löschen, wenn bestehende Abos erhalten bleiben sollen; sie sind nicht Teil des Buch-Backups und gehören nicht ins Repository. Ohne Benutzerkonten gelten Abos jeweils für den verwendeten Browser beziehungsweise die installierte App. Optional kann `PUSH_VAPID_SUBJECT` auf eine eigene HTTPS-Kontaktadresse oder `mailto:`-Adresse gesetzt werden; standardmäßig verweist der VAPID-Kontakt auf dieses GitHub-Projekt.
+
 ## Veröffentlichung
 
 Pushes auf `main` veröffentlichen automatisch ein Multi-Arch-Image für AMD64 und ARM64 in der GitHub Container Registry. Neben `latest` wird ein unveränderlicher `sha-…`-Tag erzeugt.

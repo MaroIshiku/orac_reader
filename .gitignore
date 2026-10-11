@@ -2,3 +2,6 @@ node_modules/
 npm-debug.log*
 .env
 data-runtime/
+data/push-keys.json
+data/push-subscriptions.json
+data/push-subscriptions.json.*.tmp

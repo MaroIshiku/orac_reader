@@ -40,6 +40,12 @@ try {
     try {
       await page.goto(`${origin}/#read/browser-book/browser-part`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector("#readerView:not([hidden])");
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${width}px: Header darf die mobile Seite nicht verbreitern`);
+      await page.locator("#notificationMenu > summary").click();
+      assert.equal(await page.locator("#notificationMenu").getAttribute("open"), "", `${width}px: Benachrichtigungsmenü muss erreichbar sein`);
+      await page.waitForSelector("#pushBookChoices input");
+      assert.equal(await page.locator("#pushBookChoices input").count(), 1, `${width}px: nur öffentliche Bücher dürfen als Abo-Auswahl erscheinen`);
+      await page.locator("#notificationMenu > summary").click();
       await page.evaluate(() => document.fonts.ready);
       if (width === 390) {
         const leading = await page.locator("#storyContent").evaluate((node) => ({ size: parseFloat(getComputedStyle(node).fontSize), line: parseFloat(getComputedStyle(node).lineHeight) }));
@@ -282,7 +288,18 @@ try {
     assert.equal(await scheduleAdmin.locator('#partForm [name="publishTime"]').inputValue(), "13:45", "Planungszeit muss nach Speichern unverändert sein");
     await scheduleAdmin.setViewportSize({ width: 390, height: 844 });
     assert.ok(await scheduleAdmin.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "390px: Planungsfelder dürfen mobilen Editor nicht verbreitern");
+    const shareCreated = await scheduleAdmin.evaluate(() => fetch("/api/admin/share-links", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bookId: "browser-book", partId: "browser-part-2", path: "/read/browser-planned", title: "Geplanter Testteil", description: "Erinnerungstest" }) }).then((response) => response.status));
+    assert.equal(shareCreated, 201);
   } finally { await scheduleAdmin.close(); }
+  const countdownPage = await browser.newPage({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
+  try {
+    const pageErrors = []; countdownPage.on("pageerror", (error) => pageErrors.push(error.message));
+    await countdownPage.goto(`${origin}/read/browser-planned`, { waitUntil: "domcontentloaded" });
+    await countdownPage.waitForFunction(() => document.querySelector("#shareCountdown")?.textContent.startsWith("Noch "));
+    assert.equal(await countdownPage.locator(".share-card").getAttribute("data-state"), "scheduled");
+    assert.equal(await countdownPage.locator("#shareReminder").isVisible(), true, "Countdown-Seite muss die einmalige Erinnerung anbieten");
+    assert.deepEqual(pageErrors, []);
+  } finally { await countdownPage.close(); }
   const fallbackData = JSON.parse(await readFile(join(dataDir, "library.json"), "utf8"));
   const fallbackBook = fallbackData.books.find((item) => item.id === "browser-book");
   fallbackBook.number = 4; fallbackBook.title = "Buch der Bücher"; fallbackBook.description = "";

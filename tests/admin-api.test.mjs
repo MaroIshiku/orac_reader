@@ -31,7 +31,7 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
   });
 
   try {
-    for (let attempt = 0; attempt < 40; attempt += 1) {
+    for (let attempt = 0; attempt < 120; attempt += 1) {
       try { if ((await fetch(`${origin}/api/library`)).ok) break; } catch {}
       await new Promise((resolve) => setTimeout(resolve, 50));
     }

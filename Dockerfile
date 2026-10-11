@@ -4,7 +4,7 @@ WORKDIR /app
 RUN apk add --no-cache su-exec
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
-COPY server.mjs exports.mjs ./
+COPY server.mjs exports.mjs push.mjs ./
 COPY public ./public
 COPY data ./data
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

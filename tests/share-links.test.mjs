@@ -22,7 +22,7 @@ test("Redaktionslinks bleiben eindeutig, zeigen geplante Teile nur als Countdown
   const port = 43000 + Math.floor(Math.random() * 1000); const origin = `http://127.0.0.1:${port}`;
   const server = spawn(process.execPath, ["server.mjs"], { cwd: root, env: { ...process.env, DATA_DIR: dataDir, PORT: String(port), ADMIN_PASSWORD: "share-test", COOKIE_SECURE: "false" }, stdio: "ignore" });
   try {
-    for (let attempt = 0; attempt < 50; attempt += 1) { try { if ((await fetch(`${origin}/api/health`)).ok) break; } catch {} await new Promise((resolve) => setTimeout(resolve, 50)); }
+    for (let attempt = 0; attempt < 120; attempt += 1) { try { if ((await fetch(`${origin}/api/health`)).ok) break; } catch {} await new Promise((resolve) => setTimeout(resolve, 50)); }
     const login = await fetch(`${origin}/api/login`, { method: "POST", headers: { "Content-Type": "application/json", Origin: origin }, body: JSON.stringify({ password: "share-test" }) });
     assert.equal(login.status, 200); const cookie = login.headers.get("set-cookie").split(";")[0];
     const headers = { "Content-Type": "application/json", Origin: origin, Cookie: cookie };
@@ -36,8 +36,20 @@ test("Redaktionslinks bleiben eindeutig, zeigen geplante Teile nur als Countdown
     assert.equal((await create("part-a", "/admin/anderer-pfad")).status, 400);
     const page = await fetch(`${origin}/read/buch-1/1-1-erster-teil`); const html = await page.text();
     assert.equal(page.status, 200); assert.match(html, /data-state="scheduled"/); assert.match(html, /shareCountdown/);
+    assert.match(html, /An diesen Teil erinnern/);
     assert.match(html, /Eigener &lt;Titel&gt;/); assert.ok(html.includes(`content="${longDescription}"`));
     assert.doesNotMatch(html, /GEHEIMER ENTWURFSTEXT/);
+    const pushConfig = await (await fetch(`${origin}/api/push/config`)).json();
+    assert.match(pushConfig.publicKey, /^[A-Za-z0-9_-]{80,120}$/);
+    const subscription = { endpoint: "https://fcm.googleapis.com/fcm/send/share-test", keys: { p256dh: "A".repeat(87), auth: "B".repeat(22) } };
+    const push = (body) => fetch(`${origin}/api/push/subscription`, { method: "POST", headers: { "Content-Type": "application/json", Origin: origin }, body: JSON.stringify({ subscription, ...body }) });
+    assert.equal((await push({ scope: "part", enabled: true, path: "/nicht-vorhanden" })).status, 404);
+    assert.equal((await push({ scope: "part", enabled: true, path: "/read/buch-1/1-1-erster-teil" })).status, 200);
+    assert.equal((await push({ scope: "book", enabled: true, bookId: "book" })).status, 200);
+    assert.equal((await push({ scope: "all", enabled: true })).status, 200);
+    const pushStatus = await (await fetch(`${origin}/api/push/status`, { method: "POST", headers: { "Content-Type": "application/json", Origin: origin }, body: JSON.stringify({ subscription }) })).json();
+    assert.deepEqual(pushStatus, { all: true, books: ["book"], parts: ["part-a"] });
+    assert.equal((await push({ scope: "part", enabled: false, path: "/read/buch-1/1-1-erster-teil" })).status, 200);
     const publicLibrary = await (await fetch(`${origin}/api/library`)).json();
     assert.equal(publicLibrary.books[0].chapters[0].parts.some((part) => part.id === "part-a"), false);
     assert.equal(Object.hasOwn(publicLibrary, "shareLinks"), false);

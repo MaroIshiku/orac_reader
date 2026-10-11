@@ -47,6 +47,7 @@
     <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 14 7-7 7 7"></path></symbol>
     <symbol id="i-install" viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"></path></symbol>
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"></path></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M5 17h14l-2-2V9a5 5 0 0 0-10 0v6l-2 2ZM10 20h4"></path></symbol>
     <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M7 4h10v17l-5-3-5 3z"></path></symbol>
     <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6"></path></symbol>
     <symbol id="i-offline" viewBox="0 0 24 24"><path d="M4 9.5A12 12 0 0 1 12 6c3.1 0 5.9 1.2 8 3.2M7.5 13a7.2 7.2 0 0 1 4.5-1.6c1.1 0 2.2.3 3.1.7M11.7 17.5h.6M3 3l18 18"></path></symbol>
@@ -60,6 +61,16 @@
     <details class="mobile-link-menu mobile-only" id="mobileLinkMenu">
       <summary aria-label="Externe Links öffnen"><svg class="ui-icon"><use href="#i-link"></use></svg><span>Links</span></summary>
       <nav id="mobileLinks" aria-label="Externe Links"></nav>
+    </details>
+    <details class="notification-menu" id="notificationMenu">
+      <summary class="quiet-button" aria-label="Benachrichtigungen einstellen" title="Benachrichtigungen einstellen"><svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg><span>Benachrichtigungen</span></summary>
+      <div class="notification-panel">
+        <strong>Neue Releases</strong>
+        <p>Freiwillige Benachrichtigungen auf diesem Gerät. Wähle alle Bücher oder nur bestimmte aus.</p>
+        <label class="notification-choice"><input id="pushAllBooks" type="checkbox"><span>Alle Bücher</span></label>
+        <div id="pushBookChoices" class="notification-books"></div>
+        <p class="notification-feedback" id="pushFeedback" role="status"></p>
+      </div>
     </details>
     <button class="quiet-button install-button" id="installButton" aria-label="App installieren" title="App installieren" hidden><svg class="ui-icon" aria-hidden="true"><use href="#i-install"></use></svg><span>App</span></button>
     <a class="quiet-button" id="adminOpen" href="/admin">Admin</a>

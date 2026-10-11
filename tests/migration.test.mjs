@@ -30,10 +30,12 @@ test("die vier ursprünglichen Oracle-Akten werden verlustfrei zu einem Buch mig
   const server = spawn(process.execPath, ["server.mjs"], { cwd: root, env: { ...process.env, DATA_DIR: dataDir, PORT: String(port), ADMIN_PASSWORD: "migration-test" }, stdio: "ignore" });
 
   try {
-    for (let attempt = 0; attempt < 40; attempt += 1) {
-      try { if ((await fetch(`${origin}/api/library`)).ok) break; } catch {}
+    let ready = false;
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      try { ready = (await fetch(`${origin}/api/library`)).ok; if (ready) break; } catch {}
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
+    assert.ok(ready, "Der lokale Migrationsserver muss starten");
     const migrated = JSON.parse(await readFile(join(dataDir, "library.json"), "utf8"));
     assert.equal(migrated.schemaVersion, 14);
     assert.deepEqual(migrated.links, [{ label: "Community", url: "https://example.com" }]);

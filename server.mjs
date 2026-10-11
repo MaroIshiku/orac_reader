@@ -6,6 +6,7 @@ import { extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from "node:zlib";
 import JSZip from "jszip";
+import { createPushService, validatePushSubscription } from "./push.mjs";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const publicRoot = join(root, "public");
@@ -23,12 +24,15 @@ const secureCookie = process.env.COOKIE_SECURE === "true";
 const trustedProxyHops = Math.max(0, Number(process.env.TRUST_PROXY_HOPS) || 0);
 const revokedSessions = new Map();
 const attempts = new Map();
+const pushAttempts = new Map();
 let mutationQueue = Promise.resolve();
 const derivePassword = promisify(scrypt);
 let activeExports = 0;
 const exportWaiters = [];
 const exportCache = new Map();
 let exportCacheBytes = 0;
+const pushService = createPushService(dataRoot);
+let pushAvailable = false;
 
 class HttpError extends Error { constructor(status, message) { super(message); this.status = status; } }
 function serializeMutation(task) { const next = mutationQueue.then(task, task); mutationQueue = next.catch(() => undefined); return next; }
@@ -96,6 +100,20 @@ function shareAvailability(target) {
   const dates = entries.filter((entry) => !isPublished(entry)).map((entry) => new Date(entry.publishAt).getTime());
   return dates.some((date) => !Number.isFinite(date)) ? { state: "unavailable" } : dates.length ? { state: "scheduled", publishAt: new Date(Math.max(...dates)).toISOString() } : { state: "published" };
 }
+function visiblePushParts(library) {
+  const parts = [];
+  for (const book of library.books) {
+    if (book.hidden || !isPublished(book)) continue;
+    for (const chapter of book.chapters) {
+      if (chapter.hidden || !isPublished(chapter)) continue;
+      for (const part of chapter.parts) {
+        if (part.hidden || !isPublished(part)) continue;
+        parts.push({ id: part.id, bookId: book.id, title: `${book.title} · ${part.title}`, url: `/#read/${encodeURIComponent(book.id)}/${encodeURIComponent(part.id)}` });
+      }
+    }
+  }
+  return parts;
+}
 function sharePage(req, link, target) {
   const availability = shareAvailability(target); const title = htmlEscape(availability.state === "unavailable" ? "Teil derzeit nicht verfügbar" : link.title); const description = htmlEscape(availability.state === "unavailable" ? "Dieser Leseteil ist derzeit nicht verfügbar." : link.description);
   const host = String(req.headers.host || ""); const safeHost = /^[a-z0-9.:-]+$/i.test(host) ? host : "localhost";
@@ -103,8 +121,8 @@ function sharePage(req, link, target) {
   const canonical = `${protocol}://${safeHost}${link.path}`;
   const destination = target ? `/#read/${encodeURIComponent(target.book.id)}/${encodeURIComponent(target.part.id)}` : "/";
   const image = availability.state !== "unavailable" && target && (target.part.image || target.book.coverImage); const imageMeta = image ? `<meta property="og:image" content="${htmlEscape(`${protocol}://${safeHost}${image}`)}">` : "";
-  const message = availability.state === "scheduled" ? `<p>Dieser Teil erscheint am <time id="shareRelease" datetime="${htmlEscape(availability.publishAt)}">${htmlEscape(new Intl.DateTimeFormat("de-DE", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Berlin" }).format(new Date(availability.publishAt)))}</time>.</p><p id="shareCountdown" role="timer">Countdown wird geladen…</p>` : availability.state === "published" ? `<p>Der Teil ist jetzt verfügbar. Du wirst zur Leseansicht weitergeleitet.</p><a href="${htmlEscape(destination)}">Jetzt lesen</a>` : "<p>Dieser Teil ist derzeit nicht verfügbar.</p>";
-  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><meta name="description" content="${description}"><meta property="og:type" content="article"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:url" content="${htmlEscape(canonical)}">${imageMeta}<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}"><meta name="robots" content="noarchive"><link rel="stylesheet" href="/styles.css?v=${encodeURIComponent(appVersion)}"></head><body class="share-page"><main class="share-card" data-state="${availability.state}" data-release="${htmlEscape(availability.publishAt || "")}" data-destination="${htmlEscape(destination)}"><p class="eyebrow">LESETEIL</p><h1>${title}</h1><p>${description}</p>${message}</main><script src="/share-page.js?v=${encodeURIComponent(appVersion)}" defer></script></body></html>`;
+  const message = availability.state === "scheduled" ? `<p>Dieser Teil erscheint am <time id="shareRelease" datetime="${htmlEscape(availability.publishAt)}">${htmlEscape(new Intl.DateTimeFormat("de-DE", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Berlin" }).format(new Date(availability.publishAt)))}</time>.</p><p id="shareCountdown" role="timer">Countdown wird geladen…</p><div class="share-reminder"><button class="secondary-button" id="shareReminder" type="button">An diesen Teil erinnern</button><small id="shareReminderStatus" role="status">Einmalige Benachrichtigung auf diesem Gerät, wenn der Teil erscheint.</small></div>` : availability.state === "published" ? `<p>Der Teil ist jetzt verfügbar. Du wirst zur Leseansicht weitergeleitet.</p><a href="${htmlEscape(destination)}">Jetzt lesen</a>` : "<p>Dieser Teil ist derzeit nicht verfügbar.</p>";
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><meta name="description" content="${description}"><meta property="og:type" content="article"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:url" content="${htmlEscape(canonical)}">${imageMeta}<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}"><meta name="robots" content="noarchive"><link rel="stylesheet" href="/styles.css?v=${encodeURIComponent(appVersion)}"></head><body class="share-page"><main class="share-card" data-state="${availability.state}" data-release="${htmlEscape(availability.publishAt || "")}" data-destination="${htmlEscape(destination)}" data-part-id="${htmlEscape(target?.part.id || "")}"><p class="eyebrow">LESETEIL</p><h1>${title}</h1><p>${description}</p>${message}</main><script type="module" src="/share-page.js?v=${encodeURIComponent(appVersion)}"></script></body></html>`;
 }
 const publicationStatus = (entry) => ["draft", "scheduled", "published"].includes(entry?.status) ? entry.status : "published";
 const isPublished = (entry, now = Date.now()) => publicationStatus(entry) === "published" || (publicationStatus(entry) === "scheduled" && entry.publishAt && new Date(entry.publishAt).getTime() <= now);
@@ -210,6 +228,7 @@ async function restoreBackup(restored) {
     if (!content) throw new HttpError(400, `Im Backup fehlt das referenzierte Bild ${name}.`); const temporary = join(mediaRoot, `.${name}.${randomBytes(4).toString("hex")}.tmp`); await writeFile(temporary, content); await rename(temporary, destination); installed.push(destination);
   }
   try { await saveLibrary(restored.library); } catch (error) { await Promise.all(installed.map((path) => unlink(path).catch(() => undefined))); throw error; }
+  if (pushAvailable) await pushService.baseline(visiblePushParts(restored.library));
 }
 async function migrateLibrary() {
   const library = await loadLibrary(); let changed = false; const schemaVersion = Number(library.schemaVersion) || 1;
@@ -349,6 +368,34 @@ async function api(req, res, url) {
   if (req.method === "POST" && url.pathname === "/api/logout") { const token = parseCookies(req).oracle_reader_session; const expires = sessionExpiry(token); if (expires > Date.now()) revokedSessions.set(token, expires); return json(res, 200, { ok: true }, { "Set-Cookie": "oracle_reader_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0" }); }
   if (req.method === "GET" && url.pathname === "/api/session") return json(res, 200, { admin: isAdmin(req) });
   const library = await loadLibrary();
+  if (url.pathname.startsWith("/api/push/") && !pushAvailable) return json(res, 503, { error: "Benachrichtigungen sind derzeit nicht verfügbar." });
+  if (req.method === "GET" && url.pathname === "/api/push/config") return json(res, 200, { publicKey: pushService.publicKey() });
+  if (req.method === "POST" && ["/api/push/status", "/api/push/subscription"].includes(url.pathname)) {
+    const input = await requestBody(req, 5000);
+    let subscription;
+    try { subscription = validatePushSubscription(input.subscription); } catch (error) { return json(res, 400, { error: error.message }); }
+    if (url.pathname === "/api/push/status") return json(res, 200, pushService.status(subscription));
+    const address = clientAddress(req); const now = Date.now(); const rate = pushAttempts.get(address) || { count: 0, since: now };
+    if (now - rate.since > 300_000) { rate.count = 0; rate.since = now; }
+    if (rate.count >= 60) return json(res, 429, { error: "Zu viele Abo-Änderungen. Bitte später erneut versuchen." });
+    rate.count += 1; pushAttempts.set(address, rate);
+    const scope = input.scope;
+    if (!["all", "book", "part"].includes(scope) || typeof input.enabled !== "boolean") return json(res, 400, { error: "Ungültige Benachrichtigungsauswahl." });
+    let targetId = "";
+    if (scope === "book") {
+      const book = library.books.find((item) => item.id === input.bookId && isPublished(item) && !item.hidden);
+      if (!book) return json(res, 404, { error: "Buch nicht gefunden." });
+      targetId = book.id;
+    }
+    if (scope === "part") {
+      const link = (library.shareLinks || []).find((item) => item.path === input.path);
+      const target = link && shareTarget(library, link);
+      if (!target || (input.enabled && shareAvailability(target).state !== "scheduled")) return json(res, 404, { error: "Diese Erinnerung ist nicht mehr verfügbar." });
+      targetId = target.part.id;
+    }
+    try { return json(res, 200, await pushService.setScope(subscription, scope, input.enabled, targetId)); }
+    catch (error) { return json(res, 400, { error: error.message }); }
+  }
   if (req.method === "GET" && ["/api/library", "/api/offline-library"].includes(url.pathname)) { const admin = isAdmin(req); library.books.forEach(syncReleaseDates); const fullBooks = library.books.filter((book) => isPublished(book) && !book.hidden).map((book) => publicBook(book)).filter(hasContent); const books = url.pathname === "/api/library" && !admin ? fullBooks.map(catalogBook) : fullBooks; return json(res, 200, { books, ...(admin ? { adminBooks: normalizeDueStatuses(library.books) } : {}), links: library.links || [], settings: library.settings || { numberDigits: 4 }, nextPublishAt: nextPublication(library.books), admin, version: appVersion }); }
   const publicBookMatch = url.pathname.match(/^\/api\/books\/([^/]+)$/);
   if (req.method === "GET" && publicBookMatch) { const source = library.books.find((item) => item.id === decodeURIComponent(publicBookMatch[1]) && isPublished(item) && !item.hidden); const book = source && publicBook(source); return book && hasContent(book) ? json(res, 200, { book }) : json(res, 404, { error: "Buch nicht gefunden." }); }
@@ -391,7 +438,7 @@ async function api(req, res, url) {
   if (req.method === "PUT" && url.pathname === "/api/admin/backup") { const restored = await parseBackup(await requestBytes(req, 120_000_000)); await restoreBackup(restored); return json(res, 200, { ok: true, media: restored.media.length }); }
   if (req.method === "GET" && url.pathname === "/api/admin/backups") { const files = (await readdir(backupRoot)).filter((file) => /^library-[a-zA-Z0-9-]+\.json$/.test(file)).sort().reverse(); return json(res, 200, files.slice(0, 50)); }
   const restoreMatch = url.pathname.match(/^\/api\/admin\/backups\/(library-[a-zA-Z0-9-]+\.json)\/restore$/);
-  if (req.method === "POST" && restoreMatch) { const restored = validateBackup(JSON.parse(await readFile(join(backupRoot, restoreMatch[1]), "utf8"))); await saveLibrary(restored); return json(res, 200, { ok: true }); }
+  if (req.method === "POST" && restoreMatch) { const restored = validateBackup(JSON.parse(await readFile(join(backupRoot, restoreMatch[1]), "utf8"))); await saveLibrary(restored); if (pushAvailable) await pushService.baseline(visiblePushParts(restored)); return json(res, 200, { ok: true }); }
 
   if (req.method === "POST" && url.pathname === "/api/admin/media") {
     const bytes = await requestBytes(req); const extension = imageExtension(bytes);
@@ -474,7 +521,13 @@ async function api(req, res, url) {
 
 await ensureData();
 await migrateLibrary();
-const cleanupTimer = setInterval(() => { const now = Date.now(); for (const [token, expires] of revokedSessions) if (expires < now) revokedSessions.delete(token); for (const [address, entry] of attempts) if (now - entry.updatedAt > 300_000 && entry.until < now) attempts.delete(address); }, 300_000);
+try {
+  await pushService.init(visiblePushParts(await loadLibrary())); pushAvailable = true;
+  const pushTimer = setInterval(() => { loadLibrary().then((library) => pushService.scan(visiblePushParts(library))).catch((error) => console.error("Benachrichtigungsprüfung fehlgeschlagen:", error)); }, 30_000);
+  pushTimer.unref();
+  pushService.scan(visiblePushParts(await loadLibrary())).catch((error) => console.error("Benachrichtigungsprüfung fehlgeschlagen:", error));
+} catch (error) { console.error("Benachrichtigungen konnten nicht gestartet werden:", error); }
+const cleanupTimer = setInterval(() => { const now = Date.now(); for (const [token, expires] of revokedSessions) if (expires < now) revokedSessions.delete(token); for (const [address, entry] of attempts) if (now - entry.updatedAt > 300_000 && entry.until < now) attempts.delete(address); for (const [address, entry] of pushAttempts) if (now - entry.since > 300_000) pushAttempts.delete(address); }, 300_000);
 cleanupTimer.unref();
 createServer(async (req, res) => {
   try {

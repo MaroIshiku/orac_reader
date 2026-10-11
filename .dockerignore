@@ -1,4 +1,7 @@
 data-runtime
+data/push-keys.json
+data/push-subscriptions.json
+data/push-subscriptions.json.*.tmp
 .env
 .git
 node_modules

@@ -88,6 +88,19 @@ button:disabled { cursor: default; opacity: .48; }
   background: transparent;
 }
 .quiet-button:hover, .secondary-button:hover, .tool-button:hover, .icon-button:hover { border-color: var(--accent); color: var(--accent); }
+.notification-menu { position: relative; }
+.notification-menu > summary { display: inline-flex; align-items: center; gap: 7px; list-style: none; cursor: pointer; }
+.notification-menu > summary::-webkit-details-marker { display: none; }
+.notification-menu[open] > summary { border-color: var(--ui-active); color: var(--ui-active); }
+.notification-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(350px, calc(100vw - 20px)); max-height: calc(100dvh - var(--header-height) - 18px); overflow-y: auto; padding: 18px; border: 1px solid var(--line-strong); background: var(--surface); box-shadow: var(--shadow); font-size: 13px; }
+.notification-panel > strong { display: block; margin-bottom: 7px; font-size: 15px; }
+.notification-panel p { margin: 0 0 12px; color: var(--muted); line-height: 1.45; }
+.notification-panel .notification-feedback { min-height: 1.4em; margin: 12px 0 0; }
+.notification-books { max-height: min(260px, 35dvh); overflow-y: auto; border-top: 1px solid var(--line); }
+.notification-choice { display: flex; align-items: center; gap: 10px; min-height: 42px; padding: 7px 0; cursor: pointer; }
+.notification-choice + .notification-choice { border-top: 1px solid var(--line); }
+.notification-choice input { width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--ui-active); }
+.notification-choice span { overflow-wrap: anywhere; }
 #adminOpen { display: inline-flex; align-items: center; text-decoration: none; }
 .install-button { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
 .with-icon { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
@@ -733,6 +746,8 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
 .share-card h1 { margin: 0 0 18px; font: 500 clamp(27px, 5vw, 40px)/1.2 "Literata", Georgia, serif; overflow-wrap: anywhere; }
 .share-card p { line-height: 1.6; }
 #shareCountdown { font-variant-numeric: tabular-nums; font-size: 18px; color: var(--ui-active); }
+.share-reminder { display: grid; justify-items: start; gap: 8px; margin-top: 18px; }
+.share-reminder small { color: var(--muted); line-height: 1.4; }
 .install-dialog::backdrop { background: rgba(10,14,12,.58); backdrop-filter: blur(2px); }
 .install-dialog h2 { margin: 4px 32px 13px 0; font: 500 28px/1.18 "Literata", Georgia, serif; }
 .install-dialog p:not(.eyebrow) { margin: 0 0 22px; color: var(--muted); line-height: 1.65; }
@@ -761,6 +776,9 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
   .quiet-button { min-height: 38px; padding: 7px 10px; }
   .install-button { padding-left: 8px; padding-right: 8px; }
   .install-button span { display: none; }
+  .notification-menu > summary { min-width: 44px; min-height: 44px; justify-content: center; padding: 7px; }
+  .notification-menu > summary span { display: none; }
+  .notification-panel { position: fixed; right: 10px; top: calc(var(--header-height) + 4px); }
   .archive-register { margin: 18px 16px 0; grid-template-columns: 1fr; gap: 5px; }
   .archive-register span:last-child { display: none; }
   .home-shelves { margin: 28px 16px 0; grid-template-columns: 1fr; gap: 22px; }
@@ -903,8 +921,7 @@ body.admin-route > .site-header, body.admin-route > .offline-banner, body.admin-
 @media (max-width: 360px) {
   .reader-setting-row:has(.theme-picker) { flex-wrap: wrap; padding: 8px 0; gap: 6px; }
   .reader-settings-panel .theme-picker { width: 100%; justify-content: space-between; }
-  .wordmark b { font-size: 11px; }
-  .wordmark small { display: none; }
+  .site-header .wordmark > span:last-child { display: none; }
   .mobile-link-menu summary span { display: none; }
   .library-sort { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .library-sort label { grid-template-columns: 1fr; gap: 4px; }

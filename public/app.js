@@ -2,6 +2,7 @@ import { cardDestination, readerHash } from "/navigation.js?v=__APP_VERSION__";
 import { aggregateRead, nextGroupRead } from "/read-status.js?v=__APP_VERSION__";
 import { renderMarkdown } from "/markdown.js?v=__APP_VERSION__";
 import { findStructureResults, findTextResults, sortBooks, sortReaderChapters } from "/library-view.js?v=__APP_VERSION__";
+import { pushStatus, pushSupportMessage, setPushScope } from "/push-client.js?v=__APP_VERSION__";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -107,8 +108,37 @@ const sidebarTldr = (chapterId, chapterLabel) => `<details class="tldr sidebar-t
 async function load() {
   const data = await api("/api/library"); state.books = data.books; state.adminBooks = data.adminBooks || []; state.links = data.links; state.settings = data.settings || { numberDigits: 4 }; state.version = data.version || "development"; state.admin = data.admin; state.offline = data.offline === true; state.offlineSyncedAt = data.offlineSyncedAt || storageGet("oracle-offline-synced-at") || ""; state.nextPublishAt = data.nextPublishAt || null; updateConnectionStatus(); migrateConsolidatedBookStorage(state.books);
   state.previewBook = null; state.previewToken = ""; const preview = location.hash.match(/^#?preview\/([a-zA-Z0-9_-]{24,80})\//); if (preview) { try { state.previewBook = (await api(`/api/preview/${preview[1]}`)).book; state.previewToken = preview[1]; } catch {} }
-  renderLinks(); renderLibrary(); renderHomeShelves(); renderAdmin(); route(); schedulePublicationRefresh();
+  renderLinks(); renderLibrary(); renderHomeShelves(); renderAdmin(); route(); schedulePublicationRefresh(); if ("open" in $("#notificationMenu") && $("#notificationMenu").open) renderNotificationChoices();
 }
+let notificationStatus = { all: false, books: [], parts: [] };
+function renderNotificationChoices() {
+  $("#pushAllBooks").checked = notificationStatus.all;
+  const container = $("#pushBookChoices"); container.replaceChildren();
+  for (const book of state.books) {
+    const label = document.createElement("label"); label.className = "notification-choice";
+    const input = document.createElement("input"); input.type = "checkbox"; input.dataset.pushBook = book.id; input.checked = notificationStatus.books.includes(book.id);
+    const name = document.createElement("span"); name.textContent = `${displayNumber(book, "book", book.number)} · ${book.title}`;
+    label.append(input, name); container.append(label);
+  }
+  if (!state.books.length) container.textContent = "Noch keine veröffentlichten Bücher.";
+}
+$("#notificationMenu").addEventListener("toggle", async () => {
+  if (!$("#notificationMenu").open) return;
+  const support = pushSupportMessage();
+  $("#pushFeedback").textContent = support || "Lade Abo-Status…";
+  renderNotificationChoices();
+  if (pushSupportMessage(false)) return;
+  try { notificationStatus = await pushStatus(); renderNotificationChoices(); $("#pushFeedback").textContent = support || "Benachrichtigungen können jederzeit hier abbestellt werden."; }
+  catch (error) { $("#pushFeedback").textContent = error.message; }
+});
+$("#notificationMenu").addEventListener("change", async (event) => {
+  const input = event.target.closest("#pushAllBooks, [data-push-book]"); if (!input) return;
+  input.disabled = true; $("#pushFeedback").textContent = "Speichere Auswahl…";
+  try {
+    notificationStatus = await setPushScope(input.id === "pushAllBooks" ? "all" : "book", input.checked, input.dataset.pushBook || "");
+    renderNotificationChoices(); $("#pushFeedback").textContent = input.checked ? "Benachrichtigungen aktiviert." : "Benachrichtigung abbestellt.";
+  } catch (error) { renderNotificationChoices(); $("#pushFeedback").textContent = error.message; }
+});
 let publicationTimer = 0;
 function schedulePublicationRefresh() { clearTimeout(publicationTimer); const delay = new Date(state.nextPublishAt).getTime() - Date.now(); if (Number.isFinite(delay) && delay > 0) publicationTimer = setTimeout(() => load().catch(updateConnectionStatus), Math.min(delay + 1000, 2_147_000_000)); }
 function updateConnectionStatus() {
