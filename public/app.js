@@ -345,6 +345,18 @@ $("#adminShareCopy").onclick = async () => { await copyText(new URL(savedAdminSh
 $("#adminShareSend").onclick = async () => { const form = $("#adminShareForm"); const data = { title: form.elements.title.value.trim(), text: form.elements.description.value.trim(), url: new URL(savedAdminSharePath, location.origin).href }; if (navigator.share) { try { await navigator.share(data); return; } catch (error) { if (error.name === "AbortError") return; } } await copyText(data.url); toast("Link kopiert"); };
 async function copyText(value) { try { await navigator.clipboard.writeText(value); } catch { const input = document.createElement("textarea"); input.value = value; document.body.append(input); input.select(); document.execCommand("copy"); input.remove(); } }
 async function copyPreviewLink(bookId) { const book = state.adminBooks.find((item) => item.id === bookId); const first = book && allParts(book)[0]; if (!book?.previewToken || !first) return toast("Für die Vorschau fehlt noch Inhalt."); const url = new URL("/", location.origin); url.hash = `preview/${book.previewToken}/${encodeURIComponent(first.part.id)}`; await copyText(url.href); toast("Kryptischen Vorschau-Link kopiert"); }
+async function downloadAdminBookMarkdown(bookId) {
+  const book = state.adminBooks.find((item) => item.id === bookId);
+  if (!book) throw new Error("Buch nicht gefunden.");
+  const response = await fetch(`/api/admin/books/${encodeURIComponent(bookId)}/markdown.zip`);
+  if (!response.ok) { const result = await response.json().catch(() => ({})); throw new Error(result.error || "Der Buch-Download ist fehlgeschlagen."); }
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  const filename = encodedName ? decodeURIComponent(encodedName) : `${book.title}.zip`;
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a"); link.href = url; link.download = filename; document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
 async function saveChapterMove(sourceBookId, chapterId, targetBookId, targetChapterId = "", placeAfter = true) { const result = await api("/api/admin/chapters/move", { method: "PUT", body: JSON.stringify({ sourceBookId, chapterId, targetBookId, targetChapterId, placeAfter }) }); await load(); toast(result.sourceBecameDraft ? "Inhalt verschoben · leeres Buch ist jetzt Entwurf" : "Inhalt verschoben"); }
 function adminStatus(book, chapter = null, part = null) {
   const target = part || chapter || book; const targetName = part ? term(book, "part") : chapter ? term(book, "chapter") : term(book, "book");
@@ -401,7 +413,7 @@ function renderAdmin() {
     }).join("");
     const preview = book.status === "published" || !partCount(book) ? "" : `<button data-preview-book="${escapeHtml(book.id)}">${iconSvg("eye")}<span>Vorschau-Link</span></button>`;
     const collapsed = isCollapsed("admin-book", book.id); const contentId = `admin-book-content-${bookIndex}`; const key = collapseKey("admin-book", book.id);
-    return `<article class="admin-entry" data-admin-book="${escapeHtml(book.id)}"><header class="admin-book"><button class="admin-book-summary collapse-toggle" data-collapse-key="${escapeHtml(key)}" aria-expanded="${String(!collapsed)}" aria-controls="${contentId}">${iconSvg("arrow-down")}<span>${adminStatusMarkup(book)}<b>${displayNumber(book, "book", book.number)} · ${escapeHtml(book.title)}</b><small>${book.status === "scheduled" ? `Geplant ${formatDate(book.publishAt)} · ` : ""}${book.chapters.length} ${escapeHtml(term(book, "chapter", book.chapters.length))} · ${partCount(book)} ${escapeHtml(term(book, "part", partCount(book)))}${book.releasedAt ? ` · Letztes Release ${formatDate(book.releasedAt)}` : ""}</small></span></button><div class="admin-row-actions">${preview}<button data-edit-book="${escapeHtml(book.id)}">Bearbeiten</button><button data-add-chapter="${escapeHtml(book.id)}">${iconSvg("add")}<span>${escapeHtml(chapterLabel)}</span></button><button class="icon-button danger-action" data-delete-book="${escapeHtml(book.id)}" aria-label="${escapeHtml(bookLabel)} löschen">${iconSvg("trash")}</button></div></header><div class="admin-chapters" id="${contentId}"${collapsed ? " hidden" : ""}>${chapters || `<p class="admin-empty">Noch keine ${escapeHtml(term(book, "chapter", 2))} angelegt.</p>`}</div></article>`;
+    return `<article class="admin-entry" data-admin-book="${escapeHtml(book.id)}"><header class="admin-book"><button class="admin-book-summary collapse-toggle" data-collapse-key="${escapeHtml(key)}" aria-expanded="${String(!collapsed)}" aria-controls="${contentId}">${iconSvg("arrow-down")}<span>${adminStatusMarkup(book)}<b>${displayNumber(book, "book", book.number)} · ${escapeHtml(book.title)}</b><small>${book.status === "scheduled" ? `Geplant ${formatDate(book.publishAt)} · ` : ""}${book.chapters.length} ${escapeHtml(term(book, "chapter", book.chapters.length))} · ${partCount(book)} ${escapeHtml(term(book, "part", partCount(book)))}${book.releasedAt ? ` · Letztes Release ${formatDate(book.releasedAt)}` : ""}</small></span></button><div class="admin-row-actions">${preview}<button data-download-book-md="${escapeHtml(book.id)}" title="Alle Kapitel und Teile als Markdown-ZIP herunterladen">${iconSvg("download")}<span>MD-ZIP</span></button><button data-edit-book="${escapeHtml(book.id)}">Bearbeiten</button><button data-add-chapter="${escapeHtml(book.id)}">${iconSvg("add")}<span>${escapeHtml(chapterLabel)}</span></button><button class="icon-button danger-action" data-delete-book="${escapeHtml(book.id)}" aria-label="${escapeHtml(bookLabel)} löschen">${iconSvg("trash")}</button></div></header><div class="admin-chapters" id="${contentId}"${collapsed ? " hidden" : ""}>${chapters || `<p class="admin-empty">Noch keine ${escapeHtml(term(book, "chapter", 2))} angelegt.</p>`}</div></article>`;
   }).join("") : `<p class="admin-empty">Für diesen Status wurden keine Inhalte gefunden.</p>`;
   list.querySelectorAll(".admin-part").forEach((row) => {
     const copy = row.querySelector(".admin-part-copy"); const text = row.querySelector(".admin-part-text");
@@ -415,6 +427,7 @@ function renderAdmin() {
     try {
       if (button.dataset.collapseKey) return toggleCollapse(button);
       if (button.dataset.editBook) return editArchive(button.dataset.editBook);
+      if (button.dataset.downloadBookMd) return await downloadAdminBookMarkdown(button.dataset.downloadBookMd);
       if (button.dataset.previewBook) return copyPreviewLink(button.dataset.previewBook);
       if (button.dataset.addChapter) return editChapter(button.dataset.addChapter);
       if (button.dataset.editChapter) { const [bookId, chapterId] = button.dataset.editChapter.split(":"); return editChapter(bookId, chapterId); }

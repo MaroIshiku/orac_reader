@@ -132,6 +132,9 @@ try {
     await admin.locator('#loginForm input[name="password"]').fill("browser-test");
     await admin.locator('#loginForm button[type="submit"]').click();
     await admin.waitForSelector("#adminPanel:not([hidden])");
+    const markdownDownloadPromise = admin.waitForEvent("download");
+    await admin.locator('[data-admin-book="browser-book"] [data-download-book-md]').click();
+    assert.equal((await markdownDownloadPromise).suggestedFilename(), "Ein Testbuch mit langem Titel.zip", "Der Buch-Download muss den Buchtitel tragen");
     assert.equal(await admin.locator(".admin-book-summary").first().getAttribute("aria-expanded"), "false", "Redaktion: Bücher müssen standardmäßig eingeklappt sein");
     await admin.locator(".admin-book-summary").first().click();
     assert.equal(await admin.locator(".chapter-visibility-button").first().getAttribute("aria-expanded"), "false", "Redaktion: Kapitel müssen standardmäßig eingeklappt sein");

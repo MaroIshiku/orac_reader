@@ -160,6 +160,32 @@ async function createBackupArchive(library) {
   for (const name of backupMediaNames(library)) { try { zip.file(`media/${name}`, await readFile(join(mediaRoot, name))); } catch (error) { if (error?.code === "ENOENT") throw new HttpError(409, `Das referenzierte Bild ${name} fehlt auf dem Server.`); throw error; } }
   return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE", compressionOptions: { level: 6 } });
 }
+function archiveName(value, fallback) {
+  const name = String(value ?? "").normalize("NFC").replace(/[\\/:*?"<>|\x00-\x1f\x7f]/g, " - ").replace(/\s+/g, " ").replace(/^[. ]+|[. ]+$/g, "").slice(0, 120).replace(/[. ]+$/g, "");
+  return /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(name) ? `_${name}` : name || fallback;
+}
+function uniqueArchiveName(name, used) {
+  let candidate = name;
+  for (let index = 2; used.has(candidate.toLocaleLowerCase("de")); index += 1) candidate = `${name} (${index})`;
+  used.add(candidate.toLocaleLowerCase("de"));
+  return candidate;
+}
+async function createMarkdownBookArchive(book) {
+  const zip = new JSZip();
+  const folders = new Set();
+  const chapters = [...book.chapters].sort((a, b) => (a.order ?? a.number) - (b.order ?? b.number));
+  for (const chapter of chapters) {
+    const chapterNumber = String(chapter.number).padStart(2, "0");
+    const folderName = uniqueArchiveName(archiveName(`${chapterNumber} - ${chapter.title}`, chapterNumber), folders);
+    const folder = zip.folder(folderName);
+    const files = new Set();
+    for (const part of [...chapter.parts].sort((a, b) => a.number - b.number)) {
+      const fileName = uniqueArchiveName(archiveName(`Episode ${part.number} - ${part.title}`, `Episode ${part.number}`), files);
+      folder.file(`${fileName}.md`, part.content);
+    }
+  }
+  return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE", compressionOptions: { level: 6 } });
+}
 async function parseBackup(bytes) {
   if (bytes.subarray(0, 2).toString("binary") !== "PK") { try { return { library: validateBackup(JSON.parse(bytes.toString("utf8"))), media: [] }; } catch (error) { if (error instanceof HttpError) throw error; throw new HttpError(400, "Diese Datei ist kein gültiges OracReader-Backup."); } }
   let zip; try { zip = await JSZip.loadAsync(bytes); } catch { throw new HttpError(400, "Das Backup-Archiv ist beschädigt."); }
@@ -375,6 +401,15 @@ async function api(req, res, url) {
   }
 
   if (req.method === "POST" && url.pathname === "/api/admin/books") { const book = validateBook(await requestBody(req)); if (book.status !== "draft") return json(res, 409, { error: "Ein neuer Archiveintrag muss vor dem Veröffentlichen mindestens einen Teil enthalten." }); if (library.books.some((item) => item.number === book.number)) return json(res, 409, { error: "Diese offizielle Nummer ist bereits vergeben." }); library.books.unshift(book); await saveLibrary(library); return json(res, 201, book); }
+  const markdownBookMatch = url.pathname.match(/^\/api\/admin\/books\/([^/]+)\/markdown\.zip$/);
+  if (req.method === "GET" && markdownBookMatch) {
+    const markdownBook = library.books.find((item) => item.id === decodeURIComponent(markdownBookMatch[1]));
+    if (!markdownBook) return json(res, 404, { error: "Archiveintrag nicht gefunden." });
+    const filename = `${archiveName(markdownBook.title, "Buch")}.zip`;
+    const asciiFilename = filename.replace(/[^\x20-\x7e]/g, "_");
+    const archive = await limitedExport(() => createMarkdownBookArchive(markdownBook));
+    return send(res, 200, archive, { "Content-Type": "application/zip", "Content-Disposition": `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodeURIComponent(filename)}`, "Content-Length": archive.length });
+  }
   const bookMatch = url.pathname.match(/^\/api\/admin\/books\/([^/]+)$/); const book = bookMatch ? library.books.find((item) => item.id === decodeURIComponent(bookMatch[1])) : null;
   if (bookMatch && !book) return json(res, 404, { error: "Archiveintrag nicht gefunden." });
   if (req.method === "PUT" && bookMatch) { const updated = validateBook(await requestBody(req), book); if (library.books.some((item) => item !== book && item.number === updated.number)) return json(res, 409, { error: "Diese offizielle Nummer ist bereits vergeben." }); if (updated.status !== "draft" && !hasReleasableContent(updated)) return json(res, 409, { error: "Ein Buch benötigt mindestens ein freigegebenes oder geplantes Kapitel mit einem freigegebenen oder geplanten Teil." }); if (updated.status === "published") delete book.previewToken; Object.assign(book, updated); await saveLibrary(library); return json(res, 200, book); }

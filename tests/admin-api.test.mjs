@@ -62,6 +62,16 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     const chapter = book.chapters.find((item) => item.id === "test-chapter");
     const part = chapter.parts[0];
 
+    assert.equal((await fetch(`${origin}/api/admin/books/${book.id}/markdown.zip`)).status, 401);
+    assert.equal((await fetch(`${origin}/api/admin/books/missing/markdown.zip`, { headers })).status, 404);
+    const markdownResponse = await fetch(`${origin}/api/admin/books/${book.id}/markdown.zip`, { headers });
+    assert.equal(markdownResponse.status, 200);
+    assert.equal(markdownResponse.headers.get("content-type"), "application/zip");
+    assert.match(markdownResponse.headers.get("content-disposition"), /Testbuch\.zip/);
+    const markdownArchive = await JSZip.loadAsync(await markdownResponse.arrayBuffer());
+    assert.equal(await markdownArchive.file("00 - Testkapitel/Episode 1 - Testepisode.md").async("string"), "Neutraler Testinhalt.");
+    assert.equal(await markdownArchive.file("01 - Kontrollkapitel/Episode 1 - Kontrollepisode.md").async("string"), "Weiterer neutraler Testinhalt.");
+
     const bookEpub = await fetch(`${origin}/api/export/epub/book/${book.id}`);
     assert.equal(bookEpub.status, 200);
     assert.equal(bookEpub.headers.get("content-type"), "application/epub+zip");
@@ -139,6 +149,11 @@ test("Kapitel 0 sowie getrennte Kapitel- und Teil-TL;DR bleiben über die Admin-
     assert.equal(publicPartIds.includes(draftPart.id), false);
     assert.equal(publicPartIds.includes(scheduledPart.id), false);
     assert.equal(publicPartIds.includes(releasedPart.id), true);
+    const completeMarkdownResponse = await fetch(`${origin}/api/admin/books/${book.id}/markdown.zip`, { headers });
+    assert.equal(completeMarkdownResponse.status, 200);
+    const completeMarkdownArchive = await JSZip.loadAsync(await completeMarkdownResponse.arrayBuffer());
+    assert.equal(await completeMarkdownArchive.file("00 - Testkapitel/Episode 2 - Teil-Entwurf.md").async("string"), "Dieser Inhalt bleibt zunächst in der Redaktion.");
+    assert.equal(await completeMarkdownArchive.file("00 - Testkapitel/Episode 3 - Geplanter Teil.md").async("string"), "Dieser Inhalt erscheint später.");
     const scheduledAdminLibrary = await (await fetch(`${origin}/api/library`, { headers })).json();
     const editorialPartIds = scheduledAdminLibrary.adminBooks.find((item) => item.id === book.id).chapters.flatMap((item) => item.parts).map((item) => item.id);
     assert.equal(editorialPartIds.includes(draftPart.id), true);
